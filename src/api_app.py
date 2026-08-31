@@ -656,8 +656,8 @@ class ShelterRecord(BaseModel):
 
 def _shelter_metrics(latitude: float, longitude: float,
                      design: dict) -> dict | None:
-    """Predicted hot-week comfort for a shelter design at a location
-    (same sourced RC engine the simulator uses; never fabricated)."""
+    """Predicted hot-week comfort + climate zone for a shelter design at a
+    location (same sourced RC engine the simulator uses; never fabricated)."""
     try:
         weather, source, _ = get_weather_cached(
             latitude, longitude, int(CFG["climate"]["data_year"]),
@@ -691,6 +691,8 @@ def _shelter_metrics(latitude: float, longitude: float,
               for k, v in st.items()}
         st["period"] = "hot_week"
         st["weather_source"] = source
+        st["zone"] = _location_profile(weather).get("zone")
+        st["zone_name"] = _ZONE_NAMES.get(st["zone"], st["zone"])
         return st
     except Exception as exc:
         return {"error": str(exc)}
@@ -762,6 +764,258 @@ def shelters_delete(shelter_id: str, request: Request):
         raise HTTPException(404, "shelter not found")
     STORE.delete_shelter(shelter_id)
     return {"deleted": shelter_id}
+
+
+# --------------------------------------------------------------------------
+# location profiling + site-adapted shelter design
+# --------------------------------------------------------------------------
+_ZONE_NAMES = {"hot_dry": "HOT-DRY", "warm_humid": "WARM-HUMID",
+               "composite": "COMPOSITE", "temperate": "TEMPERATE",
+               "cold": "COLD"}
+
+_ZONE_GUIDANCE = {
+    "hot_dry": [
+        "High thermal-mass walls and roof to damp the large diurnal swing",
+        "Insulate the roof and west-facing wall; keep exterior light-coloured",
+        "Small windows on north/south with shading — avoid west glazing",
+        "Night-time ventilation to flush stored heat (high diurnal range)",
+        "Minimise solar aperture during the day (shading devices, overhangs)",
+    ],
+    "warm_humid": [
+        "Shade every glazed opening — direct sun is the main heat source",
+        "Maximise cross-ventilation; keep ACH high (moisture + heat removal)",
+        "Moderate insulation only — avoid trapping humidity with heavy mass",
+        "Ventilated / elevated roof construction to shed solar gain",
+        "Light-coloured, reflective exterior surfaces",
+    ],
+    "composite": [
+        "Thermal mass + insulation for the long hot-dry season",
+        "Design for strong cross-ventilation during the monsoon humidity",
+        "North/south glazing with shading; avoid east/west apertures",
+        "Insulated roof is the single most effective measure",
+        "Operable openings for seasonal ventilation control",
+    ],
+    "temperate": [
+        "South-facing glazing to harvest winter solar gain",
+        "Moderate insulation; lightweight construction is acceptable",
+        "Shade summer sun with fixed overhangs sized for the season",
+        "Small diurnal range — thermal mass matters less than solar control",
+    ],
+    "cold": [
+        "Insulate the whole envelope heavily (walls + roof + floor edge)",
+        "South-facing glazing for passive solar gain; limit north apertures",
+        "Low air-change rate — minimise infiltration and heat loss",
+        "Use a better glazing if available (lower U-value)",
+    ],
+}
+
+
+def _location_profile(weather: pd.DataFrame) -> dict:
+    """Characterize a site from its real hourly weather series.
+    Zone classification follows an NBC 2016 / ECBC 2017-style climatic-zones
+    approximation using monthly mean temperature + annual mean humidity;
+    every other indicator (degree-days, diurnal range, solar, wind, rain)
+    is computed directly from the same sourced hourly data — nothing is
+    fabricated or averaged across data sources.
+    """
+    df = weather
+    t = df["t2m"].dropna() if "t2m" in df else pd.Series(dtype=float)
+    rh = df["rh2m"].dropna() if "rh2m" in df else pd.Series(dtype=float)
+    ghi = df["ghi"].dropna() if "ghi" in df else pd.Series(dtype=float)
+    ws = df["ws10m"].dropna() if "ws10m" in df else pd.Series(dtype=float)
+    pr = df["precip"].dropna() if "precip" in df else pd.Series(dtype=float)
+
+    monthly = df.resample("ME").mean(numeric_only=True) if len(df) > 720 else df
+    t_hot = float(monthly["t2m"].max()) if "t2m" in monthly else float(t.max())
+    t_cold = float(monthly["t2m"].min()) if "t2m" in monthly else float(t.min())
+    rh_ann = float(rh.mean()) if len(rh) else 0.0
+
+    # zone rules (documented approximation of NBC 2016 / ECBC 2017)
+    if t_cold <= 14.0:
+        zone = "cold"
+    elif t_hot >= 30.0 and rh_ann < 50.0:
+        zone = "hot_dry"
+    elif t_hot >= 27.0 and rh_ann >= 65.0:
+        zone = "warm_humid"
+    elif t_hot < 30.0 and rh_ann < 65.0:
+        zone = "temperate"
+    else:
+        zone = "composite"
+
+    daily = df.resample("D").agg(tmax=("t2m", "max"), tmin=("t2m", "min")) \
+        if "t2m" in df else pd.DataFrame({"tmax": [], "tmin": []})
+    diurnal = float((daily["tmax"] - daily["tmin"]).mean()) if len(daily) else 0.0
+
+    hdd = float(((18.0 - t).clip(lower=0)).sum() / 24.0) if len(t) else 0.0
+    cdd = float(((t - 18.0).clip(lower=0)).sum() / 24.0) if len(t) else 0.0
+
+    wet_hours = float((pr > 0.1).mean() * 100.0) if len(pr) else 0.0
+    monsoon_share = 0.0
+    if len(pr):
+        wet_mask = pr > 0.1
+        if wet_mask.any():
+            monsoon_share = float(
+                pr[wet_mask & (pr.index.month.isin([6, 7, 8, 9]))].size
+                / wet_mask.sum() * 100.0)
+
+    return {
+        "zone": zone,
+        "zone_name": _ZONE_NAMES[zone],
+        "n_hours": int(len(df)),
+        "t_mean_c": round(float(t.mean()), 2) if len(t) else None,
+        "t_hottest_month_c": round(t_hot, 2),
+        "t_coldest_month_c": round(t_cold, 2),
+        "diurnal_range_c": round(diurnal, 2),
+        "hdd18": round(hdd, 1),
+        "cdd18": round(cdd, 1),
+        "rh_mean_pct": round(rh_ann, 1),
+        "ghi_mean_w_m2": round(float(ghi.mean()), 1) if len(ghi) else None,
+        "wind_mean_ms": round(float(ws.mean()), 2) if len(ws) else None,
+        "wet_hours_pct": round(wet_hours, 1),
+        "monsoon_share_pct": round(monsoon_share, 1),
+        "guidance": _ZONE_GUIDANCE[zone],
+    }
+
+
+def _recommend_design(profile: dict, mats: pd.DataFrame,
+                      current: dict | None = None) -> dict:
+    """Physics-informed design prescription for the site's climate zone.
+    Concrete values come from the sourced materials table and config ranges;
+    predicted performance is validated by the RC engine (see /api/location/
+    recommend), never asserted by the rule table itself.
+    """
+    zone = profile["zone"]
+    table = {
+        # zone: ins mat, ins mm, wall mat, wall m, roof mat, win wall, win size, ach
+        "hot_dry":    ("eps", 100, "brick", 0.23, "rcc_slab", "north", (0.8, 0.8), 6.0),
+        "warm_humid": ("eps", 50, "brick", 0.20, "rcc_slab", "north", (1.0, 1.0), 10.0),
+        "composite":  ("eps", 75, "brick", 0.23, "rcc_slab", "north", (1.0, 1.0), 8.0),
+        "temperate":  ("eps", 40, "brick", 0.20, "rcc_slab", "south", (1.2, 1.2), 4.0),
+        "cold":       ("xps", 100, "brick", 0.23, "rcc_slab", "south", (1.2, 1.2), 1.5),
+    }[zone]
+    ins_mat, ins_mm, wall_mat, wall_m, roof_mat, win_wall, win_size, ach = table
+
+    # guard: only recommend materials that exist in the sourced table
+    if ins_mat not in mats.index:
+        ins_mat = "eps"
+    if wall_mat not in mats.index:
+        wall_mat = "brick"
+    if roof_mat not in mats.index:
+        roof_mat = "rcc_slab"
+
+    cur = current or {}
+    design = {
+        "length_m": cur.get("length_m") or 3.0,
+        "width_m": cur.get("width_m") or 3.0,
+        "height_m": cur.get("height_m") or 2.6,
+        "orientation_deg": 0,
+        "wall_material": wall_mat, "wall_thickness_m": wall_m,
+        "roof_material": roof_mat, "roof_thickness_m": 0.12,
+        "floor_material": cur.get("floor_material") or "concrete",
+        "floor_thickness_m": cur.get("floor_thickness_m") or 0.1,
+        "insulation_material": ins_mat,
+        "insulation_thickness_m": ins_mm / 1000.0,
+        "window_wall": win_wall,
+        "window_width_m": win_size[0], "window_height_m": win_size[1],
+        "window_sill_m": 0.9, "window_shgc": 0.82, "window_u_w_m2k": 5.8,
+        "ach": ach,
+    }
+
+    why = {
+        "orientation_deg": "Long axis east-west: east/west faces get the least low-angle sun exposure",
+        "wall_material": "Masonry mass dampens the outdoor temperature swing seen indoors",
+        "wall_thickness_m": "Thicker mass wall raises thermal lag and cuts peak heat flux",
+        "roof_material": "Concrete slab roof carries insulation and matches sourced construction practice",
+        "insulation_material": "Polymer foam board (sourced k about 0.03-0.04 W/mK) with the highest comfort per rupee",
+        "insulation_thickness_m": f"Tuned to this zone's cooling degree-days (CDD18 ~ {profile['cdd18']})",
+        "window_wall": ("North glazing admits diffuse light with minimal direct solar gain"
+                        if win_wall == "north" else
+                        "South glazing harvests winter sun when the sun stays low in the sky"),
+        "window_width_m": "Glazing kept small in hot seasons; sized for daylight in temperate/cold zones",
+        "ach": "Ventilation rate matched to humidity regime: cross-flow for humid zones, sealed for cold",
+    }
+    rationale = [{"parameter": k, "value": v, "why": why.get(k, "")}
+                 for k, v in design.items() if k in why]
+    return {"design": design, "rationale": rationale,
+            "guidance": _ZONE_GUIDANCE[zone], "zone": zone,
+            "zone_name": _ZONE_NAMES[zone]}
+
+
+class AdaptRequest(SimulateRequest):
+    design: dict | None = None
+
+
+@app.post("/api/location/profile")
+def location_profile(req: AdaptRequest):
+    """Site characteristics from real hourly weather: climate zone
+    (NBC 2016-style), degree-days, diurnal range, humidity, solar, wind."""
+    loc = _loc(req)
+    try:
+        weather, source, _ = get_weather_cached(
+            loc["latitude"], loc["longitude"], loc["year"], loc["timezone"])
+    except Exception as exc:
+        raise HTTPException(502, f"weather fetch failed: {exc}")
+    prof = _location_profile(weather)
+    prof["location"] = loc
+    prof["weather_source"] = source
+    return prof
+
+
+@app.post("/api/location/recommend")
+def location_recommend(req: AdaptRequest):
+    """Site-adapted design: profile the location, prescribe a climate-zone
+    design from the sourced materials table, then validate it against the
+    current design with the same RC thermal engine (hot week)."""
+    loc = _loc(req)
+    try:
+        weather, source, _ = get_weather_cached(
+            loc["latitude"], loc["longitude"], loc["year"], loc["timezone"])
+    except Exception as exc:
+        raise HTTPException(502, f"weather fetch failed: {exc}")
+    mats = load_materials()
+    prof = _location_profile(weather)
+    current = req.design or _flat_design(CFG)
+    rec = _recommend_design(prof, mats, current)
+
+    def run_metrics(design: dict) -> dict:
+        base = dict(design)
+        base.setdefault("orientation_deg", 0)
+        for k in ("length_m", "width_m", "height_m", "wall_thickness_m",
+                  "roof_thickness_m", "insulation_thickness_m",
+                  "window_width_m", "window_height_m", "window_shgc"):
+            v = base.get(k)
+            if isinstance(v, str):
+                try:
+                    base[k] = float(v)
+                except ValueError:
+                    base.pop(k, None)
+        ins = base.get("insulation_material") or "none"
+        if ins == "none":
+            base["insulation_material"] = "eps"
+            base["insulation_thickness_m"] = 0.0
+        cfg = _apply_design(CFG, base)
+        try:
+            weeks = design_weeks(weather, loc["year"])
+            res = simulate(cfg, weeks["hot_week"], mats)
+        except Exception as exc:
+            raise HTTPException(500, f"validation simulation failed: {exc}")
+        st = comfort_stats(res, cfg["climate"]["comfort_range_c"])
+        return {k: (round(float(v), 3) if isinstance(v, float) else v)
+                for k, v in st.items()}
+
+    base_metrics = run_metrics(current)
+    rec_metrics = run_metrics(rec["design"])
+    _peak = lambda m: (m.get("max_indoor_c") or m.get("peak_indoor_c") or 0)
+    delta = {
+        "mean_indoor_c": round(rec_metrics.get("mean_indoor_c", 0)
+                               - base_metrics.get("mean_indoor_c", 0), 2),
+        "max_indoor_c": round(_peak(rec_metrics) - _peak(base_metrics), 2),
+    }
+    prof["location"] = loc
+    prof["weather_source"] = source
+    return {"location": loc, "weather_source": source, "profile": prof,
+            "recommendation": rec, "baseline_metrics": base_metrics,
+            "recommended_metrics": rec_metrics, "delta": delta}
 
 
 # --------------------------------------------------------------------------

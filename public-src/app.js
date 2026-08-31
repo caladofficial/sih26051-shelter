@@ -166,6 +166,7 @@ async function loadClimate() {
       marker: { size: 5, color: "#ffb25e" },
     }], { title: "MONTHLY MEAN SOLAR IRRADIANCE · W/m²" });
     $("climateSection").hidden = false;
+    loadProfile();            // MOD·02C — location characteristics
   } catch (err) {
     toast(`Climate load failed: ${err.message}`, true);
   } finally {
@@ -885,6 +886,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   /* --- accounts + fleet --- */
   initAuthFleet();
+
+  /* --- site adaptation --- */
+  initAdapt();
 });
 
 /* ============================================================
@@ -1334,15 +1338,17 @@ function renderFleet(list) {
     const dims = d.length_m ? `${fmt(d.length_m, 1)}×${fmt(d.width_m, 1)}×${fmt(d.height_m, 1)} m` : "—";
     const tr = document.createElement("tr");
     tr.dataset.id = s.shelter_id;
+    const zone = m.zone_name || "—";
     tr.innerHTML = `
       <td><b>${escapeHtml(s.name)}</b>
         <br><span class="dim">${escapeHtml(s.shelter_id.slice(4))}${s.notes ? " · " + escapeHtml(s.notes) : ""}</span></td>
       <td>${escapeHtml(s.location_name || "—")}
         ${s.latitude != null ? `<br><span class="dim">${fmt(s.latitude, 4)}, ${fmt(s.longitude, 4)}</span>` : ""}</td>
+      <td><span class="chip chip-zone" title="NBC 2016-style climate zone">${escapeHtml(zone)}</span></td>
       <td><span class="chip ${statusClass(s.status)}">${s.status.toUpperCase()}</span></td>
       <td>${dims}</td>
       <td>${typeof t === "number"
-        ? `<b>${fmt(t, 1)} °C</b><br><span class="dim">peak ${typeof m.peak_indoor_c === "number" ? fmt(m.peak_indoor_c, 1) + " °C" : "—"}</span>`
+        ? `<b>${fmt(t, 1)} °C</b><br><span class="dim">peak ${typeof m.max_indoor_c === "number" ? fmt(m.max_indoor_c, 1) + " °C" : "—"}</span>`
         : (m.error ? `<span class="err">${escapeHtml(m.error)}</span>` : "—")}</td>
       <td class="row-actions">
         ${s.status === "planned" ? `<button data-act="deploy" title="Deploy">▶ DEPLOY</button>` : ""}
@@ -1450,4 +1456,153 @@ function initAuthFleet() {
   }
   initFleetForm();
   loadShelters();
+}
+
+/* ============================================================
+   9 · LOCATION CHARACTERISTICS + SITE-ADAPTED DESIGN
+============================================================ */
+let adapt = null;   // last recommendation payload
+
+function renderProfile(p) {
+  const zb = $("locZone");
+  if (!zb) return;
+  zb.textContent = `CLIMATE ZONE · ${p.zone_name}`;
+  zb.dataset.zone = p.zone;
+  $("locZoneBasis").textContent =
+    `hottest month ${fmt(p.t_hottest_month_c, 1)} °C · coldest ${fmt(p.t_coldest_month_c, 1)} °C · RH ${fmt(p.rh_mean_pct, 0)}%`;
+  const wrap = $("locMetrics");
+  wrap.innerHTML = "";
+  const items = [
+    [fmt(p.t_mean_c, 1), "annual mean temp °C"],
+    [fmt(p.diurnal_range_c, 1), "diurnal range °C"],
+    [fmt(p.hdd18, 0), "heating degree-days · 18°C"],
+    [fmt(p.cdd18, 0), "cooling degree-days · 18°C"],
+    [fmt(p.ghi_mean_w_m2, 0), "mean solar W/m²"],
+    [fmt(p.rh_mean_pct, 0), "mean RH %"],
+    [fmt(p.wind_mean_ms, 2), "mean wind m/s"],
+    [fmt(p.wet_hours_pct, 0), "wet hours %"],
+  ];
+  items.forEach(([v, l]) => wrap.append(metric(v, l)));
+  const st = $("locStrategies");
+  st.innerHTML = "";
+  (p.guidance || []).forEach((g) => {
+    const el = document.createElement("span");
+    el.className = "strat-chip";
+    el.textContent = g;
+    st.appendChild(el);
+  });
+}
+
+async function loadProfile() {
+  const sel = $("location").selectedOptions[0];
+  try {
+    const p = await api("/api/location/profile", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lat: parseFloat(sel.dataset.lat),
+                             lon: parseFloat(sel.dataset.lon),
+                             year: parseInt($("year").value, 10) }),
+    });
+    renderProfile(p);
+  } catch (err) {
+    $("locZone").textContent = "PROFILE FAILED";
+    toast(`Profile: ${err.message}`, true);
+  }
+}
+
+function adaptValue(p) {
+  const cur = structPayload() || {};
+  const v = adapt.recommendation.design[p];
+  if (p === "insulation_thickness_m") return `${fmt(cur[p] * 1000, 0)} mm → ${fmt(v * 1000, 0)} mm`;
+  if (p === "window_width_m" || p === "window_height_m") return `${fmt(cur[p], 2)} → ${fmt(v, 2)} m`;
+  if (p === "wall_thickness_m" || p === "roof_thickness_m") return `${fmt(cur[p], 2)} → ${fmt(v, 2)} m`;
+  return `${cur[p] ?? "—"} → ${v}`;
+}
+
+async function runAdapt() {
+  const sel = $("location").selectedOptions[0];
+  const btn = $("adaptBtn");
+  btn.disabled = true; $("adaptBusy").hidden = false;
+  try {
+    const j = await api("/api/location/recommend", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lat: parseFloat(sel.dataset.lat),
+                             lon: parseFloat(sel.dataset.lon),
+                             year: parseInt($("year").value, 10),
+                             design: structPayload() || undefined }),
+    });
+    adapt = j;
+    renderProfile(j.profile);
+    const tb = $("recBody");
+    tb.innerHTML = "";
+    const labels = {
+      orientation_deg: "Orientation °", wall_material: "Wall material",
+      wall_thickness_m: "Wall thickness m", roof_material: "Roof material",
+      insulation_material: "Insulation", insulation_thickness_m: "Insulation mm",
+      window_wall: "Window wall", window_width_m: "Window width m",
+      ach: "Ventilation ACH",
+    };
+    for (const r of j.recommendation.rationale) {
+      if (!labels[r.parameter]) continue;
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${labels[r.parameter]}</td>
+        <td class="cur">${escapeHtml(adaptValue(r.parameter))}</td>
+        <td class="rec">${escapeHtml(r.value)}</td>
+        <td class="why">${escapeHtml(r.why)}</td>`;
+      tb.appendChild(tr);
+    }
+    $("recWrap").hidden = false;
+    $("applyAdapt").hidden = false;
+    const bm = j.baseline_metrics, rm = j.recommended_metrics;
+    $("adaptStatus").textContent =
+      `PREDICTED HOT WEEK · ${fmt(bm.mean_indoor_c, 1)} °C → ${fmt(rm.mean_indoor_c, 1)} °C mean · peak ${fmt(bm.max_indoor_c, 1)} → ${fmt(rm.max_indoor_c, 1)} °C`;
+    plot($("adaptChart"), [{
+      x: ["Current design", "Site-adapted"], y: [bm.mean_indoor_c, rm.mean_indoor_c],
+      type: "bar", name: "mean indoor °C", marker: { color: ["#8a8177", "#ff9933"] },
+    }, {
+      x: ["Current design", "Site-adapted"], y: [bm.max_indoor_c, rm.max_indoor_c],
+      type: "bar", name: "peak indoor °C",
+      marker: { color: ["rgba(138,129,119,0.45)", "rgba(255,153,51,0.45)"] },
+    }], { title: "VALIDATED · HOT-WEEK RC SIMULATION", barmode: "group" });
+    toast(`Site-adapted design ready — ${j.delta.mean_indoor_c > 0 ? "+" : ""}${fmt(j.delta.mean_indoor_c, 1)} °C mean vs current`);
+  } catch (err) {
+    toast(`Adapt failed: ${err.message}`, true);
+  } finally {
+    btn.disabled = false; $("adaptBusy").hidden = true;
+  }
+}
+
+function applyAdapt() {
+  if (!adapt) return;
+  applyDesignToForm(adapt.recommendation.design);
+  scheduleStructure();
+  toast("Adapted design applied — rebuild 3D + run simulation to verify");
+  document.getElementById("sec4").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function initAdapt() {
+  const ab = $("adaptBtn");
+  if (ab) ab.addEventListener("click", runAdapt);
+  const ap = $("applyAdapt");
+  if (ap) ap.addEventListener("click", applyAdapt);
+  const gb = $("geoBtn");
+  if (gb) gb.addEventListener("click", detectLocation);
+}
+
+function detectLocation() {
+  if (!navigator.geolocation) { toast("Geolocation not available", true); return; }
+  $("geoBtn").textContent = "◎ LOCATING…";
+  navigator.geolocation.getCurrentPosition(async (pos) => {
+    const lat = pos.coords.latitude.toFixed(4), lon = pos.coords.longitude.toFixed(4);
+    const sel = $("location");
+    const opt = document.createElement("option");
+    opt.value = "my"; opt.dataset.lat = lat; opt.dataset.lon = lon;
+    opt.textContent = `My location (${lat}, ${lon})`;
+    sel.appendChild(opt);
+    sel.value = "my";
+    $("geoBtn").textContent = "◎ DETECT MY LOCATION";
+    toast(`Site set to your location (${lat}, ${lon}) — load climate to profile it`);
+  }, (err) => {
+    $("geoBtn").textContent = "◎ DETECT MY LOCATION";
+    toast(`Location denied: ${err.message}`, true);
+  }, { timeout: 15000 });
 }

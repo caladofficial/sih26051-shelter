@@ -128,6 +128,7 @@
           <select id="year"><option>2024</option><option>2023</option></select>
         </label>
         <button id="loadClimate" class="primary">◈ Load Climate</button>
+        <button id="geoBtn" type="button" class="btn-sm" title="Use your browser location as the site">◎ DETECT MY LOCATION</button>
       </div>
       <div id="climateSummary" class="metrics"></div>
     </section>
@@ -148,6 +149,39 @@
           <div class="mod">
             <div class="mod-hd"><i></i>MOD·02B — SOLAR IRRADIANCE</div>
             <div id="chartSolar" class="chart"></div>
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="mod">
+            <div class="mod-hd"><i></i>MOD·02C — LOCATION CHARACTERISTICS</div>
+            <div class="loc-profile">
+              <div class="loc-head">
+                <span class="zone-badge" id="locZone">—</span>
+                <span class="tag" id="locZoneBasis">—</span>
+              </div>
+              <div class="metrics" id="locMetrics"></div>
+              <div class="strat" id="locStrategies"></div>
+              <p class="hint">Zone = NBC 2016-style approximation from monthly mean temperature + annual humidity. All indicators computed from the same sourced hourly weather — nothing fabricated.</p>
+            </div>
+          </div>
+          <div class="mod">
+            <div class="mod-hd"><i></i>MOD·02D — SITE-ADAPTED SHELTER DESIGN</div>
+            <div class="loc-profile">
+              <p class="hint">Generate a shelter design tuned to this location's climate characteristics, then validate it against your current design with the same thermal engine.</p>
+              <button id="adaptBtn" class="primary">⚙ GENERATE SITE-ADAPTED DESIGN</button>
+              <div id="adaptBusy" class="hint" hidden>Computing recommendation + validation runs…</div>
+              <div class="tblwrap" id="recWrap" hidden>
+                <table class="rec-table">
+                  <thead><tr><th>Parameter</th><th>Current</th><th>Adapted</th><th>Why</th></tr></thead>
+                  <tbody id="recBody"></tbody>
+                </table>
+              </div>
+              <div id="adaptChart" class="chart" style="min-height:210px"></div>
+              <div class="adapt-actions">
+                <button id="applyAdapt" class="primary" hidden>APPLY ADAPTED DESIGN →</button>
+                <span id="adaptStatus" class="tag"></span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -382,7 +416,7 @@
       <div class="tblwrap">
         <table class="fleet-table">
           <thead><tr>
-            <th>Name</th><th>Location</th><th>Status</th><th>Dims</th>
+            <th>Name</th><th>Location</th><th>Zone</th><th>Status</th><th>Dims</th>
             <th>Predicted indoor °C · hot week</th><th>Actions</th>
           </tr></thead>
           <tbody id="fleetBody"></tbody>
