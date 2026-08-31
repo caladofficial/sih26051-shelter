@@ -91,7 +91,30 @@ CREATE TABLE IF NOT EXISTS designs (
   updated_at TEXT NOT NULL,
   design TEXT NOT NULL,
   notes TEXT NOT NULL DEFAULT '',
-  favorite INTEGER NOT NULL DEFAULT 0
+  favorite INTEGER NOT NULL DEFAULT 0,
+  user_id TEXT
+);
+CREATE TABLE IF NOT EXISTS sih_users (
+  user_id TEXT PRIMARY KEY,
+  username TEXT NOT NULL UNIQUE,
+  pass_hash TEXT NOT NULL,
+  salt TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS shelters (
+  shelter_id TEXT PRIMARY KEY,
+  user_id TEXT,
+  name TEXT NOT NULL,
+  location_name TEXT NOT NULL DEFAULT '',
+  latitude REAL,
+  longitude REAL,
+  design TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'planned',
+  deployed_at TEXT,
+  notes TEXT NOT NULL DEFAULT '',
+  metrics TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS cad_imports (
   import_id TEXT PRIMARY KEY,
@@ -502,14 +525,15 @@ class Store:
                 pass
 
     # ------------------------------------------------------------ designs
-    def save_design(self, record: dict) -> None:
+    def save_design(self, record: dict, user_id: str | None = None) -> None:
         row = {"design_id": record.get("design_id") or new_id("dsg"),
                "name": record.get("name") or "Design",
                "created_at": record.get("created_at") or _now(),
                "updated_at": _now(),
                "design": record.get("design") or {},
                "notes": record.get("notes", ""),
-               "favorite": 1 if record.get("favorite") else 0}
+               "favorite": 1 if record.get("favorite") else 0,
+               "user_id": user_id or record.get("user_id")}
         if self._rest:
             self._pg("POST", "designs", params={"on_conflict": "design_id"},
                      body=row, prefer="resolution=merge-duplicates")
@@ -518,31 +542,41 @@ class Store:
                 self._conn.execute(
                     """INSERT OR REPLACE INTO designs
                        (design_id, name, created_at, updated_at, design,
-                        notes, favorite) VALUES (?,?,?,?,?,?,?)""",
+                        notes, favorite, user_id) VALUES (?,?,?,?,?,?,?,?)""",
                     (row["design_id"], row["name"], row["created_at"],
                      row["updated_at"], _j(row["design"]), row["notes"],
-                     row["favorite"]))
+                     row["favorite"], row["user_id"]))
                 self._conn.commit()
             except sqlite3.OperationalError:
                 pass
 
-    def list_designs(self, limit: int = 100, favorite_only: bool = False) -> list[dict]:
+    def list_designs(self, limit: int = 100, favorite_only: bool = False,
+                     user_id: str | None = None) -> list[dict]:
         if self._rest:
             params = {"select": "*", "order": "updated_at.desc",
                       "limit": max(1, min(limit, 200))}
             if favorite_only:
                 params["favorite"] = "eq.true"
+            if user_id is None:
+                params["user_id"] = "is.null"      # guests see guest designs
+            else:
+                params["user_id"] = f"eq.{user_id}"
             rows = self._pg("GET", "designs", params=params) or []
             for r in rows:
                 r["design"] = _maybe_json(r.get("design")) or {}
             return rows
         try:
             q = ("SELECT design_id, name, created_at, updated_at, design, "
-                 "notes, favorite FROM designs")
+                 "notes, favorite, user_id FROM designs")
+            where = ["user_id IS NULL"] if user_id is None else ["user_id = ?"]
             if favorite_only:
-                q += " WHERE favorite = 1"
+                where.append("favorite = 1")
+            if where:
+                q += " WHERE " + " AND ".join(where)
             q += " ORDER BY updated_at DESC LIMIT ?"
-            cur = self._conn.execute(q, (max(1, min(limit, 200)),))
+            args: list = [] if user_id is None else [user_id]
+            args.append(max(1, min(limit, 200)))
+            cur = self._conn.execute(q, tuple(args))
             cols = [c[0] for c in cur.description]
             out = []
             for row in cur.fetchall():
@@ -594,6 +628,197 @@ class Store:
         try:
             self._conn.execute("DELETE FROM designs WHERE design_id = ?",
                                (design_id,))
+            self._conn.commit()
+            return True
+        except sqlite3.OperationalError:
+            return False
+
+    # ------------------------------------------------------------------ users
+    def create_user(self, user_id: str, username: str, pass_hash: str,
+                    salt: str) -> None:
+        row = {"user_id": user_id, "username": username,
+               "pass_hash": pass_hash, "salt": salt, "created_at": _now()}
+        if self._rest:
+            self._pg("POST", "sih_users", body=row)
+        else:
+            try:
+                self._conn.execute(
+                    """INSERT INTO sih_users (user_id, username, pass_hash,
+                       salt, created_at) VALUES (?,?,?,?,?)""",
+                    (user_id, username, pass_hash, salt, _now()))
+                self._conn.commit()
+            except sqlite3.IntegrityError:
+                raise
+            except sqlite3.OperationalError:
+                pass
+
+    def get_user_by_username(self, username: str) -> dict | None:
+        if self._rest:
+            rows = self._pg("GET", "sih_users",
+                            params={"select": "*",
+                                    "username": f"eq.{username}",
+                                    "limit": 1}) or []
+            return rows[0] if rows else None
+        try:
+            cur = self._conn.execute(
+                "SELECT * FROM sih_users WHERE username = ?", (username,))
+            row = cur.fetchone()
+            if not row:
+                return None
+            return dict(zip([c[0] for c in cur.description], row))
+        except sqlite3.OperationalError:
+            return None
+
+    def get_user(self, user_id: str) -> dict | None:
+        if self._rest:
+            rows = self._pg("GET", "sih_users",
+                            params={"select": "*",
+                                    "user_id": f"eq.{user_id}", "limit": 1}) or []
+            return rows[0] if rows else None
+        try:
+            cur = self._conn.execute(
+                "SELECT * FROM sih_users WHERE user_id = ?", (user_id,))
+            row = cur.fetchone()
+            if not row:
+                return None
+            return dict(zip([c[0] for c in cur.description], row))
+        except sqlite3.OperationalError:
+            return None
+
+    def delete_user(self, user_id: str) -> None:
+        if self._rest:
+            self._pg("DELETE", "sih_users", params={"user_id": f"eq.{user_id}"})
+        else:
+            try:
+                self._conn.execute("DELETE FROM sih_users WHERE user_id = ?",
+                                   (user_id,))
+                self._conn.commit()
+            except sqlite3.OperationalError:
+                pass
+
+    # -------------------------------------------------------------- shelters
+    def save_shelter(self, record: dict) -> None:
+        row = {"shelter_id": record.get("shelter_id") or new_id("shl"),
+               "user_id": record.get("user_id"),
+               "name": record.get("name") or "Shelter",
+               "location_name": record.get("location_name", ""),
+               "latitude": record.get("latitude"),
+               "longitude": record.get("longitude"),
+               "design": record.get("design") or {},
+               "status": record.get("status") or "planned",
+               "deployed_at": record.get("deployed_at"),
+               "notes": record.get("notes", ""),
+               "metrics": record.get("metrics"),
+               "created_at": record.get("created_at") or _now(),
+               "updated_at": _now()}
+        if self._rest:
+            self._pg("POST", "shelters", params={"on_conflict": "shelter_id"},
+                     body=row, prefer="resolution=merge-duplicates")
+        else:
+            try:
+                self._conn.execute(
+                    """INSERT OR REPLACE INTO shelters
+                       (shelter_id, user_id, name, location_name, latitude,
+                        longitude, design, status, deployed_at, notes,
+                        metrics, created_at, updated_at)
+                       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (row["shelter_id"], row["user_id"], row["name"],
+                     row["location_name"], row["latitude"], row["longitude"],
+                     _j(row["design"]), row["status"], row["deployed_at"],
+                     row["notes"], _j(row["metrics"]) if row["metrics"] else None,
+                     row["created_at"], row["updated_at"]))
+                self._conn.commit()
+            except sqlite3.OperationalError:
+                pass
+
+    def list_shelters(self, limit: int = 200,
+                      user_id: str | None = None) -> list[dict]:
+        if self._rest:
+            params = {"select": "*", "order": "updated_at.desc",
+                      "limit": max(1, min(limit, 200))}
+            if user_id is None:
+                params["user_id"] = "is.null"
+            else:
+                params["user_id"] = f"eq.{user_id}"
+            rows = self._pg("GET", "shelters", params=params) or []
+            for r in rows:
+                r["design"] = _maybe_json(r.get("design")) or {}
+                r["metrics"] = _maybe_json(r.get("metrics"))
+            return rows
+        try:
+            cur = self._conn.execute(
+                "SELECT * FROM shelters WHERE user_id IS ? "
+                "ORDER BY updated_at DESC LIMIT ?",
+                (None if user_id is None else user_id,
+                 max(1, min(limit, 200))))
+            cols = [c[0] for c in cur.description]
+            out = []
+            for row in cur.fetchall():
+                d = dict(zip(cols, row))
+                d["design"] = json.loads(d["design"]) if d.get("design") else {}
+                d["metrics"] = json.loads(d["metrics"]) if d.get("metrics") else None
+                out.append(d)
+            return out
+        except sqlite3.OperationalError:
+            return []
+
+    def get_shelter(self, shelter_id: str) -> dict | None:
+        if self._rest:
+            rows = self._pg("GET", "shelters",
+                            params={"select": "*",
+                                    "shelter_id": f"eq.{shelter_id}",
+                                    "limit": 1}) or []
+            if not rows:
+                return None
+            r = rows[0]
+            r["design"] = _maybe_json(r.get("design")) or {}
+            r["metrics"] = _maybe_json(r.get("metrics"))
+            return r
+        try:
+            cur = self._conn.execute(
+                "SELECT * FROM shelters WHERE shelter_id = ?", (shelter_id,))
+            row = cur.fetchone()
+            if not row:
+                return None
+            d = dict(zip([c[0] for c in cur.description], row))
+            d["design"] = json.loads(d["design"]) if d.get("design") else {}
+            d["metrics"] = json.loads(d["metrics"]) if d.get("metrics") else None
+            return d
+        except sqlite3.OperationalError:
+            return None
+
+    def update_shelter(self, shelter_id: str, patch: dict) -> dict | None:
+        row = dict(patch)
+        row["updated_at"] = _now()
+        if "metrics" in row and row["metrics"] is not None:
+            pass  # keep raw object for JSONB
+        if self._rest:
+            self._pg("PATCH", "shelters",
+                     params={"shelter_id": f"eq.{shelter_id}"}, body=row)
+            return self.get_shelter(shelter_id)
+        try:
+            keys = [k for k in row if k != "shelter_id"]
+            if not keys:
+                return self.get_shelter(shelter_id)
+            sets = ", ".join(f"{k} = ?" for k in keys)
+            vals = [json.dumps(row[k], default=str) if k in ("design", "metrics")
+                    and row[k] is not None else row[k] for k in keys]
+            self._conn.execute(
+                f"UPDATE shelters SET {sets} WHERE shelter_id = ?",
+                (*vals, shelter_id))
+            self._conn.commit()
+            return self.get_shelter(shelter_id)
+        except sqlite3.OperationalError:
+            return None
+
+    def delete_shelter(self, shelter_id: str) -> bool:
+        if self._rest:
+            rows = self._pg("DELETE", "shelters",
+                            params={"shelter_id": f"eq.{shelter_id}"})
+            return rows is not None
+        try:
+            self._conn.execute("DELETE FROM shelters WHERE shelter_id = ?",
+                               (shelter_id,))
             self._conn.commit()
             return True
         except sqlite3.OperationalError:

@@ -27,10 +27,15 @@ Design notes
 """
 from __future__ import annotations
 
+import base64
 import copy
+import hashlib
+import hmac
 import json
 import os
+import secrets
 import sys
+import time
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request, UploadFile, File
@@ -519,6 +524,247 @@ def optimize_endpoint(req: OptimizeRequest):
 
 
 # --------------------------------------------------------------------------
+# accounts — signup / login / per-user persistence
+# --------------------------------------------------------------------------
+_AUTH_TTL = 30 * 24 * 3600          # 30-day sessions
+_PBKDF2_ITER = 260_000
+
+
+def _auth_secret() -> str:
+    key = (os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+           or os.environ.get("SUPABASE_ANON_KEY") or "sih26051-dev")
+    return hashlib.sha256(f"sih26051::{key}".encode()).hexdigest()
+
+
+def _hash_password(password: str, salt: str) -> str:
+    return hashlib.pbkdf2_hmac("sha256", password.encode(),
+                               bytes.fromhex(salt), _PBKDF2_ITER).hex()
+
+
+def _mint_token(user_id: str) -> str:
+    payload = f"{user_id}.{int(time.time()) + _AUTH_TTL}"
+    sig = hmac.new(_auth_secret().encode(), payload.encode(),
+                   hashlib.sha256).hexdigest()
+    return base64.urlsafe_b64encode(f"{payload}.{sig}".encode()).decode()
+
+
+def _verify_token(token: str) -> str | None:
+    try:
+        raw = base64.urlsafe_b64decode(token.encode()).decode()
+        user_id, exp, sig = raw.rsplit(".", 2)
+        payload = f"{user_id}.{exp}"
+        expect = hmac.new(_auth_secret().encode(), payload.encode(),
+                          hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(sig, expect):
+            return None
+        if int(exp) < time.time():
+            return None
+        return user_id
+    except Exception:
+        return None
+
+
+def _uid(request: Request) -> str | None:
+    """User id from the Authorization bearer token, or None (guest)."""
+    auth = request.headers.get("Authorization", "")
+    if auth.startswith("Bearer "):
+        return _verify_token(auth[7:].strip())
+    return None
+
+
+def _user_or_401(request: Request) -> str:
+    uid = _uid(request)
+    if not uid:
+        raise HTTPException(401, "authentication required")
+    return uid
+
+
+def _owns(row: dict | None, uid: str | None) -> bool:
+    """row's owner is uid, or both are guests (None)."""
+    return bool(row) and (row.get("user_id") or None) == uid
+
+
+class AuthRequest(BaseModel):
+    username: str = Field(min_length=3, max_length=24)
+    password: str = Field(min_length=6, max_length=128)
+
+
+@app.post("/api/auth/signup", status_code=201)
+def auth_signup(req: AuthRequest):
+    username = req.username.strip().lower()
+    if not username.replace("_", "").replace("-", "").replace(".", "").isalnum():
+        raise HTTPException(400, "username may contain only letters, digits, _ - .")
+    if STORE.get_user_by_username(username):
+        raise HTTPException(409, "username already taken")
+    user_id = new_id("usr")
+    salt = secrets.token_hex(16)
+    try:
+        STORE.create_user(user_id, username, _hash_password(req.password, salt),
+                          salt)
+    except Exception as exc:
+        raise HTTPException(500, f"account creation failed: {exc}")
+    return {"token": _mint_token(user_id), "user": {"user_id": user_id,
+                                                    "username": username}}
+
+
+@app.post("/api/auth/login")
+def auth_login(req: AuthRequest):
+    username = req.username.strip().lower()
+    user = STORE.get_user_by_username(username)
+    if not user:
+        raise HTTPException(401, "invalid username or password")
+    got = _hash_password(req.password, user["salt"])
+    if not hmac.compare_digest(got, user["pass_hash"]):
+        raise HTTPException(401, "invalid username or password")
+    return {"token": _mint_token(user["user_id"]),
+            "user": {"user_id": user["user_id"], "username": user["username"]}}
+
+
+@app.get("/api/auth/me")
+def auth_me(request: Request):
+    uid = _uid(request)
+    if not uid:
+        raise HTTPException(401, "not authenticated")
+    user = STORE.get_user(uid)
+    if not user:
+        raise HTTPException(401, "account no longer exists")
+    return {"user": {"user_id": user["user_id"], "username": user["username"]}}
+
+
+@app.post("/api/auth/logout")
+def auth_logout(request: Request):
+    # stateless sessions — client discards the token
+    return {"ok": True}
+
+
+# --------------------------------------------------------------------------
+# shelter fleet management
+# --------------------------------------------------------------------------
+_SHELTER_STATUSES = {"planned", "deployed", "maintenance", "retired"}
+
+
+class ShelterRecord(BaseModel):
+    name: str = Field(min_length=1, max_length=80)
+    location_name: str = ""
+    latitude: float | None = None
+    longitude: float | None = None
+    design: dict | None = None
+    status: str = "planned"
+    notes: str = ""
+    compute: bool = True
+
+
+def _shelter_metrics(latitude: float, longitude: float,
+                     design: dict) -> dict | None:
+    """Predicted hot-week comfort for a shelter design at a location
+    (same sourced RC engine the simulator uses; never fabricated)."""
+    try:
+        weather, source, _ = get_weather_cached(
+            latitude, longitude, int(CFG["climate"]["data_year"]),
+            CFG["location"]["timezone"])
+        mats = load_materials()
+        base = dict(design)
+        for k in ("length_m", "width_m", "height_m", "orientation_deg",
+                  "wall_thickness_m", "roof_thickness_m",
+                  "insulation_thickness_m", "window_width_m",
+                  "window_height_m", "window_shgc"):
+            v = base.get(k)
+            if isinstance(v, str):
+                try:
+                    base[k] = float(v)
+                except ValueError:
+                    base.pop(k, None)
+        ins = base.get("insulation_material") or "eps"
+        if ins == "none":
+            base["insulation_material"] = "eps"
+        if base["insulation_material"] not in mats.index:
+            base.pop("insulation_material", None)
+            base.pop("insulation_thickness_m", None)
+        for key in ("wall_material", "roof_material"):
+            if base.get(key) not in mats.index:
+                base[key] = "brick" if key == "wall_material" else "rcc_slab"
+        cfg = _apply_design(CFG, base)
+        weeks = design_weeks(weather, int(CFG["climate"]["data_year"]))
+        res = simulate(cfg, weeks["hot_week"], mats)
+        st = comfort_stats(res, cfg["climate"]["comfort_range_c"])
+        st = {k: (round(float(v), 3) if isinstance(v, float) else v)
+              for k, v in st.items()}
+        st["period"] = "hot_week"
+        st["weather_source"] = source
+        return st
+    except Exception as exc:
+        return {"error": str(exc)}
+
+
+@app.get("/api/shelters")
+def shelters_list(request: Request, limit: int = 200):
+    return {"shelters": STORE.list_shelters(limit=limit, user_id=_uid(request))}
+
+
+@app.post("/api/shelters")
+def shelters_create(req: ShelterRecord, request: Request):
+    if req.status not in _SHELTER_STATUSES:
+        raise HTTPException(400, f"status must be one of {sorted(_SHELTER_STATUSES)}")
+    uid = _uid(request)
+    metrics = None
+    if req.compute and req.latitude is not None and req.longitude is not None \
+            and req.design:
+        metrics = _shelter_metrics(req.latitude, req.longitude, req.design)
+    record = {"shelter_id": new_id("shl"), "name": req.name, "user_id": uid,
+              "location_name": req.location_name,
+              "latitude": req.latitude, "longitude": req.longitude,
+              "design": req.design or {}, "status": req.status,
+              "notes": req.notes, "metrics": metrics}
+    STORE.save_shelter(record)
+    row = STORE.get_shelter(record["shelter_id"])
+    return row
+
+
+@app.get("/api/shelters/{shelter_id}")
+def shelters_get(shelter_id: str, request: Request):
+    row = STORE.get_shelter(shelter_id)
+    if not _owns(row, _uid(request)):
+        raise HTTPException(404, "shelter not found")
+    return row
+
+
+@app.patch("/api/shelters/{shelter_id}")
+def shelters_patch(shelter_id: str, request: Request, body: dict):
+    row = STORE.get_shelter(shelter_id)
+    if not _owns(row, _uid(request)):
+        raise HTTPException(404, "shelter not found")
+    patch = {}
+    for k in ("name", "location_name", "latitude", "longitude", "design",
+              "status", "deployed_at", "notes"):
+        if k in body and body[k] is not None:
+            patch[k] = body[k]
+    if "status" in patch and patch["status"] not in _SHELTER_STATUSES:
+        raise HTTPException(400, f"status must be one of {sorted(_SHELTER_STATUSES)}")
+    if "latitude" in patch:
+        patch["latitude"] = float(patch["latitude"])
+    if "longitude" in patch:
+        patch["longitude"] = float(patch["longitude"])
+    recompute = bool(body.get("compute")) and \
+        (patch.get("design") or patch.get("latitude") or patch.get("longitude"))
+    if recompute:
+        lat = patch.get("latitude", row["latitude"])
+        lon = patch.get("longitude", row["longitude"])
+        design = patch.get("design", row["design"])
+        if lat is not None and lon is not None and design:
+            patch["metrics"] = _shelter_metrics(lat, lon, design)
+    return STORE.update_shelter(shelter_id, patch)
+
+
+@app.delete("/api/shelters/{shelter_id}")
+def shelters_delete(shelter_id: str, request: Request):
+    row = STORE.get_shelter(shelter_id)
+    if not _owns(row, _uid(request)):
+        raise HTTPException(404, "shelter not found")
+    STORE.delete_shelter(shelter_id)
+    return {"deleted": shelter_id}
+
+
+# --------------------------------------------------------------------------
 # design library / stats / sweep / report
 # --------------------------------------------------------------------------
 class DesignRecord(BaseModel):
@@ -530,45 +776,49 @@ class DesignRecord(BaseModel):
 
 
 @app.post("/api/designs")
-def design_save(req: DesignRecord):
+def design_save(req: DesignRecord, request: Request):
     did = req.design_id or new_id("dsg")
+    uid = _uid(request)
     STORE.save_design({"design_id": did, "name": req.name,
                        "design": req.design, "notes": req.notes,
-                       "favorite": req.favorite})
+                       "favorite": req.favorite}, user_id=uid)
     return {"design_id": did, "name": req.name, "saved_at":
-            "now", "design": req.design}
+            "now", "design": req.design, "user_id": uid}
 
 
 @app.get("/api/designs")
-def design_list(limit: int = 100, favorite_only: bool = False):
-    rows = STORE.list_designs(limit=limit, favorite_only=favorite_only)
+def design_list(limit: int = 100, favorite_only: bool = False,
+                request: Request = None):
+    rows = STORE.list_designs(limit=limit, favorite_only=favorite_only,
+                              user_id=_uid(request))
     return {"designs": rows}
 
 
 @app.get("/api/designs/{design_id}")
-def design_get(design_id: str):
+def design_get(design_id: str, request: Request):
     row = STORE.get_design(design_id)
-    if not row:
+    if not _owns(row, _uid(request)):
         raise HTTPException(404, "design not found")
     return row
 
 
 @app.patch("/api/designs/{design_id}")
-def design_patch(design_id: str, body: dict):
+def design_patch(design_id: str, body: dict, request: Request):
     row = STORE.get_design(design_id)
-    if not row:
+    if not _owns(row, _uid(request)):
         raise HTTPException(404, "design not found")
     merged = dict(row)
     for k in ("name", "design", "notes", "favorite"):
         if k in body:
             merged[k] = body[k]
-    STORE.save_design(merged)
+    STORE.save_design(merged, user_id=row.get("user_id"))
     return STORE.get_design(design_id)
 
 
 @app.delete("/api/designs/{design_id}")
-def design_delete(design_id: str):
-    if not STORE.get_design(design_id):
+def design_delete(design_id: str, request: Request):
+    row = STORE.get_design(design_id)
+    if not _owns(row, _uid(request)):
         raise HTTPException(404, "design not found")
     STORE.delete_design(design_id)
     return {"deleted": design_id}
@@ -581,6 +831,8 @@ def stats():
         "optimizations": STORE.count_rows("optimization_runs"),
         "designs": STORE.count_rows("designs"),
         "cad_imports": STORE.count_rows("cad_imports"),
+        "shelters": STORE.count_rows("shelters"),
+        "users": STORE.count_rows("sih_users"),
     }
 
 

@@ -68,27 +68,35 @@ def ensure_tools() -> None:
          "html-minifier-terser@7.2.0"])
 
 
+JS_FILES = ("app.js", "auth.js", "home.js", "login.js")
+HTML_FILES = ("index.html", "dashboard.html", "login.html")
+CSS_FILES = ("style.css",)
+
+
 def build_js() -> None:
     cfg = TOOLS / "obf.json"
     cfg.write_text(json.dumps(OBF_CONFIG))
-    print(f"[build] app.js  {SRC/'app.js'} -> {OUT/'app.js'}")
-    run([str(NODE_BIN / "javascript-obfuscator"),
-         str(SRC / "app.js"), "--output", str(OUT / "app.js"),
-         "--config", str(cfg)])
-    run(["node", "--check", str(OUT / "app.js")])   # syntax gate
+    for name in JS_FILES:
+        print(f"[build] {name}  {SRC/name} -> {OUT/name}")
+        run([str(NODE_BIN / "javascript-obfuscator"),
+             str(SRC / name), "--output", str(OUT / name),
+             "--config", str(cfg)])
+        run(["node", "--check", str(OUT / name)])   # syntax gate
 
 
 def build_css() -> None:
-    print(f"[build] style.css {SRC/'style.css'} -> {OUT/'style.css'}")
-    run([str(NODE_BIN / "csso"), str(SRC / "style.css"),
-         "--output", str(OUT / "style.css")])
+    for name in CSS_FILES:
+        print(f"[build] {name} {SRC/name} -> {OUT/name}")
+        run([str(NODE_BIN / "csso"), str(SRC / name),
+             "--output", str(OUT / name)])
 
 
 def build_html() -> None:
-    print(f"[build] index.html {SRC/'index.html'} -> {OUT/'index.html'}")
-    run([str(NODE_BIN / "html-minifier-terser"),
-         str(SRC / "index.html"), "-o", str(OUT / "index.html"),
-         "--collapse-whitespace", "--remove-comments"])
+    for name in HTML_FILES:
+        print(f"[build] {name} {SRC/name} -> {OUT/name}")
+        run([str(NODE_BIN / "html-minifier-terser"),
+             str(SRC / name), "-o", str(OUT / name),
+             "--collapse-whitespace", "--remove-comments"])
 
 
 def main() -> None:
@@ -99,7 +107,9 @@ def main() -> None:
     build_js()
     build_css()
     build_html()
-    for name in ("app.js", "style.css", "index.html"):
+    for name in JS_FILES + CSS_FILES + HTML_FILES:
+        if not (OUT / name).exists():
+            sys.exit(f"missing artifact: {OUT/name}")
         a, b = (SRC / name).stat().st_size, (OUT / name).stat().st_size
         print(f"[build] {name}: {a:,} -> {b:,} bytes ({100 * b // max(a, 1)}%)")
     print("[build] done.")

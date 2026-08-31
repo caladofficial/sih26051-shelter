@@ -3,8 +3,9 @@
 
 const $ = (id) => document.getElementById(id);
 
-/* ---------- api ---------- */
+/* ---------- api (auth-aware; falls back to plain fetch if auth.js absent) ---------- */
 async function api(path, options) {
+  if (window.SHI && SHI.apiFetch) return SHI.apiFetch(path, options);
   const res = await fetch(path, options);
   if (!res.ok) {
     let msg = `${res.status}`;
@@ -14,7 +15,10 @@ async function api(path, options) {
   return res.json();
 }
 
-const fmt = (v, d = 1) => (v === null || v === undefined ? "—" : v.toFixed(d));
+const fmt = (v, d = 1) => {
+  const n = parseFloat(v);
+  return (v === null || v === undefined || isNaN(n)) ? "—" : n.toFixed(d);
+};
 
 /* ---------- toast (replaces browser alert) ---------- */
 function toast(msg, isErr = false) {
@@ -878,6 +882,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   loadCadRecent();
   loadDesigns();
   loadStats();
+
+  /* --- accounts + fleet --- */
+  initAuthFleet();
 });
 
 /* ============================================================
@@ -1088,7 +1095,9 @@ async function saveCurrentDesign() {
       body: JSON.stringify({ name, design: p }),
     });
     $("libStatus").textContent = `SAVED · ${j.design_id}`;
-    toast(`Design saved — ${name}`);
+    toast(window.SHI && SHI.getUser()
+      ? `Design saved to ${SHI.getUser().username}'s library`
+      : "Design saved in guest mode — sign in to keep it on your account");
     await loadDesigns();
     loadStats();
   } catch (err) {
@@ -1273,4 +1282,172 @@ function setupShortcuts() {
       if (a) a.click();
     }
   });
+}
+
+/* ============================================================
+   8 · ACCOUNTS + SHELTER FLEET MANAGEMENT
+============================================================ */
+function escapeHtml(s) {
+  return String(s ?? "").replace(/[&<>"']/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+function renderAuthChip() {
+  const chip = $("authChip");
+  if (!chip) return;
+  const user = window.SHI ? SHI.getUser() : null;
+  chip.innerHTML = user
+    ? `<span class="who" title="Signed in">◈ ${escapeHtml(user.username)}</span>
+       <button id="authLogout" type="button" class="btn-sm">SIGN OUT</button>`
+    : `<a class="signin" href="login.html">SIGN IN / REGISTER</a>`;
+  const lo = $("authLogout");
+  if (lo) lo.addEventListener("click", () => {
+    SHI.logout(); toast("Signed out — back to guest mode");
+  });
+}
+
+/* ---------------- fleet ---------------- */
+async function loadShelters() {
+  try {
+    const j = await api("/api/shelters");
+    renderFleet(j.shelters || []);
+  } catch (err) { toast("Fleet: " + err.message, true); }
+}
+
+function statusClass(s) {
+  return ({ planned: "st-planned", deployed: "st-deployed",
+            maintenance: "st-maint", retired: "st-retired" })[s] || "";
+}
+
+function renderFleet(list) {
+  const tb = $("fleetBody");
+  if (!tb) return;
+  const counts = { planned: 0, deployed: 0, maintenance: 0, retired: 0 };
+  const temps = [];
+  tb.innerHTML = "";
+  for (const s of list) {
+    counts[s.status] = (counts[s.status] || 0) + 1;
+    const m = s.metrics || {};
+    const t = m.mean_indoor_c;
+    if (typeof t === "number") temps.push(t);
+    const d = s.design || {};
+    const dims = d.length_m ? `${fmt(d.length_m, 1)}×${fmt(d.width_m, 1)}×${fmt(d.height_m, 1)} m` : "—";
+    const tr = document.createElement("tr");
+    tr.dataset.id = s.shelter_id;
+    tr.innerHTML = `
+      <td><b>${escapeHtml(s.name)}</b>
+        <br><span class="dim">${escapeHtml(s.shelter_id.slice(4))}${s.notes ? " · " + escapeHtml(s.notes) : ""}</span></td>
+      <td>${escapeHtml(s.location_name || "—")}
+        ${s.latitude != null ? `<br><span class="dim">${fmt(s.latitude, 4)}, ${fmt(s.longitude, 4)}</span>` : ""}</td>
+      <td><span class="chip ${statusClass(s.status)}">${s.status.toUpperCase()}</span></td>
+      <td>${dims}</td>
+      <td>${typeof t === "number"
+        ? `<b>${fmt(t, 1)} °C</b><br><span class="dim">peak ${typeof m.peak_indoor_c === "number" ? fmt(m.peak_indoor_c, 1) + " °C" : "—"}</span>`
+        : (m.error ? `<span class="err">${escapeHtml(m.error)}</span>` : "—")}</td>
+      <td class="row-actions">
+        ${s.status === "planned" ? `<button data-act="deploy" title="Deploy">▶ DEPLOY</button>` : ""}
+        <button data-act="maint" title="To maintenance">🛠</button>
+        <button data-act="retire" title="Retire">▣</button>
+        <button data-act="del" class="danger" title="Remove">✕</button>
+      </td>`;
+    tb.appendChild(tr);
+  }
+  const set = (id, v) => { const el = $(id); if (el) el.textContent = v; };
+  set("fsPlanned", counts.planned); set("fsDeployed", counts.deployed);
+  set("fsMaint", counts.maintenance); set("fsRetired", counts.retired);
+  const avg = temps.length ? temps.reduce((a, b) => a + b, 0) / temps.length : null;
+  set("fsAvg", avg != null ? `${fmt(avg, 1)} °C` : "—");
+  set("fleetStatus", `FLEET · ${list.length}`);
+  set("stShelters", list.length);
+}
+
+function collectCurrentDesign() {
+  const flat = {};
+  const map = { length: "length_m", width: "width_m", height: "height_m",
+                orientation: "orientation_deg", wallMat: "wall_material",
+                wallThick: "wall_thickness_m", roofMat: "roof_material",
+                roofThick: "roof_thickness_m", insMat: "insulation_material",
+                insThick: "insulation_thickness_m", winWall: "window_wall" };
+  for (const [id, key] of Object.entries(map)) {
+    const el = $(id);
+    if (el && el.value !== "" && el.value != null) flat[key] = el.value;
+  }
+  const ws = $("winSize");
+  if (ws && ws.value) {
+    const parts = ws.value.split("×").map((v) => parseFloat(v));
+    if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+      flat.window_width_m = parts[0]; flat.window_height_m = parts[1];
+    }
+  }
+  return flat;
+}
+
+async function addShelter() {
+  const name = $("shName").value.trim();
+  if (!name) { toast("Give the shelter a name first", true); return; }
+  const loc = $("shLocation").value;
+  const [lat, lon, lname] = loc.split("|");
+  const design = $("shUseCurrent").checked ? collectCurrentDesign() : {};
+  try {
+    await api("/api/shelters", { method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, location_name: lname || "",
+        latitude: parseFloat(lat), longitude: parseFloat(lon),
+        design, status: $("shStatus").value,
+        notes: $("shNotes").value.trim(), compute: true }) });
+    $("shName").value = ""; $("shNotes").value = "";
+    toast("Shelter registered — thermal metrics computed");
+    loadShelters(); loadStats();
+  } catch (err) { toast("Fleet: " + err.message, true); }
+}
+
+async function fleetAction(id, act) {
+  try {
+    if (act === "del") {
+      await api(`/api/shelters/${id}`, { method: "DELETE" });
+      toast("Shelter removed from fleet");
+    } else {
+      const status = act === "deploy" ? "deployed"
+        : act === "maint" ? "maintenance" : "retired";
+      await api(`/api/shelters/${id}`, { method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }) });
+      toast(`Shelter → ${status.toUpperCase()}`);
+    }
+    loadShelters(); loadStats();
+  } catch (err) { toast("Fleet: " + err.message, true); }
+}
+
+function initFleetForm() {
+  const sel = $("shLocation");
+  if (!sel) return;
+  sel.innerHTML = "";
+  const locs = (typeof state !== "undefined" && state.locations && state.locations.length)
+    ? state.locations
+    : [{ name: "Prayagraj", latitude: 25.4358, longitude: 81.8463 }];
+  locs.forEach((l) => {
+    const o = document.createElement("option");
+    o.value = `${l.latitude}|${l.longitude}|${l.name}`;
+    o.textContent = `${l.name} (${l.latitude.toFixed(3)}, ${l.longitude.toFixed(3)})`;
+    sel.appendChild(o);
+  });
+  const add = $("shAdd");
+  if (add) add.addEventListener("click", addShelter);
+  const tb = $("fleetBody");
+  if (tb) tb.addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-act]");
+    const tr = e.target.closest("tr[data-id]");
+    if (!btn || !tr) return;
+    if (btn.dataset.act === "del" && !confirm("Remove this shelter from the fleet?")) return;
+    fleetAction(tr.dataset.id, btn.dataset.act);
+  });
+}
+
+function initAuthFleet() {
+  renderAuthChip();
+  if (window.SHI) {
+    SHI.onAuth(() => { renderAuthChip(); loadDesigns(); loadStats(); loadShelters(); });
+  }
+  initFleetForm();
+  loadShelters();
 }

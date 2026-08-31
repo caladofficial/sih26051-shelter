@@ -31,9 +31,12 @@ def test_shipped_js_is_obfuscated():
 
 
 def test_shipped_html_css_are_minified():
-    html = (ROOT / "public" / "index.html").read_text()
-    assert "<!--" not in html          # comments stripped
-    assert 'id="view3d"' in html       # structure intact
+    for page in ("index.html", "dashboard.html", "login.html"):
+        html = (ROOT / "public" / page).read_text()
+        assert "<!--" not in html          # comments stripped
+    assert 'id="view3d"' in (ROOT / "public" / "dashboard.html").read_text()
+    assert 'id="heroStage"' in (ROOT / "public" / "index.html").read_text()
+    assert 'id="authForm"' in (ROOT / "public" / "login.html").read_text()
     css = (ROOT / "public" / "style.css").read_text()
     assert "/*" not in css
     assert (ROOT / "public" / "style.css").stat().st_size < \
