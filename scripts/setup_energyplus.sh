@@ -10,7 +10,7 @@ TAG=$(curl -sL https://api.github.com/repos/NREL/EnergyPlus/releases/latest \
       | python3 -c "import json,sys; print(json.load(sys.stdin)['tag_name'])")
 echo "[eplus] latest release: $TAG"
 
-URL=$(curl -sL "https://api.github.com/repos/NREL/EnergyPlus/releases/latest" \
+URL=$(curl -sL https://api.github.com/repos/NREL/EnergyPlus/releases/latest \
       | python3 -c "
 import json,sys
 d = json.load(sys.stdin)
@@ -22,7 +22,7 @@ echo "[eplus] downloading $URL ..."
 mkdir -p /usr/local/energyplus && cd /usr/local/energyplus
 curl -sL -o eplus.tar.gz "$URL"
 tar xzf eplus.tar.gz && rm -f eplus.tar.gz
-EXE=$(find /usr/local/energyplus -name energyplus -type f | head -1)
+EXE=$(find /usr/local/energyplus -name "energyplus*" \( -type f -o -type l \) | head -1)
 "$EXE" --version
 echo "[eplus] OK -> $EXE"
 echo "        add to PATH:  export PATH=\"$(dirname "$EXE"):\$PATH\""

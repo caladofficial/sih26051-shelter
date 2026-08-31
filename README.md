@@ -31,6 +31,12 @@ python scripts/run_parametric.py
 
 # 5. Tests
 python -m pytest tests/ -v
+
+# 6. Optimisation (Phase 6) — Optuna, ~40 trials in a few seconds
+python scripts/run_optimization.py --trials 40
+
+# 7. Dashboard (Phase 7) — 6 pages: Location → Climate → Design → Simulate → Optimize → Recommend
+streamlit run app/dashboard.py
 ```
 
 ## What is already done (results in `results/`)
@@ -41,10 +47,14 @@ python -m pytest tests/ -v
 | Phase 2/3 — first simulation | ✅ | `results/first_simulation_*.csv|html|png`, summary JSON |
 | Phase 3 — EnergyPlus run | ✅ | `results/energyplus_hourly.csv`, `energyplus_hot_week.*` |
 | Phase 5 — parametric sweeps | ✅ | `results/parametric/{orientation,material,insulation}_sweep.*` |
-| Phase 6 — optimisation (SciPy/Optuna) | ⏳ next | — |
-| Phase 7 — Streamlit dashboard | ⏳ next | — |
+| Phase 6 — optimisation (Optuna, TPI objective) | ✅ | `results/optimization/` (best_design.json, all_trials.csv) |
+| Phase 7 — Streamlit dashboard (6 pages) | ✅ | `app/dashboard.py` — run: `streamlit run app/dashboard.py` |
 
 ### Headline numbers — Prayagraj (25.44 N, 81.85 E), 2024, brick shelter 3×3×2.6 m
+
+Latest optimisation (40 trials, Thermal Performance Index): best design =
+**PUF sandwich-panel envelope + mineral-wool insulation, 255° orientation,
+east window, TPI 0.53** — see `results/optimization/`.
 
 - Hottest week (27 May–2 Jun): outdoor max **49.0 °C**; indoor RC **49.4 °C** / E+ **54.0 °C**.
 - Cold week: indoor 16.0–27.1 °C → **93 % hours inside 18–32 °C** (no heating needed).

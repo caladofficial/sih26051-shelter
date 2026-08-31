@@ -1,4 +1,4 @@
-Program Version,EnergyPlus, Version 26.1.0-6f2e40d102, YMD=2026.08.31 08:09,
+Program Version,EnergyPlus, Version 26.1.0-6f2e40d102, YMD=2026.08.31 08:20,
    ** Warning ** CheckEnvironmentSpecifications: SimulationControl specified doing design day simulations, but no design environments specified.
    **   ~~~   ** ...No design environment results produced. For these results, add appropriate SizingPeriod:* objects for your simulation.
    ************* Testing Individual Branch Integrity
@@ -33,4 +33,4 @@ Program Version,EnergyPlus, Version 26.1.0-6f2e40d102, YMD=2026.08.31 08:09,
    *************
    ************* EnergyPlus Warmup Error Summary. During Warmup: 0 Warning; 0 Severe Errors.
    ************* EnergyPlus Sizing Error Summary. During Sizing: 0 Warning; 0 Severe Errors.
-   ************* EnergyPlus Completed Successfully-- 3 Warning; 0 Severe Errors; Elapsed Time=00hr 00min  0.66sec
+   ************* EnergyPlus Completed Successfully-- 3 Warning; 0 Severe Errors; Elapsed Time=00hr 00min  0.75sec
