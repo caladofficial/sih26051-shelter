@@ -72,10 +72,15 @@ east window, TPI 0.53** — see `results/optimization/`.
 > Local credentials live in `.env` (gitignored).
 
 The repo is deployment-ready:
-- **`api/index.py`** — FastAPI serverless API (RC thermal model, weather, optimization)
+- **`api/index.py`** — thin Vercel entrypoint (one-line re-export; the FastAPI
+  app itself lives in `src/api_app.py` — see `docs/deployment.md` "Serverless
+  entrypoint rules" for why the shim must stay minimal)
 - **`public/`** — zero-build web frontend (Location → Climate → Design → Simulate → Optimize)
 - **`supabase/`** — Postgres schema + seed (materials, locations, weather cache, results)
-- **`src/db/store.py`** — storage facade: Supabase when keys are set, else local SQLite
+- **`src/db/store.py`** — storage facade: Supabase (PostgREST over requests) when keys are set, else local SQLite
+- **`src/data/solar.py`** — pure-NumPy NREL SPA + Erbs/isotropic-sky solar math,
+  bit-equivalent to pvlib (verified in `scripts/validate_solar_math.py`) so the
+  serverless bundle stays under Vercel's size limit
 
 ```bash
 # 1. Supabase: run supabase/migrations/0001_init.sql + supabase/seed.sql in the SQL editor
@@ -116,7 +121,8 @@ SIH26051_Shelter/
 
 ## Stack (all free/open source — ₹0)
 
-NASA POWER · Open-Meteo · EnergyPlus 26.1 · pvlib · pandas/NumPy/SciPy · Plotly ·
-matplotlib · pytest · SQLite · (later: Optuna, Streamlit, ERA5/CDS, QGIS, OpenFOAM)
+NASA POWER · Open-Meteo · EnergyPlus 26.1 · pvlib (desktop validation only) ·
+pandas/NumPy · FastAPI · Optuna · Plotly · matplotlib · pytest · SQLite ·
+Supabase · Vercel · (later: ERA5/CDS, QGIS, OpenFOAM)
 
 Windows setup instructions: [`docs/windows_setup.md`](docs/windows_setup.md)

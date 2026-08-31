@@ -21,12 +21,16 @@ the classic lumped-model overheating bias.
 Windows:  q = U_win*A*(T_out - T) + POA_win * A * SHGC   (transmitted solar).
 
 Solar geometry (sun position, POA irradiance per tilted surface) is computed
-with pvlib from the weather file's GHI; DNI/DHI are split with the Erbs model.
+with the NREL SPA algorithm + Erbs/Hay-Davies/Spencer/Kasten-Young models
+from the weather file's GHI. The implementations in src/data/solar.py are
+verbatim ports of the pvlib 0.15.2 equations (validated numerically over a
+full year, see scripts/validate_solar_math.py) so the serverless API does
+not need to ship pvlib/scipy/h5py.
 """
 import numpy as np
 import pandas as pd
-import pvlib
 
+from src.data import solar
 from src.geometry.shelter import Shelter
 
 R_SE = 0.04          # exterior surface film resistance (m2K/W) — ASHRAE HOF
@@ -114,30 +118,29 @@ def simulate(cfg: dict, weather: pd.DataFrame,
     q_int = float(cfg["simulation"]["internal_gains_w"])
     t_ground = float(cfg["simulation"]["ground_temperature_c"])
 
-    # ---- solar geometry (pvlib) -------------------------------------------
-    loc = pvlib.location.Location(latitude=cfg["location"]["latitude"],
-                                  longitude=cfg["location"]["longitude"],
-                                  tz=cfg["location"]["timezone"])
-    solpos = pvlib.solarposition.get_solarposition(weather.index, loc.latitude,
-                                                   loc.longitude)
+    # ---- solar geometry (NREL SPA, pvlib-equivalent) ----------------------
+    lat = float(cfg["location"]["latitude"])
+    lon = float(cfg["location"]["longitude"])
+    solpos = solar.solar_position(weather.index, lat, lon)
     zenith = solpos["apparent_zenith"].clip(upper=89.9)
     azimuth = solpos["azimuth"]
 
     ghi = weather["ghi"].clip(lower=0.0)
-    erbs = pvlib.irradiance.erbs(ghi, zenith, weather.index)   # dni/dhi split
+    erbs = solar.erbs(ghi, zenith, weather.index)     # dni/dhi split
     dni = erbs["dni"].clip(lower=0.0).fillna(0.0)
     dhi = erbs["dhi"].clip(lower=0.0).fillna(0.0)
     albedo = float(cfg["simulation"]["albedo"])
+    dni_extra = solar.get_extra_radiation(weather.index)
+    airmass = solar.get_relative_airmass(zenith)
 
     poa = {}
     for s in surfaces:
-        poa[s["name"]] = pvlib.irradiance.get_total_irradiance(
+        poa[s["name"]] = solar.get_total_irradiance(
             surface_tilt=s["tilt_deg"], surface_azimuth=s["azimuth_deg"],
             solar_zenith=zenith, solar_azimuth=azimuth,
             dni=dni, ghi=ghi, dhi=dhi,
-            dni_extra=pvlib.irradiance.get_extra_radiation(weather.index),
-            airmass=pvlib.atmosphere.get_relative_airmass(zenith),
-            albedo=albedo)["poa_global"].fillna(0.0).clip(lower=0.0)
+            dni_extra=dni_extra, airmass=airmass,
+            albedo=albedo).fillna(0.0).clip(lower=0.0)
 
     # ---- assemble & integrate ---------------------------------------------
     t_out = weather["t2m"].interpolate().ffill().bfill().to_numpy(dtype=float)

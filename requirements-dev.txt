@@ -7,6 +7,10 @@ matplotlib>=3.7      # static PNG exports for presentations
 pytest>=7.0
 httpx>=0.27          # needed by fastapi TestClient (tests/test_api.py)
 
+# --- validation / sync tooling (desktop only; NOT on Vercel) ---
+pvlib>=0.15          # reference implementation for scripts/validate_solar_math.py
+supabase>=2.4        # optional SDK for manual Supabase work; Store itself uses PostgREST over requests
+
 # --- optional Ladybug ecosystem (weather-file tooling) ---
 # ladybug-core>=0.21
 # honeybee-energy>=1.66

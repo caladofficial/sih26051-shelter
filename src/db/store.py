@@ -8,6 +8,9 @@ Backend is chosen automatically:
 SQLite schema mirrors supabase/migrations/0001_init.sql so the same code
 works in both worlds. On serverless (Vercel) the filesystem is read-only, so
 SQLite writes degrade gracefully (writes are skipped, reads return None).
+
+Supabase is accessed through its PostgREST REST API with plain `requests`
+(no supabase-py SDK) so the serverless bundle stays small.
 """
 from __future__ import annotations
 
@@ -19,6 +22,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
+import requests
 
 try:                                  # auto-load .env when present (local runs)
     from dotenv import load_dotenv
@@ -102,14 +106,19 @@ class Store:
     """Unified storage facade: Supabase when configured, else SQLite."""
 
     def __init__(self, db_path: str | Path | None = None):
-        self.supabase_url = os.environ.get("SUPABASE_URL", "").strip()
+        self.supabase_url = os.environ.get("SUPABASE_URL", "").strip().rstrip("/")
         self.supabase_key = (os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or
                              os.environ.get("SUPABASE_ANON_KEY", "")).strip()
-        self._client = None
+        self._rest = None
         self._conn = None
         if self.supabase_url and self.supabase_key:
-            from supabase import create_client
-            self._client = create_client(self.supabase_url, self.supabase_key)
+            self._rest = f"{self.supabase_url}/rest/v1"
+            self._headers = {
+                "apikey": self.supabase_key,
+                "Authorization": f"Bearer {self.supabase_key}",
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            }
             self.backend = "supabase"
         else:
             path = Path(db_path) if db_path else \
@@ -119,6 +128,29 @@ class Store:
             self._conn.executescript(SCHEMA_SQLITE)
             self._conn.commit()
             self.backend = "sqlite"
+
+    # ---------------------------------------------------- PostgREST helpers
+    def _pg(self, method: str, table: str, params: dict | None = None,
+            body=None, prefer: str | None = None,
+            range_: tuple[int, int] | None = None) -> list[dict] | None:
+        """Call PostgREST; returns the JSON row list, [] on empty success,
+        or None when the request failed."""
+        headers = dict(self._headers)
+        if prefer:
+            headers["Prefer"] = prefer
+        if range_:
+            headers["Range"] = f"{range_[0]}-{range_[1]}"
+        try:
+            r = requests.request(method, f"{self._rest}/{table}",
+                                 headers=headers, params=params,
+                                 json=body, timeout=60)
+            r.raise_for_status()
+        except requests.RequestException as exc:
+            print(f"[store] PostgREST {method} {table} failed: {exc}")
+            return None
+        if not r.content:
+            return []
+        return r.json()
 
     # ------------------------------------------------------------- locations
     def upsert_location(self, location: dict) -> None:
@@ -132,9 +164,9 @@ class Store:
             "timezone": location.get("timezone", "UTC"),
             "created_at": _now(),
         }
-        if self._client:
-            self._client.table("locations").upsert(row,
-                on_conflict="location_id").execute()
+        if self._rest:
+            self._pg("POST", "locations", params={"on_conflict": "location_id"},
+                     body=row, prefer="resolution=merge-duplicates")
         else:
             self._conn.execute(
                 """INSERT OR REPLACE INTO locations
@@ -145,9 +177,9 @@ class Store:
             self._conn.commit()
 
     def list_locations(self) -> list[dict]:
-        if self._client:
-            res = self._client.table("locations").select("*").order("name").execute()
-            return [dict(r) for r in res.data]
+        if self._rest:
+            return self._pg("GET", "locations",
+                            params={"select": "*", "order": "name.asc"})
         rows = self._conn.execute("SELECT * FROM locations ORDER BY name").fetchall()
         cols = [c[0] for c in self._conn.execute("SELECT * FROM locations").description]
         return [dict(zip(cols, r)) for r in rows]
@@ -171,10 +203,11 @@ class Store:
                 "source": r["source"],
                 "notes": r.get("notes", ""),
             })
-        if self._client:
+        if self._rest:
             for i in range(0, len(rows), 100):
-                self._client.table("materials").upsert(rows[i:i + 100],
-                    on_conflict="material").execute()
+                self._pg("POST", "materials", params={"on_conflict": "material"},
+                         body=rows[i:i + 100],
+                         prefer="resolution=merge-duplicates")
         else:
             self._conn.executemany(
                 """INSERT OR REPLACE INTO materials
@@ -189,9 +222,9 @@ class Store:
         return len(rows)
 
     def list_materials(self) -> list[dict]:
-        if self._client:
-            res = self._client.table("materials").select("*").order("material").execute()
-            return [dict(r) for r in res.data]
+        if self._rest:
+            return self._pg("GET", "materials",
+                            params={"select": "*", "order": "material.asc"})
         rows = self._conn.execute("SELECT * FROM materials ORDER BY material").fetchall()
         cols = [c[0] for c in self._conn.execute("SELECT * FROM materials").description]
         return [dict(zip(cols, r)) for r in rows]
@@ -210,13 +243,14 @@ class Store:
                 v = r.get(col)
                 row[col] = None if pd.isna(v) else float(v)
             rows.append(row)
-        if self._client:
+        if self._rest:
             for i in range(0, len(rows), 500):
-                try:
-                    self._client.table("weather").upsert(rows[i:i + 500],
-                        on_conflict="location_id,ts_utc").execute()
-                except Exception as exc:          # serverless safety net
-                    print(f"[store] weather upsert skipped: {exc}")
+                written = self._pg(
+                    "POST", "weather",
+                    params={"on_conflict": "location_id,ts_utc"},
+                    body=rows[i:i + 500],
+                    prefer="resolution=merge-duplicates")
+                if written is None:           # serverless safety net
                     return 0
         else:
             try:
@@ -240,7 +274,7 @@ class Store:
         timezone conversion (hourly rows can straddle the UTC year boundary).
         Only the numeric weather columns are selected.
         """
-        if self._client:
+        if self._rest:
             # PostgREST caps reads at 1000 rows/request (Supabase default) —
             # page through the range until fewer than 1000 come back.
             rows = []
@@ -248,15 +282,14 @@ class Store:
             page_size = 1000
             cols = "ts_utc,t2m,rh2m,ws10m,wd10m,ps,ghi,ghi_clear,precip,t2mdew"
             while True:
-                query = self._client.table("weather") \
-                    .select(cols).eq("location_id", location_id)
+                params = {"select": cols, "order": "ts_utc.asc"}
+                params["location_id"] = f"eq.{location_id}"
                 if start_utc:
-                    query = query.gte("ts_utc", start_utc)
+                    params["ts_utc"] = f"gte.{start_utc}"
                 if end_utc:
-                    query = query.lte("ts_utc", end_utc)
-                res = query.order("ts_utc") \
-                    .range(offset, offset + page_size - 1).execute()
-                page = res.data
+                    params["ts_utc"] = f"lte.{end_utc}"
+                page = self._pg("GET", "weather", params=params,
+                                range_=(offset, offset + page_size - 1))
                 rows.extend(page)
                 if len(page) < page_size:
                     break
@@ -281,32 +314,33 @@ class Store:
     # ----------------------------------------------------------- simulations
     def save_simulation(self, sim_id: str, location_id: str, design: dict,
                         period: str, metrics: dict, results: pd.DataFrame) -> None:
-        if self._client:
-            try:
-                self._client.table("simulations").upsert({
-                    "sim_id": sim_id, "created_at": _now(),
-                    "location_id": location_id, "design": _j(design),
-                    "engine": "rc", "period": period, "metrics": _j(metrics),
-                }, on_conflict="sim_id").execute()
-                if results is not None and not results.empty:
-                    rows = []
-                    r = results.copy()
-                    r["ts"] = r.index.strftime("%Y-%m-%dT%H:%M:%S%z")
-                    for _, x in r.iterrows():
-                        rows.append({
-                            "sim_id": sim_id, "ts": x["ts"],
-                            "indoor_t_c": _f(x.get("indoor_t_c")),
-                            "outdoor_t_c": _f(x.get("outdoor_t_c")),
-                            "q_solar_w": _f(x.get("q_solar_w")),
-                            "q_conduct_w": _f(x.get("q_conduct_w")),
-                            "q_vent_w": _f(x.get("q_vent_w")),
-                            "q_net_w": _f(x.get("q_net_w")),
-                        })
-                    for i in range(0, len(rows), 500):
-                        self._client.table("simulation_results").upsert(
-                            rows[i:i + 500], on_conflict="sim_id,ts").execute()
-            except Exception as exc:
-                print(f"[store] simulation save skipped: {exc}")
+        if self._rest:
+            self._pg("POST", "simulations",
+                     params={"on_conflict": "sim_id"},
+                     body={"sim_id": sim_id, "created_at": _now(),
+                           "location_id": location_id, "design": _j(design),
+                           "engine": "rc", "period": period,
+                           "metrics": _j(metrics)},
+                     prefer="resolution=merge-duplicates")
+            if results is not None and not results.empty:
+                rows = []
+                r = results.copy()
+                r["ts"] = r.index.strftime("%Y-%m-%dT%H:%M:%S%z")
+                for _, x in r.iterrows():
+                    rows.append({
+                        "sim_id": sim_id, "ts": x["ts"],
+                        "indoor_t_c": _f(x.get("indoor_t_c")),
+                        "outdoor_t_c": _f(x.get("outdoor_t_c")),
+                        "q_solar_w": _f(x.get("q_solar_w")),
+                        "q_conduct_w": _f(x.get("q_conduct_w")),
+                        "q_vent_w": _f(x.get("q_vent_w")),
+                        "q_net_w": _f(x.get("q_net_w")),
+                    })
+                for i in range(0, len(rows), 500):
+                    self._pg("POST", "simulation_results",
+                             params={"on_conflict": "sim_id,ts"},
+                             body=rows[i:i + 500],
+                             prefer="resolution=merge-duplicates")
         else:
             try:
                 self._conn.execute(
@@ -335,11 +369,12 @@ class Store:
                 pass
 
     def list_simulations(self, limit: int = 10) -> list[dict]:
-        if self._client:
-            res = self._client.table("simulations").select("*") \
-                .order("created_at", desc=True).limit(limit).execute()
+        if self._rest:
+            res = self._pg("GET", "simulations",
+                           params={"select": "*", "order": "created_at.desc",
+                                   "limit": str(limit)})
             out = []
-            for r in res.data:
+            for r in res:
                 r["design"] = json.loads(r["design"]) if r.get("design") else {}
                 r["metrics"] = json.loads(r["metrics"]) if r.get("metrics") else {}
                 out.append(r)
@@ -360,21 +395,22 @@ class Store:
     def save_optimization(self, run_id: str, location_id: str, n_trials: int,
                           best_tpi: float, best_design: dict,
                           trials: list[dict]) -> None:
-        if self._client:
-            try:
-                self._client.table("optimization_runs").upsert({
-                    "run_id": run_id, "created_at": _now(),
-                    "location_id": location_id, "n_trials": n_trials,
-                    "best_tpi": float(best_tpi), "best_design": _j(best_design),
-                }, on_conflict="run_id").execute()
-                rows = [{"run_id": run_id, "trial_no": int(t["trial_no"]),
-                         "tpi": float(t["tpi"]), "params": _j(t["params"])}
-                        for t in trials]
-                for i in range(0, len(rows), 200):
-                    self._client.table("optimization_trials").upsert(
-                        rows[i:i + 200], on_conflict="run_id,trial_no").execute()
-            except Exception as exc:
-                print(f"[store] optimization save skipped: {exc}")
+        if self._rest:
+            self._pg("POST", "optimization_runs",
+                     params={"on_conflict": "run_id"},
+                     body={"run_id": run_id, "created_at": _now(),
+                           "location_id": location_id, "n_trials": n_trials,
+                           "best_tpi": float(best_tpi),
+                           "best_design": _j(best_design)},
+                     prefer="resolution=merge-duplicates")
+            rows = [{"run_id": run_id, "trial_no": int(t["trial_no"]),
+                     "tpi": float(t["tpi"]), "params": _j(t["params"])}
+                    for t in trials]
+            for i in range(0, len(rows), 200):
+                self._pg("POST", "optimization_trials",
+                         params={"on_conflict": "run_id,trial_no"},
+                         body=rows[i:i + 200],
+                         prefer="resolution=merge-duplicates")
         else:
             try:
                 self._conn.execute(
@@ -393,11 +429,12 @@ class Store:
                 pass
 
     def list_optimizations(self, limit: int = 5) -> list[dict]:
-        if self._client:
-            res = self._client.table("optimization_runs").select("*") \
-                .order("created_at", desc=True).limit(limit).execute()
+        if self._rest:
+            res = self._pg("GET", "optimization_runs",
+                           params={"select": "*", "order": "created_at.desc",
+                                   "limit": str(limit)})
             out = []
-            for r in res.data:
+            for r in res:
                 r["best_design"] = json.loads(r["best_design"]) if r.get("best_design") else {}
                 out.append(r)
             return out

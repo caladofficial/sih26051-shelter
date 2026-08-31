@@ -26,3 +26,6 @@ assets
 __pycache__
 .pytest_cache
 .vercel
+pyproject.toml
+uv.lock
+.python-version

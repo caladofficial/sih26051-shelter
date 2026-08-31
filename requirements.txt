@@ -1,13 +1,15 @@
 # SIH26051_Shelter — RUNTIME/API dependencies (this file is what Vercel installs).
-# Lean on purpose: the Vercel Python function must stay small & cold-start friendly.
-# Local dev extras (dashboard, plots, tests) live in requirements-dev.txt.
+# Lean on purpose: the Vercel Python function bundle must stay small
+# (bundles > ~250 MB break routing — see docs/deployment.md). Heavy
+# scientific libs (pvlib, scipy, h5py) are replaced by the verbatim
+# pure-NumPy ports in src/data/solar.py (validated bit-equivalent in
+# scripts/validate_solar_math.py). Local dev extras live in requirements-dev.txt.
 #
 # Install both locally:  python -m pip install -r requirements.txt -r requirements-dev.txt
 
 # --- core data + model ---
 numpy>=1.24
 pandas>=2.0
-pvlib>=0.10          # solar position + POA irradiance (works without scipy)
 requests>=2.31
 PyYAML>=6.0
 
@@ -18,7 +20,7 @@ uvicorn>=0.27        # local dev server only; Vercel runs ASGI natively
 python-dotenv>=1.0
 
 # --- cloud persistence ---
-supabase>=2.4        # Postgres storage when SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY are set
+# (no supabase SDK: Store talks to PostgREST directly over requests)
 
 # --- optimization ---
 optuna>=3.5

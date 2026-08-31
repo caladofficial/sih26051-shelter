@@ -70,22 +70,68 @@ make supabase               # python scripts/sync_supabase.py --weather-year 202
 
 With no keys set, everything still works locally on **SQLite** (`data/processed/app.db`).
 
+## Serverless entrypoint rules (IMPORTANT — learned the hard way)
+
+The Vercel Python builder statically analyses `api/index.py` and chooses between
+two routing modes:
+
+- **"app" mode** — a top-level ASGI `app` is detected → ONE catch-all function
+  (`out/fastapi`) → every path is forwarded to FastAPI, which routes internally.
+  ✅ This is the mode that works.
+- **"api-dir" mode** — no top-level `app` detected → each `api/*.py` becomes its
+  own function (`out/api/index`) AND the builder emits an explicit
+  `{"src": "^/api(/.*)?$", "status": 404}` route, so **every `/api/*` request
+  404s at the platform edge**. ❌ This is what broke our first deployments.
+
+Rules that keep us in "app" mode:
+
+1. **`api/index.py` must be a one-line re-export** — the full app lives in
+   `src/api_app.py`:
+   ```python
+   from src.api_app import app  # noqa: F401  (re-export for uvicorn/tests)
+   ```
+   Anything more complex (module-level imports of pandas/numpy, `sys.path`
+   fiddling, helpers) can trip the static analyser into "api-dir" mode.
+   `uvicorn api.index:app` and `tests/test_api.py` still work unchanged.
+2. **Never let `pyproject.toml` / `uv.lock` / `.python-version` reach the
+   upload** — running `vercel build` locally generates these files at the repo
+   root, and once uploaded they flip the builder into a broken "api-dir" build.
+   They are now in both `.gitignore` and `.vercelignore`; delete them if you
+   ever see them in `git status` (they must never be committed).
+3. **A fresh deployment after changing anything**: if the platform reports
+   `Restored build cache from previous deployment`, add `--force` to the deploy
+   command — the build cache can carry a broken analysis across deploys.
+4. **Deploy with the Vercel CLI**, not the raw REST `/v13/deployments` API
+   (the REST upload produced `invalid_vercel_json`/static-only deployments):
+   ```bash
+   vercel deploy --prod --yes
+   ```
+   Re-deploy after changing env vars — variables are baked in per deployment.
+
 ## Costs & limits (Vercel Hobby + Supabase Free)
 
-- 1 GB function size limit — our deploy is lean (numpy+pandas+pvlib+fastapi+optuna).
+- The standard function-bundle threshold is **225 MB** (`LAMBDA_SIZE_THRESHOLD`);
+  above it Vercel "optimizes dependencies" and, in our experience, the function
+  stops being routed. Our deploy is lean on purpose:
+  `numpy + pandas + fastapi + optuna` ≈ 150 MB — no pvlib/scipy/h5py/supabase
+  SDK (replaced by the bit-equivalent pure-NumPy port in `src/data/solar.py`
+  and plain PostgREST over `requests` in `src/db/store.py`).
 - Function timeout: default 10 s, we set `maxDuration: 60` in `vercel.json`.
-  `/api/simulate` ≈ 1–3 s · `/api/optimize` (30 trials) ≈ 4–6 s — comfortably inside.
+  `/api/simulate` ≈ 1–3 s · `/api/optimize` (30 trials) ≈ 5–8 s — comfortably inside.
 - Supabase free: 500 MB database, 50k monthly active rows read — plenty for a demo.
 - NASA POWER + Open-Meteo: free, no keys.
 
 ## Troubleshooting
 
-- **`Runtime is not supported` on deploy** → change `"runtime": "python3.12"` in
-  `vercel.json` to a supported Python version for your account/plan.
+- **Every `/api/*` returns platform `NOT_FOUND`** (a Vercel 404 page, not JSON)
+  → the builder chose "api-dir" mode. Check `api/index.py` is still the thin
+  shim, delete `pyproject.toml`/`uv.lock`/`.python-version` if present, and
+  redeploy with `--force`.
+- **`{"detail":"Not Found"}` from `/api/xyz`** → that's FastAPI answering — the
+  function is routed correctly; the path just isn't a registered route.
 - **API 500s on /api/climate** → Supabase env keys wrong or network-restricted;
   the endpoint falls back to live fetch either way.
-- **Slow cold start** → first request after idle takes ~5–10 s (importing numpy/pandas);
+- **Slow cold start** → first request after idle takes ~2–4 s (importing numpy/pandas);
   subsequent calls are fast.
 - **EnergyPlus in the cloud?** Not with Vercel. Use `make eplus` locally for final
-  validation; results can be saved via `POST /api/simulate` with `engine: eplus` in a
-  future version.
+  validation; the deployed API runs the validated RC model.
