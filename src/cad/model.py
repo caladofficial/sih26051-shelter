@@ -264,3 +264,23 @@ def assembly(design: dict, materials: dict[str, dict] | None = None) -> dict:
 
 def rotate_deg(deg: float) -> float:
     return math.radians(float(deg))
+
+
+def mass(comps: list[dict]) -> dict:
+    """Envelope mass estimate — mass = density × component volume,
+    using the sourced densities from the materials table (no invented
+    numbers; components without a density are reported as None)."""
+    rows = []
+    total = 0.0
+    for c in comps:
+        x0, y0, z0, x1, y1, z1 = c["box"]
+        vol = (x1 - x0) * (y1 - y0) * (z1 - z0)
+        d = (c.get("properties") or {}).get("density_kg_m3")
+        m = vol * d if d else None
+        rows.append({"component": c["id"], "type": c["type"],
+                     "material": c["material"], "volume_m3": round(vol, 4),
+                     "density_kg_m3": d, "mass_kg": round(m, 1) if m else None})
+        if m:
+            total += m
+    return {"components": rows, "total_mass_kg": round(total, 1),
+            "note": "mass = density x volume (sourced densities)"}

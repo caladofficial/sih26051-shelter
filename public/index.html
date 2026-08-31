@@ -86,6 +86,12 @@
     <p class="sub">Defence-grade, area-specific passive shelter design — site climate intake,
     <b>RC thermal core</b> (validated against EnergyPlus), parametric <b>design</b>,
     <b>simulation</b> and <b>Optuna optimization</b> for extreme-zone field comfort.</p>
+    <div class="statstrip">
+      <span>SIMULATIONS <b id="stSims">—</b></span>
+      <span>OPTIMIZATIONS <b id="stOpts">—</b></span>
+      <span>SAVED DESIGNS <b id="stDesigns">—</b></span>
+      <span>CAD INGESTIONS <b id="stCad">—</b></span>
+    </div>
   </section>
 
   <!-- ============ NAV ============ -->
@@ -95,6 +101,7 @@
     <a href="#sec3"><b>03</b>Design</a>
     <a href="#sec4"><b>04</b>Simulate</a>
     <a href="#sec5"><b>05</b>Optimize</a>
+    <a href="#sec6"><b>06</b>Library</a>
   </nav>
 
   <main>
@@ -183,13 +190,31 @@
               <span class="grow" style="flex:1"></span>
               <span id="structSource" class="tag">AUTO-GEN · PARAMS</span>
             </div>
-            <div id="view3d" class="view3d"></div>
+            <div id="view3d" class="view3d">
+              <div class="compass" id="compass" title="World north">
+                <svg viewBox="0 0 40 40" aria-hidden="true">
+                  <path d="M20 6 L26 34 L20 28 L14 34 Z" fill="#ff9933"/>
+                </svg><span>N</span>
+              </div>
+              <div class="zoombox">
+                <button id="zoomIn"  type="button" title="Zoom in">＋</button>
+                <button id="zoomOut" type="button" title="Zoom out">－</button>
+                <button id="viewReset" type="button" title="Reset view">⌂</button>
+              </div>
+            </div>
             <div class="view3d-tools">
-              <label class="chk"><input type="checkbox" id="explode" /> EXPLODE LAYERS</label>
+              <label class="chk"><input type="checkbox" id="explode" /> EXPLODE</label>
               <label class="chk"><input type="checkbox" id="wire" /> WIREFRAME</label>
+              <label class="chk"><input type="checkbox" id="cutaway" /> CUTAWAY</label>
+              <label class="chk"><input type="checkbox" id="autoRot" /> SPIN</label>
+              <button id="measureBtn" type="button" class="btn-sm" title="Click two points to measure (m)">📏 MEASURE</button>
+              <button id="full3d" type="button" class="btn-sm" title="Fullscreen 3D">⛶ FULL</button>
+              <span class="tag" id="measureOut">—</span>
+              <span class="grow" style="flex:1"></span>
               <span class="tag" id="structDims">—</span>
               <span class="tag" id="structVol">—</span>
             </div>
+            <div class="legend" id="structLegend"></div>
           </div>
 
           <div class="mod">
@@ -216,6 +241,9 @@
               <button id="exportDxf" type="button" title="AutoCAD/LibreCAD DXF">DXF</button>
               <button id="exportObj" type="button" title="Wavefront mesh">OBJ</button>
               <button id="exportStl" type="button" title="3D-print mesh">STL</button>
+              <button id="exportJson" type="button" title="Design params as JSON">JSON</button>
+              <button id="importJson" type="button" title="Load design params from JSON">⮌ JSON</button>
+              <button id="exportReport" type="button" title="Download markdown report">REPORT</button>
               <span id="cadStatus" class="status"></span>
             </div>
             <div id="cadRecent" class="cad-recent"></div>
@@ -239,6 +267,16 @@
         <div class="mod">
           <div class="mod-hd"><i></i>MOD·04B — HEAT FLOW BUDGET</div>
           <div id="chartHeat" class="chart"></div>
+        </div>
+        <div class="mod">
+          <div class="mod-hd"><i></i>MOD·04C — INSULATION SENSITIVITY SWEEP · HOT WEEK</div>
+          <div class="row">
+            <label class="ctl">Grid <em>mm · comma-separated</em>
+              <input id="sweepGrid" type="text" value="0, 25, 50, 75, 100" /></label>
+            <button id="sweepBtn" type="button" class="primary">⛭ Run Sweep</button>
+            <span id="sweepStatus" class="status"></span>
+          </div>
+          <div id="chartSweep" class="chart"></div>
         </div>
       </div>
     </section>
@@ -271,6 +309,39 @@
               <th>Insulation</th><th>Window</th>
             </tr></thead>
             <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+    <!-- ============ 6 · DESIGN LIBRARY ============ -->
+    <section class="module" id="sec6">
+      <div class="mod-head">
+        <span class="sec">SEC/06</span>
+        <h2>Design Library &amp; Records</h2>
+        <span class="code">MODULE: HIST-DB · SUPABASE</span>
+      </div>
+      <div class="row">
+        <label class="ctl">Design name <em>saved to library</em>
+          <input id="designName" type="text" placeholder="e.g. Field shelter — EPS 50 mm" /></label>
+        <button id="saveDesign" type="button" class="primary">⭱ Save Design</button>
+        <button id="compareBtn" type="button" disabled>⚖ Compare (2)</button>
+        <span id="libStatus" class="status"></span>
+      </div>
+      <div class="tblwrap libwrap">
+        <table class="lib-table">
+          <thead><tr>
+            <th>★</th><th>Name</th><th>Dims · m</th><th>Wall / Roof</th>
+            <th>Insulation</th><th>U-wall</th><th>Mass</th><th>Updated</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="libTable"></tbody>
+        </table>
+      </div>
+      <div id="comparePanel" hidden>
+        <h3>Design comparison — side by side</h3>
+        <div class="tblwrap">
+          <table class="compare-table">
+            <thead id="compareHead"></thead>
+            <tbody id="compareBody"></tbody>
           </table>
         </div>
       </div>

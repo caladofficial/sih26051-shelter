@@ -341,6 +341,8 @@ function structPayload() {
 let structTimer = null;
 function scheduleStructure() {
   clearTimeout(structTimer);
+  const p = structPayload();
+  if (p) { try { localStorage.setItem("shl-draft", JSON.stringify(p)); } catch (e) {} }
   structTimer = setTimeout(buildStructure, 350);
 }
 
@@ -360,6 +362,8 @@ async function buildStructure() {
     v.classList.add("ready");
     renderStruct3D();
     renderStructSheet(data);
+    $("structLegend").innerHTML = "";
+    renderLegend();
   } catch (err) {
     v.classList.remove("ready");
     v.innerHTML = `<div class="view3d-msg">STRUCTURE FEED FAILED — ${err.message}</div>`;
@@ -445,6 +449,8 @@ function rebuildMeshes() {
   struct.camera.position.set(4.6, 3.8, 5.4);
   applyExplode();
   setWire();
+  setCutaway();
+  setAutoRot();
 }
 
 function applyExplode() {
@@ -509,6 +515,7 @@ function onThreeHover(e) {
 }
 
 function onThreeClick(e) {
+  if (measure.on) { measureClick(e); return; }
   const el = $("view3d");
   const rect = el.getBoundingClientRect();
   const ndc = new THREE.Vector2(
@@ -780,7 +787,490 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("exportDxf").addEventListener("click", () => exportCad("dxf"));
   $("exportObj").addEventListener("click", () => exportCad("obj"));
   $("exportStl").addEventListener("click", () => exportCad("stl"));
+  $("exportJson").addEventListener("click", exportDesignJson);
+  $("exportReport").addEventListener("click", exportReport);
+  $("importJson").addEventListener("click", () => $("jsonFile").click());
+  $("jsonFile").addEventListener("change", () => {
+    const f = $("jsonFile").files[0];
+    if (f) importDesignJson(f);
+    $("jsonFile").value = "";
+  });
 
+  /* --- 3D pro tools --- */
+  $("zoomIn").addEventListener("click", () => zoomThree(0.85));
+  $("zoomOut").addEventListener("click", () => zoomThree(1.18));
+  $("viewReset").addEventListener("click", resetView);
+  $("full3d").addEventListener("click", toggleFull3D);
+  $("autoRot").addEventListener("change", () => {
+    struct.autoRot = $("autoRot").checked;
+    setAutoRot();
+  });
+  $("cutaway").addEventListener("change", () => {
+    struct.cutaway = $("cutaway").checked;
+    setCutaway();
+  });
+  $("measureBtn").addEventListener("click", () => setMeasure(!measure.on));
+
+  /* --- design library --- */
+  $("saveDesign").addEventListener("click", saveCurrentDesign);
+  $("libTable").addEventListener("click", (e) => {
+    const act = e.target.closest("[data-act]");
+    if (!act) return;
+    const id = act.dataset.id;
+    const row = lib.data.find((d) => d.design_id === id);
+    if (!row) return;
+    if (act.dataset.act === "load") {
+      applyDesignToForm(row.design);
+      $("designName").value = row.name || "";
+      $("structSource").textContent = `LIBRARY · ${(row.name || "").toUpperCase()}`;
+      toast(`Loaded design — ${row.name}`);
+      scheduleStructure();
+    } else if (act.dataset.act === "ren") {
+      const name = prompt("Design name:", row.name || "");
+      if (name !== null) {
+        api(`/api/designs/${id}`, { method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name }) }).then(loadDesigns)
+          .catch((err) => toast(err.message, true));
+      }
+    } else if (act.dataset.act === "del") {
+      if (act.textContent !== "SURE?") {
+        act.textContent = "SURE?";
+        act.style.color = "var(--red)";
+        setTimeout(() => { act.textContent = "DEL"; act.style.color = ""; }, 3000);
+        return;
+      }
+      api(`/api/designs/${id}`, { method: "DELETE" })
+        .then(() => { lib.sel = lib.sel.filter((x) => x !== id); loadDesigns(); loadStats(); toast("Design deleted"); })
+        .catch((err) => toast(err.message, true));
+    }
+  });
+  $("libTable").addEventListener("click", (e) => {
+    const star = e.target.closest(".fav");
+    if (!star) return;
+    const tr = star.closest("tr");
+    const id = tr.querySelector("[data-act]").dataset.id;
+    const row = lib.data.find((d) => d.design_id === id);
+    api(`/api/designs/${id}`, { method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ favorite: !row.favorite }) })
+      .then(loadDesigns).catch((err) => toast(err.message, true));
+  });
+  $("libTable").addEventListener("click", (e) => {
+    const tbody = e.target.closest("tbody");
+    if (!tbody || e.target.closest("[data-act]") || e.target.closest(".fav")) return;
+    const tr = e.target.closest("tr");
+    const id = tr.querySelector("[data-act]").dataset.id;
+    toggleCompare(id, tr);
+  });
+  $("compareBtn").addEventListener("click", runCompare);
+
+  /* --- sweep + stats --- */
+  $("sweepBtn").addEventListener("click", runSweep);
+
+  /* --- keyboard --- */
+  setupShortcuts();
+
+  /* --- first paint: draft -> structure -> library/stats --- */
+  const restored = applyDraft();
+  if (restored) toast("Draft design restored from this browser");
   await buildStructure();
   loadCadRecent();
+  loadDesigns();
+  loadStats();
 });
+
+/* ============================================================
+   7 · 3D PRO TOOLS · DESIGN LIBRARY · SWEEP · STATS · MORE
+   ============================================================ */
+// hidden file input for JSON design import (created in JS)
+(function () {
+  const i = document.createElement("input");
+  i.type = "file"; i.id = "jsonFile"; i.accept = ".json,application/json"; i.hidden = true;
+  document.body.appendChild(i);
+})();
+const lib = { sel: [], data: [] };
+const measure = { on: false, a: null, marker: null, line: null };
+
+/* ---------------- 3D pro tools ---------------- */
+function zoomThree(factor) {
+  if (!struct.camera || !struct.controls) return;
+  const dir = struct.camera.position.clone().sub(struct.controls.target);
+  struct.camera.position.copy(struct.controls.target).add(dir.multiplyScalar(factor));
+}
+function resetView() {
+  if (struct.controls && struct.data) {
+    const b = struct.data.bounding;
+    struct.controls.target.set(0, (b.z1 - b.z0) / 2 + 0.2, 0);
+    struct.camera.position.set(4.6, 3.8, 5.4);
+  }
+  struct.rotY = 0;
+  if (typeof THREE === "undefined") drawIso();
+}
+function toggleFull3D() {
+  const holder = $("view3d").closest(".mod");
+  holder.classList.toggle("view3d-full");
+  if (holder.classList.contains("view3d-full"))
+    holder.scrollIntoView({ block: "start" });
+  if (typeof THREE !== "undefined" && struct.renderer) {
+    setTimeout(() => {
+      const el = $("view3d");
+      struct.renderer.setSize(el.clientWidth, el.clientHeight);
+      struct.camera.aspect = el.clientWidth / Math.max(1, el.clientHeight);
+      struct.camera.updateProjectionMatrix();
+    }, 60);
+  }
+}
+function setCutaway() {
+  if (!struct.meshes.length) return;
+  const hide = new Set(["roof", "ins_roof", "wall_south", "ins_wall_south"]);
+  const ww = struct.data.design.window_wall || "south";
+  if (ww === "south") hide.add("window");
+  for (const m of struct.meshes)
+    m.visible = !(struct.cutaway && hide.has(m.userData.id));
+}
+function setAutoRot() {
+  if (struct.controls) {
+    struct.controls.autoRotate = struct.autoRot;
+    struct.controls.autoRotateSpeed = 2.0;
+  }
+}
+function measureClick(e) {
+  if (!measure.on || typeof THREE === "undefined" || !struct.scene) return;
+  const el = $("view3d");
+  const rect = el.getBoundingClientRect();
+  const ndc = new THREE.Vector2(
+    ((e.clientX - rect.left) / rect.width) * 2 - 1,
+    -((e.clientY - rect.top) / rect.height) * 2 + 1);
+  const rc = new THREE.Raycaster();
+  rc.setFromCamera(ndc, struct.camera);
+  const hits = rc.intersectObjects(struct.meshes, false);
+  if (!hits.length) return;
+  const p = hits[0].point;
+  if (!measure.a) {
+    measure.a = p.clone();
+    if (measure.marker) struct.scene.remove(measure.marker);
+    measure.marker = new THREE.Mesh(
+      new THREE.SphereGeometry(0.035, 12, 12),
+      new THREE.MeshBasicMaterial({ color: 0x5eea8d }));
+    measure.marker.position.copy(p);
+    struct.scene.add(measure.marker);
+    $("measureOut").textContent = "POINT A SET — CLICK TARGET";
+  } else {
+    const dist = measure.a.distanceTo(p);
+    if (measure.line) struct.scene.remove(measure.line);
+    const g = new THREE.BufferGeometry().setFromPoints([measure.a, p]);
+    measure.line = new THREE.Line(g,
+      new THREE.LineBasicMaterial({ color: 0xff9933, linewidth: 2 }));
+    struct.scene.add(measure.line);
+    $("measureOut").textContent = `DISTANCE ${dist.toFixed(2)} m`;
+    measure.a = null;
+  }
+}
+function setMeasure(on) {
+  measure.on = on;
+  $("measureBtn").classList.toggle("active", on);
+  $("measureBtn").textContent = on ? "📏 MEASURING…" : "📏 MEASURE";
+  $("measureOut").textContent = "";
+  if (!on && measure.marker) { struct.scene.remove(measure.marker); measure.marker = null; }
+  if (!on && measure.line) { struct.scene.remove(measure.line); measure.line = null; }
+  measure.a = null;
+}
+
+/* ---------------- 3D legend ---------------- */
+function renderLegend() {
+  const wrap = $("structLegend");
+  if (!wrap || !struct.data) return;
+  const seen = {};
+  for (const c of struct.data.components) {
+    if (!seen[c.type]) {
+      seen[c.type] = c.color;
+      const s = document.createElement("span");
+      s.innerHTML = `<i style="background:${c.color}"></i>${c.type.toUpperCase()}`;
+      wrap.appendChild(s);
+    }
+  }
+}
+
+/* ---------------- design library ---------------- */
+function libDesigns() { return lib.data; }
+
+async function loadDesigns() {
+  try {
+    const j = await api("/api/designs?limit=100");
+    lib.data = j.designs || [];
+    renderLibrary();
+  } catch (e) { /* silent */ }
+}
+
+function renderLibrary() {
+  const tb = $("libTable");
+  if (!tb) return;
+  tb.innerHTML = "";
+  if (!lib.data.length) {
+    tb.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--dim)">
+      NO SAVED DESIGNS YET — CONFIGURE THE MATRIX AND HIT “SAVE DESIGN”</td></tr>`;
+    return;
+  }
+  for (const d of lib.data) {
+    const p = d.design || {};
+    const tr = document.createElement("tr");
+    if (lib.sel.includes(d.design_id)) tr.className = "sel";
+    const updated = (d.updated_at || "").replace("T", " ").slice(0, 16);
+    const ins = p.insulation_material && p.insulation_material !== "none"
+      ? `${p.insulation_material} ${Math.round((p.insulation_thickness_m || 0) * 1000)}mm` : "—";
+    tr.innerHTML =
+      `<td class="fav ${d.favorite ? "" : "off"}" title="favorite">${d.favorite ? "★" : "☆"}</td>` +
+      `<td><b>${d.name || "Design"}</b></td>` +
+      `<td>${p.length_m ?? "—"}×${p.width_m ?? "—"}×${p.height_m ?? "—"}</td>` +
+      `<td>${p.wall_material || "—"} / ${p.roof_material || "—"}</td>` +
+      `<td>${ins}</td><td>—</td><td>—</td><td>${updated}</td>` +
+      `<td><div class="row-actions">
+         <button data-act="load" data-id="${d.design_id}">LOAD</button>
+         <button data-act="ren" data-id="${d.design_id}">REN</button>
+         <button data-act="del" data-id="${d.design_id}">DEL</button>
+       </div></td>`;
+    tb.appendChild(tr);
+  }
+  // enrich rows with computed U / mass asynchronously (cheap: reuse structure)
+  lib.data.forEach((d) => enrichLibraryRow(d));
+}
+
+async function enrichLibraryRow(d) {
+  try {
+    const j = await api("/api/cad/structure", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(d.design),
+    });
+    const rows = [...$("libTable").querySelectorAll("tr")];
+    const tr = rows.find((r) => r.querySelector(`[data-id="${d.design_id}"]`));
+    if (!tr) return;
+    const tds = tr.querySelectorAll("td");
+    tds[5].textContent = j.assembly.wall.u_w_m2k != null ? j.assembly.wall.u_w_m2k.toFixed(2) : "—";
+    tds[6].textContent = j.mass.total_mass_kg != null ? Math.round(j.mass.total_mass_kg) + " kg" : "—";
+  } catch (e) { /* keep placeholders */ }
+}
+
+function applyDesignToForm(d) {
+  if (!d) return;
+  const num = (v) => (typeof v === "number" && isFinite(v) ? v : null);
+  const set = (id, v) => { if (v !== null && $(id)) $(id).value = v; };
+  set("length", num(d.length_m)); set("width", num(d.width_m));
+  set("height", num(d.height_m));
+  if (num(d.orientation_deg) !== null) set("orientation", Math.round(d.orientation_deg));
+  set("wallThick", num(d.wall_thickness_m)); set("roofThick", num(d.roof_thickness_m));
+  set("insThick", num(d.insulation_thickness_m) !== null
+      ? Math.round(d.insulation_thickness_m * 1000) : null);
+  if (d.window_width_m && d.window_height_m)
+    set("winSize", `${d.window_width_m} × ${d.window_height_m}`);
+  const opt = (id, v) => {
+    const s = $(id);
+    if (v && s && [...s.options].some((o) => o.value === v)) s.value = v;
+  };
+  opt("wallMat", d.wall_material); opt("roofMat", d.roof_material);
+  opt("insMat", d.insulation_material || "none"); opt("winWall", d.window_wall);
+}
+
+function currentFlatDesign() {
+  return structPayload();
+}
+
+async function saveCurrentDesign() {
+  const p = currentFlatDesign();
+  if (!p) { toast("Design parameters incomplete", true); return; }
+  const name = ($("designName").value || "").trim() ||
+    `Design ${new Date().toISOString().slice(0, 16).replace("T", " ")}`;
+  const btn = $("saveDesign");
+  btn.classList.add("busy");
+  try {
+    const j = await api("/api/designs", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, design: p }),
+    });
+    $("libStatus").textContent = `SAVED · ${j.design_id}`;
+    toast(`Design saved — ${name}`);
+    await loadDesigns();
+    loadStats();
+  } catch (err) {
+    toast(`Save failed: ${err.message}`, true);
+  } finally { btn.classList.remove("busy"); }
+}
+
+function toggleCompare(id, tr) {
+  const i = lib.sel.indexOf(id);
+  if (i >= 0) lib.sel.splice(i, 1);
+  else if (lib.sel.length < 2) lib.sel.push(id);
+  else lib.sel.shift(), lib.sel.push(id);
+  renderLibrary();
+  $("compareBtn").disabled = lib.sel.length !== 2;
+}
+
+async function runCompare() {
+  if (lib.sel.length !== 2) return;
+  const [a, b] = lib.sel.map((id) => lib.data.find((d) => d.design_id === id));
+  const [ja, jb] = await Promise.all([
+    api("/api/cad/structure", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(a.design) }),
+    api("/api/cad/structure", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b.design) }),
+  ]);
+  const rows = [
+    ["Dimensions L×W×H (m)", `${ja.bounding.length_m}×${ja.bounding.width_m}×${ja.bounding.height_m}`,
+     `${jb.bounding.length_m}×${jb.bounding.width_m}×${jb.bounding.height_m}`],
+    ["Orientation (°)", ja.design.orientation_deg, jb.design.orientation_deg],
+    ["Wall", `${ja.design.wall_material} ${ja.design.wall_thickness_m}m`, `${jb.design.wall_material} ${jb.design.wall_thickness_m}m`],
+    ["Roof", `${ja.design.roof_material} ${ja.design.roof_thickness_m}m`, `${jb.design.roof_material} ${jb.design.roof_thickness_m}m`],
+    ["Insulation", ja.design.insulation_material === "none" ? "none" : `${ja.design.insulation_material} ${Math.round(ja.design.insulation_thickness_m * 1000)}mm`,
+     jb.design.insulation_material === "none" ? "none" : `${jb.design.insulation_material} ${Math.round(jb.design.insulation_thickness_m * 1000)}mm`],
+    ["U wall (W/m²K)", ja.assembly.wall.u_w_m2k, jb.assembly.wall.u_w_m2k],
+    ["U roof (W/m²K)", ja.assembly.roof.u_w_m2k, jb.assembly.roof.u_w_m2k],
+    ["U floor (W/m²K)", ja.assembly.floor.u_w_m2k, jb.assembly.floor.u_w_m2k],
+    ["Glazing ratio (%)", ja.surfaces.glazing_ratio_pct, jb.surfaces.glazing_ratio_pct],
+    ["Volume (m³)", ja.surfaces.volume_m3, jb.surfaces.volume_m3],
+    ["Envelope mass (kg)", ja.mass.total_mass_kg, jb.mass.total_mass_kg],
+    ["Window U / SHGC", `${ja.assembly.window.u_w_m2k} / ${ja.assembly.window.shgc}`,
+     `${jb.assembly.window.u_w_m2k} / ${jb.assembly.window.shgc}`],
+  ];
+  const head = $("compareHead");
+  head.innerHTML = `<tr><th>Property</th><th>${a.name}</th><th>${b.name}</th></tr>`;
+  const tb = $("compareBody");
+  tb.innerHTML = "";
+  for (const [label, va, vb] of rows) {
+    const tr = document.createElement("tr");
+    const isNum = (typeof va === "number") && (typeof vb === "number");
+    let clsA = "", clsB = "";
+    if (isNum && va !== vb) {
+      if (label.includes("U ") || label.includes("Glazing")) {
+        clsA = va < vb ? "hi" : ""; clsB = vb < va ? "hi" : "";
+      } else if (label.includes("Mass")) {
+        clsA = va < vb ? "hi" : ""; clsB = vb < va ? "hi" : "";
+      }
+    }
+    tr.innerHTML = `<td>${label}</td>` +
+      `<td class="${clsA}">${typeof va === "number" ? va.toFixed ? (Math.abs(va) < 100 ? +va.toFixed(3) : Math.round(va)) : va : va}</td>` +
+      `<td class="${clsB}">${typeof vb === "number" ? vb.toFixed ? (Math.abs(vb) < 100 ? +vb.toFixed(3) : Math.round(vb)) : vb : vb}</td>`;
+    tb.appendChild(tr);
+  }
+  $("comparePanel").hidden = false;
+}
+
+/* ---------------- stats strip ---------------- */
+async function loadStats() {
+  try {
+    const j = await api("/api/stats");
+    $("stSims").textContent = j.simulations;
+    $("stOpts").textContent = j.optimizations;
+    $("stDesigns").textContent = j.designs;
+    $("stCad").textContent = j.cad_imports;
+  } catch (e) { /* silent */ }
+}
+
+/* ---------------- insulation sweep ---------------- */
+async function runSweep() {
+  const p = structPayload();
+  if (!p) { toast("Design parameters incomplete", true); return; }
+  const grid = ($("sweepGrid").value || "")
+    .split(/[,\s]+/).map((v) => parseFloat(v)).filter((v) => isFinite(v));
+  if (!grid.length) { toast("Enter a thickness grid (mm)", true); return; }
+  const btn = $("sweepBtn");
+  btn.classList.add("busy"); btn.disabled = true;
+  const st = $("sweepStatus");
+  st.textContent = `running ${grid.length} points…`;
+  try {
+    const j = await api("/api/sweep", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...p, thicknesses_mm: grid }),
+    });
+    const xs = j.points.map((q) => q.thickness_mm);
+    plot($("chartSweep"), [
+      { x: xs, y: j.points.map((q) => q.mean_indoor_c), type: "scatter", mode: "lines+markers",
+        name: "MEAN INDOOR °C", line: { color: "#6ab7ff", width: 2 },
+        marker: { size: 7, color: "#6ab7ff" } },
+      { x: xs, y: j.points.map((q) => q.max_indoor_c), type: "scatter", mode: "lines+markers",
+        name: "MAX INDOOR °C", line: { color: "#ff5d5d", width: 2, dash: "dash" },
+        marker: { size: 6, color: "#ff5d5d" } },
+    ], { title: `INSULATION SWEEP · ${j.insulation_material.toUpperCase()} · HOT WEEK` });
+    const b = j.best;
+    st.textContent = `best ${b.thickness_mm} mm → mean ${b.mean_indoor_c.toFixed(1)}°C · max ${b.max_indoor_c.toFixed(1)}°C`;
+  } catch (err) {
+    st.textContent = `SWEEP FAILED: ${err.message}`;
+    st.classList.add("err");
+  } finally {
+    btn.classList.remove("busy"); btn.disabled = false;
+  }
+}
+
+/* ---------------- JSON exchange + report ---------------- */
+function downloadBlob(content, name, type) {
+  const a = document.createElement("a");
+  const url = URL.createObjectURL(new Blob([content], { type }));
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+function exportDesignJson() {
+  const p = currentFlatDesign();
+  if (!p) { toast("Design parameters incomplete", true); return; }
+  downloadBlob(JSON.stringify(p, null, 2), "shelter-design.json",
+               "application/json");
+  toast("Design JSON exported");
+}
+
+function importDesignJson(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const d = JSON.parse(reader.result);
+      if (!d || typeof d !== "object" || !d.length_m)
+        throw new Error("not a design file (missing length_m)");
+      applyDesignToForm(d);
+      $("structSource").textContent = "JSON · IMPORTED";
+      toast(`Design imported from ${file.name}`);
+      scheduleStructure();
+    } catch (err) {
+      toast(`JSON import failed: ${err.message}`, true);
+    }
+  };
+  reader.readAsText(file);
+}
+
+function exportReport() {
+  const p = currentFlatDesign();
+  if (!p) { toast("Design parameters incomplete", true); return; }
+  const q = new URLSearchParams();
+  for (const k in p) q.set(k, p[k]);
+  fetch(`/api/cad/report?${q.toString()}`)
+    .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.blob(); })
+    .then((b) => {
+      const a = document.createElement("a");
+      const url = URL.createObjectURL(b);
+      a.href = url; a.download = "shelter-report.md";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      toast(`Report downloaded — ${(b.size / 1024).toFixed(1)} KB`);
+    })
+    .catch((err) => toast(`Report failed: ${err.message}`, true));
+}
+
+/* ---------------- draft autosave + keyboard ---------------- */
+function applyDraft() {
+  let d = null;
+  try { d = JSON.parse(localStorage.getItem("shl-draft") || "null"); } catch (e) {}
+  if (!d || !d.length_m) return false;
+  applyDesignToForm(d);
+  return true;
+}
+
+function setupShortcuts() {
+  document.addEventListener("keydown", (e) => {
+    if (e.target.matches("input, select, textarea")) return;
+    const k = e.key.toLowerCase();
+    if (k === "s") { e.preventDefault(); $("saveDesign").click(); }
+    else if (k === "f") { $("full3d").click(); }
+    else if (k === "r") { $("viewReset").click(); }
+    else if (k === "m") { $("measureBtn").click(); }
+    else if (k >= "1" && k <= "6") {
+      const a = document.querySelector(`.navbar a[href="#sec${k}"]`);
+      if (a) a.click();
+    }
+  });
+}

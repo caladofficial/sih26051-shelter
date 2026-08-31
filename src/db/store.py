@@ -84,6 +84,15 @@ CREATE TABLE IF NOT EXISTS optimization_runs (
   best_tpi REAL,
   best_design TEXT
 );
+CREATE TABLE IF NOT EXISTS designs (
+  design_id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  design TEXT NOT NULL,
+  notes TEXT NOT NULL DEFAULT '',
+  favorite INTEGER NOT NULL DEFAULT 0
+);
 CREATE TABLE IF NOT EXISTS cad_imports (
   import_id TEXT PRIMARY KEY,
   created_at TEXT NOT NULL,
@@ -103,6 +112,15 @@ CREATE TABLE IF NOT EXISTS optimization_trials (
   PRIMARY KEY (run_id, trial_no)
 );
 """
+
+
+def _maybe_json(v):
+    if isinstance(v, str):
+        try:
+            return json.loads(v)
+        except Exception:
+            return v
+    return v
 
 
 def _now() -> str:
@@ -483,11 +501,134 @@ class Store:
             except sqlite3.OperationalError:
                 pass
 
+    # ------------------------------------------------------------ designs
+    def save_design(self, record: dict) -> None:
+        row = {"design_id": record.get("design_id") or new_id("dsg"),
+               "name": record.get("name") or "Design",
+               "created_at": record.get("created_at") or _now(),
+               "updated_at": _now(),
+               "design": _j(record.get("design") or {}),
+               "notes": record.get("notes", ""),
+               "favorite": 1 if record.get("favorite") else 0}
+        if self._rest:
+            self._pg("POST", "designs", params={"on_conflict": "design_id"},
+                     body=row, prefer="resolution=merge-duplicates")
+        else:
+            try:
+                self._conn.execute(
+                    """INSERT OR REPLACE INTO designs
+                       (design_id, name, created_at, updated_at, design,
+                        notes, favorite) VALUES (?,?,?,?,?,?,?)""",
+                    (row["design_id"], row["name"], row["created_at"],
+                     row["updated_at"], row["design"], row["notes"],
+                     row["favorite"]))
+                self._conn.commit()
+            except sqlite3.OperationalError:
+                pass
+
+    def list_designs(self, limit: int = 100, favorite_only: bool = False) -> list[dict]:
+        if self._rest:
+            params = {"select": "*", "order": "updated_at.desc",
+                      "limit": max(1, min(limit, 200))}
+            if favorite_only:
+                params["favorite"] = "eq.true"
+            rows = self._pg("GET", "designs", params=params) or []
+            for r in rows:
+                r["design"] = _maybe_json(r.get("design")) or {}
+            return rows
+        try:
+            q = ("SELECT design_id, name, created_at, updated_at, design, "
+                 "notes, favorite FROM designs")
+            if favorite_only:
+                q += " WHERE favorite = 1"
+            q += " ORDER BY updated_at DESC LIMIT ?"
+            cur = self._conn.execute(q, (max(1, min(limit, 200)),))
+            cols = [c[0] for c in cur.description]
+            out = []
+            for row in cur.fetchall():
+                d = dict(zip(cols, row))
+                if isinstance(d.get("design"), str):
+                    try:
+                        d["design"] = json.loads(d["design"])
+                    except Exception:
+                        d["design"] = {}
+                out.append(d)
+            return out
+        except sqlite3.OperationalError:
+            return []
+
+    def get_design(self, design_id: str) -> dict | None:
+        if self._rest:
+            rows = self._pg("GET", "designs",
+                            params={"select": "*",
+                                    "design_id": f"eq.{design_id}",
+                                    "limit": 1}) or []
+            if not rows:
+                return None
+            r = rows[0]
+            r["design"] = _maybe_json(r.get("design")) or {}
+            return r
+        try:
+            cur = self._conn.execute(
+                "SELECT design_id, name, created_at, updated_at, design, "
+                "notes, favorite FROM designs WHERE design_id = ?",
+                (design_id,))
+            row = cur.fetchone()
+            if not row:
+                return None
+            d = dict(zip([c[0] for c in cur.description], row))
+            if isinstance(d.get("design"), str):
+                try:
+                    d["design"] = json.loads(d["design"])
+                except Exception:
+                    d["design"] = {}
+            return d
+        except sqlite3.OperationalError:
+            return None
+
+    def delete_design(self, design_id: str) -> bool:
+        if self._rest:
+            rows = self._pg("DELETE", "designs",
+                            params={"design_id": f"eq.{design_id}"})
+            return rows is not None
+        try:
+            self._conn.execute("DELETE FROM designs WHERE design_id = ?",
+                               (design_id,))
+            self._conn.commit()
+            return True
+        except sqlite3.OperationalError:
+            return False
+
+    def count_rows(self, table: str) -> int:
+        """Row count for stats (any table)."""
+        if self._rest:
+            try:
+                r = requests.get(f"{self._rest}/{table}",
+                                 headers={**self._headers,
+                                          "Prefer": "count=exact",
+                                          "Range": "0-0"},
+                                 params={"select": "*"}, timeout=30)
+                cr = r.headers.get("Content-Range", "")
+                if cr and "/" in cr:
+                    return int(cr.split("/")[-1])
+                return 0
+            except requests.RequestException:
+                return 0
+        try:
+            cur = self._conn.execute(f"SELECT COUNT(*) FROM {table}")
+            return int(cur.fetchone()[0])
+        except sqlite3.OperationalError:
+            return 0
+
+
     def list_cad_imports(self, limit: int = 8) -> list[dict]:
         if self._rest:
             rows = self._pg("GET", "cad_imports",
                             params={"select": "*", "order": "created_at.desc",
                                     "limit": max(1, min(limit, 50))}) or []
+            for r in rows:
+                for k in ("bbox", "dimensions", "entity_counts"):
+                    r[k] = _maybe_json(r.get(k))
             return rows
         try:
             cur = self._conn.execute(

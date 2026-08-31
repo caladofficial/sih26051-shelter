@@ -593,3 +593,80 @@ a { color: var(--saff); }
   letter-spacing: 2px; color: var(--red); padding: 10px; text-align: center;
 }
 .view3d.ready .view3d-msg { display: none; }
+
+/* ============================================================
+   EXTENDED FEATURES — stats strip · 3D tools · library · compare
+   ============================================================ */
+
+/* --- hero mission stats strip --- */
+.statstrip {
+  display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; max-width: 900px;
+}
+.statstrip span {
+  font-family: var(--mono); font-size: 0.6rem; letter-spacing: 2px;
+  color: var(--dim); background: var(--m1); border: 1px solid var(--line);
+  padding: 6px 12px;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+}
+.statstrip b { color: var(--saff); font-size: 0.85rem; margin-left: 6px; }
+
+/* --- 3D overlay: compass + zoom box --- */
+.compass {
+  position: absolute; top: 10px; right: 12px; z-index: 5;
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  font-family: var(--mono); font-size: 0.6rem; letter-spacing: 1px;
+  color: var(--mut); pointer-events: none; user-select: none;
+}
+.compass svg { width: 34px; height: 34px; filter: drop-shadow(0 0 4px rgba(0,0,0,0.5)); }
+.zoombox {
+  position: absolute; bottom: 12px; right: 12px; z-index: 5;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.zoombox button {
+  width: 34px; height: 34px; padding: 0; font-size: 1rem;
+  background: var(--m2); border: 1px solid var(--line); color: var(--txt);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
+}
+.zoombox button:hover { color: var(--saff); border-color: var(--saff); }
+
+/* --- 3D legend --- */
+.legend {
+  display: flex; gap: 14px; flex-wrap: wrap; align-items: center;
+  padding: 8px 12px; border-top: 1px solid var(--line-soft);
+  font-family: var(--mono); font-size: 0.58rem; letter-spacing: 1.5px;
+  color: var(--mut); text-transform: uppercase;
+}
+.legend i { display: inline-block; width: 10px; height: 10px; margin-right: 5px;
+  vertical-align: -1px; transform: rotate(45deg); }
+.legend span { display: inline-flex; align-items: center; gap: 4px; }
+
+/* --- small buttons (3D tools / CAD row) --- */
+.btn-sm { padding: 7px 12px; font-size: 0.64rem; letter-spacing: 1.5px; }
+
+/* --- 3D fullscreen --- */
+.view3d-full {
+  position: fixed; inset: 0; z-index: 200; height: 100vh !important;
+  background: var(--m0); padding: 10px;
+}
+.view3d-full canvas { height: calc(100vh - 20px) !important; }
+
+/* --- library table --- */
+.libwrap { margin-top: 14px; max-height: 340px; overflow-y: auto; }
+.lib-table td, .lib-table th { font-size: 0.7rem; padding: 7px 9px; }
+.lib-table .fav { color: var(--saff); cursor: pointer; user-select: none; }
+.lib-table .fav.off { color: var(--dim); }
+.lib-table .row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.lib-table .row-actions button { padding: 4px 9px; font-size: 0.6rem; letter-spacing: 1px; }
+.lib-table tr.sel td { background: rgba(255, 153, 51, 0.12); }
+.lib-table tr.sel td:first-child { box-shadow: inset 3px 0 0 var(--saff); }
+
+/* --- compare table --- */
+.compare-table th, .compare-table td { font-size: 0.72rem; padding: 8px 12px; }
+.compare-table td:first-child { color: var(--mut); text-transform: uppercase;
+  font-size: 0.62rem; letter-spacing: 1.5px; width: 30%; }
+.compare-table td.hi { color: var(--green); font-weight: 700; }
+
+/* --- sweep chart sizing --- */
+#chartSweep { min-height: 260px; }
+button.active { color: var(--green); border-color: var(--green); }
