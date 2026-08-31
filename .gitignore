@@ -17,3 +17,8 @@ Thumbs.db
 
 # EnergyPlus work directories (regenerated every run)
 simulation/energyplus/work/
+
+# Cloud / deploy
+.env
+.vercel
+data/processed/app.db

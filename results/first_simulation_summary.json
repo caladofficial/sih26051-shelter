@@ -65,9 +65,5 @@
       "wall": "west"
     }
   },
-  "energyplus": {
-    "executable": "/usr/local/energyplus/EnergyPlus-26.1.0-6f2e40d102-Linux-Ubuntu24.04-x86_64/energyplus",
-    "rows": 8760,
-    "mean_indoor_c": 31.729991333858425
-  }
+  "energyplus": null
 }

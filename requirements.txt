@@ -1,25 +1,24 @@
-# SIH26051_Shelter — core Python stack (all free / open source)
-# Install:  python -m pip install -r requirements.txt
+# SIH26051_Shelter — RUNTIME/API dependencies (this file is what Vercel installs).
+# Lean on purpose: the Vercel Python function must stay small & cold-start friendly.
+# Local dev extras (dashboard, plots, tests) live in requirements-dev.txt.
+#
+# Install both locally:  python -m pip install -r requirements.txt -r requirements-dev.txt
 
-# --- Phase 1/2 core ---
+# --- core data + model ---
 numpy>=1.24
 pandas>=2.0
-scipy>=1.10
+pvlib>=0.10          # solar position + POA irradiance (works without scipy)
 requests>=2.31
 PyYAML>=6.0
-pvlib>=0.10          # solar position + irradiance on shelter surfaces
-plotly>=5.18         # interactive plots (dashboard graphs)
-matplotlib>=3.7      # static PNG exports for presentations
 
-# --- Phase 6 (optimization) ---
+# --- API / deployment ---
+fastapi>=0.110
+pydantic>=2.5
+uvicorn>=0.27        # local dev server only; Vercel runs ASGI natively
+python-dotenv>=1.0
+
+# --- cloud persistence ---
+supabase>=2.4        # Postgres storage when SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY are set
+
+# --- optimization ---
 optuna>=3.5
-
-# --- Phase 7 (dashboard) ---
-streamlit>=1.30
-
-# --- development ---
-pytest>=7.0
-
-# --- weather-file tooling (Ladybug ecosystem) ---
-# ladybug-core>=0.21
-# honeybee-energy>=1.66

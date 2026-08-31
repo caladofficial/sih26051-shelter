@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SIH26051 Shelter Studio</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+</head>
+<body>
+  <header>
+    <h1>🏕️ SIH26051 Shelter Studio</h1>
+    <p class="sub">Area-specific passive shelter design · DRDO · Smart India Hackathon 2026</p>
+  </header>
+
+  <main>
+    <!-- ================= 1 · LOCATION ================= -->
+    <section>
+      <h2>1 · Location</h2>
+      <div class="row">
+        <label>Site
+          <select id="location"></select>
+        </label>
+        <label>Climate year
+          <select id="year"><option>2024</option><option>2023</option></select>
+        </label>
+        <button id="loadClimate" class="primary">Load climate</button>
+      </div>
+      <div id="climateSummary" class="metrics"></div>
+    </section>
+
+    <!-- ================= 2 · CLIMATE ================= -->
+    <section id="climateSection" hidden>
+      <h2>2 · Climate <span id="climateSource" class="tag"></span></h2>
+      <div class="grid2">
+        <div id="chartTemp" class="chart"></div>
+        <div id="chartSolar" class="chart"></div>
+      </div>
+    </section>
+
+    <!-- ================= 3 · DESIGN ================= -->
+    <section>
+      <h2>3 · Shelter design</h2>
+      <div class="grid4">
+        <label>Length (m) <input id="length" type="number" step="0.5" value="3.0" /></label>
+        <label>Width (m) <input id="width" type="number" step="0.5" value="3.0" /></label>
+        <label>Height (m) <input id="height" type="number" step="0.1" value="2.6" /></label>
+        <label>Orientation (°) <input id="orientation" type="number" step="15" value="0" /></label>
+        <label>Wall material <select id="wallMat"></select></label>
+        <label>Wall thickness (m) <input id="wallThick" type="number" step="0.01" value="0.2" /></label>
+        <label>Roof material <select id="roofMat"></select></label>
+        <label>Roof thickness (m) <input id="roofThick" type="number" step="0.01" value="0.12" /></label>
+        <label>Insulation <select id="insMat"><option value="none">none</option></select></label>
+        <label>Insulation (mm) <input id="insThick" type="number" step="5" value="0" /></label>
+        <label>Window wall <select id="winWall"><option>south</option><option>east</option><option>west</option><option>north</option></select></label>
+        <label>Window W × H (m) <input id="winSize" type="text" value="1.2 × 1.2" /></label>
+        <label>Period
+          <select id="period">
+            <option value="hot_week">Hottest week</option>
+            <option value="cold_week">Coldest week</option>
+            <option value="full_year">Full year</option>
+          </select>
+        </label>
+        <button id="simulate" class="primary">▶ Simulate</button>
+      </div>
+      <div id="simMetrics" class="metrics"></div>
+    </section>
+
+    <!-- ================= 4 · SIMULATION ================= -->
+    <section id="simSection" hidden>
+      <h2>4 · Simulation <span id="simEngine" class="tag"></span></h2>
+      <div id="chartSim" class="chart"></div>
+      <div id="chartHeat" class="chart"></div>
+    </section>
+
+    <!-- ================= 5 · OPTIMIZATION ================= -->
+    <section>
+      <h2>5 · Optimization</h2>
+      <div class="row">
+        <label>Trials <input id="trials" type="number" min="5" max="60" value="30" /></label>
+        <button id="optimize" class="primary">🚀 Optimize</button>
+        <span id="optStatus" class="status"></span>
+      </div>
+      <div id="optSection" hidden>
+        <div class="grid2">
+          <div id="chartOpt" class="chart"></div>
+          <div id="bestCard" class="card"></div>
+        </div>
+        <h3>Top 10 designs</h3>
+        <table id="optTable">
+          <thead><tr>
+            <th>#</th><th>TPI</th><th>Orient.</th><th>Wall</th><th>Roof</th>
+            <th>Insulation</th><th>Window</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Fast RC thermal model (validated against EnergyPlus) · weather: NASA POWER +
+    Open-Meteo · storage: Supabase · deployed on Vercel · 100% free/open-source stack.</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

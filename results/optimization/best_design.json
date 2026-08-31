@@ -1,31 +1,31 @@
 {
-  "tpi": 0.5298133858142665,
+  "tpi": 0.5298126847866389,
   "params": {
     "insulation_material": "mineral_wool",
-    "insulation_thickness_m": 0.0006446924155428385,
-    "orientation_deg": 255,
+    "insulation_thickness_m": 0.062329812682755795,
+    "orientation_deg": 105,
     "wall_material": "puf_sandwich_panel",
-    "wall_thickness_m": 0.18545157726248668,
+    "wall_thickness_m": 0.12989856148457543,
     "roof_material": "puf_sandwich_panel",
-    "roof_thickness_m": 0.09482397793166009,
-    "window_wall": "east",
-    "window_width_m": 0.7886126709301922,
-    "window_height_m": 1.1458165798694235,
-    "window_shgc": 0.6300872352024457
+    "roof_thickness_m": 0.1392554715637269,
+    "window_wall": "south",
+    "window_width_m": 0.7345721042554076,
+    "window_height_m": 1.1454872878846463,
+    "window_shgc": 0.47289578959197964
   },
   "design": {
     "insulation_material": "mineral_wool",
-    "insulation_thickness_m": 0.0006446924155428385,
-    "orientation_deg": 255,
+    "insulation_thickness_m": 0.062329812682755795,
+    "orientation_deg": 105,
     "wall_material": "puf_sandwich_panel",
-    "wall_thickness_m": 0.18545157726248668,
+    "wall_thickness_m": 0.12989856148457543,
     "roof_material": "puf_sandwich_panel",
-    "roof_thickness_m": 0.09482397793166009,
+    "roof_thickness_m": 0.1392554715637269,
     "window": {
-      "wall": "east",
-      "width_m": 0.7886126709301922,
-      "height_m": 1.1458165798694235,
-      "shgc": 0.6300872352024457
+      "wall": "south",
+      "width_m": 0.7345721042554076,
+      "height_m": 1.1454872878846463,
+      "shgc": 0.47289578959197964
     }
   }
 }

@@ -1,0 +1,48 @@
+/* SIH26051 Shelter Studio — clean, dark, minimal */
+:root {
+  --bg: #0f172a; --panel: #1e293b; --panel2: #273449;
+  --text: #e2e8f0; --muted: #94a3b8;
+  --accent: #38bdf8; --accent2: #2dd4bf; --hot: #f87171; --cold: #60a5fa;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+header { padding: 24px 32px 8px; }
+header h1 { margin: 0; font-size: 1.6rem; }
+.sub { color: var(--muted); margin: 4px 0 0; }
+main { padding: 8px 32px 32px; max-width: 1200px; margin: 0 auto; }
+section { background: var(--panel); border-radius: 12px; padding: 20px 24px; margin: 18px 0; }
+h2 { font-size: 1.1rem; margin: 0 0 14px; color: var(--accent); }
+h3 { font-size: .95rem; margin: 18px 0 8px; }
+.row { display: flex; gap: 14px; align-items: end; flex-wrap: wrap; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+@media (max-width: 900px) { .grid2, .grid4 { grid-template-columns: 1fr; } }
+label { display: flex; flex-direction: column; gap: 4px; font-size: .8rem; color: var(--muted); }
+input, select, button {
+  background: var(--panel2); color: var(--text); border: 1px solid #334155;
+  border-radius: 8px; padding: 8px 10px; font-size: .9rem;
+}
+button { cursor: pointer; }
+button.primary { background: var(--accent); color: #0f172a; font-weight: 600; border: none; }
+button.primary:hover { filter: brightness(1.1); }
+.chart { min-height: 300px; background: var(--panel2); border-radius: 10px; margin: 10px 0; }
+.metrics { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+.metric {
+  background: var(--panel2); border-radius: 8px; padding: 10px 14px; min-width: 120px;
+}
+.metric b { display: block; font-size: 1.15rem; }
+.metric span { color: var(--muted); font-size: .75rem; }
+.tag { font-size: .7rem; background: #0ea5e9; color: #082f49; border-radius: 20px; padding: 2px 10px; vertical-align: middle; }
+.status { color: var(--accent2); font-size: .85rem; }
+.card { background: var(--panel2); border-radius: 10px; padding: 14px 18px; }
+.card h4 { margin: 0 0 8px; color: var(--accent2); }
+.card p { margin: 4px 0; font-size: .85rem; }
+table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid #334155; }
+th { color: var(--muted); font-weight: 500; }
+tr.best td { background: #0f3a3a; }
+footer { padding: 18px 32px 30px; color: var(--muted); font-size: .75rem; text-align: center; }
+[hidden] { display: none !important; }

@@ -63,6 +63,28 @@ east window, TPI 0.53** — see `results/optimization/`.
 - South-facing (0°) beats 225°/270° by ≈1 °C in the hottest week.
 - Full-year E+ vs RC: 31.7 vs 32.1 °C mean indoor — good agreement for a fast model.
 
+## Deploy — Supabase + Vercel
+
+The repo is deployment-ready:
+- **`api/index.py`** — FastAPI serverless API (RC thermal model, weather, optimization)
+- **`public/`** — zero-build web frontend (Location → Climate → Design → Simulate → Optimize)
+- **`supabase/`** — Postgres schema + seed (materials, locations, weather cache, results)
+- **`src/db/store.py`** — storage facade: Supabase when keys are set, else local SQLite
+
+```bash
+# 1. Supabase: run supabase/migrations/0001_init.sql + supabase/seed.sql in the SQL editor
+# 2. Vercel: import the repo (auto-detects vercel.json), set env vars:
+#    SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+# 3. Preload the weather cache (optional, from your machine):
+cp .env.example .env     # fill keys
+make supabase
+# 4. Deploy
+vercel --prod
+```
+
+Full guide: [`docs/deployment.md`](docs/deployment.md). Local preview of the API:
+`make api` then open http://localhost:8000/docs.
+
 ## Project layout
 
 ```

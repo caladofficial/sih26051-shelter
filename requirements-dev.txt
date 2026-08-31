@@ -1,0 +1,12 @@
+# SIH26051_Shelter — LOCAL DEVELOPMENT extras (NOT deployed to Vercel).
+# Install:  python -m pip install -r requirements-dev.txt
+
+streamlit>=1.30      # interactive local dashboard (app/dashboard.py)
+plotly>=5.18         # plots for dashboard + scripts
+matplotlib>=3.7      # static PNG exports for presentations
+pytest>=7.0
+httpx>=0.27          # needed by fastapi TestClient (tests/test_api.py)
+
+# --- optional Ladybug ecosystem (weather-file tooling) ---
+# ladybug-core>=0.21
+# honeybee-energy>=1.66
