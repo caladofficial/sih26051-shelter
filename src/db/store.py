@@ -347,9 +347,9 @@ class Store:
             self._pg("POST", "simulations",
                      params={"on_conflict": "sim_id"},
                      body={"sim_id": sim_id, "created_at": _now(),
-                           "location_id": location_id, "design": _j(design),
+                           "location_id": location_id, "design": design,
                            "engine": "rc", "period": period,
-                           "metrics": _j(metrics)},
+                           "metrics": metrics},
                      prefer="resolution=merge-duplicates")
             if results is not None and not results.empty:
                 rows = []
@@ -404,8 +404,8 @@ class Store:
                                    "limit": str(limit)})
             out = []
             for r in res:
-                r["design"] = json.loads(r["design"]) if r.get("design") else {}
-                r["metrics"] = json.loads(r["metrics"]) if r.get("metrics") else {}
+                r["design"] = _maybe_json(r.get("design")) or {}
+                r["metrics"] = _maybe_json(r.get("metrics")) or {}
                 out.append(r)
             return out
         rows = self._conn.execute(
@@ -430,10 +430,10 @@ class Store:
                      body={"run_id": run_id, "created_at": _now(),
                            "location_id": location_id, "n_trials": n_trials,
                            "best_tpi": float(best_tpi),
-                           "best_design": _j(best_design)},
+                           "best_design": best_design},
                      prefer="resolution=merge-duplicates")
             rows = [{"run_id": run_id, "trial_no": int(t["trial_no"]),
-                     "tpi": float(t["tpi"]), "params": _j(t["params"])}
+                     "tpi": float(t["tpi"]), "params": t["params"]}
                     for t in trials]
             for i in range(0, len(rows), 200):
                 self._pg("POST", "optimization_trials",
@@ -464,7 +464,7 @@ class Store:
                                    "limit": str(limit)})
             out = []
             for r in res:
-                r["best_design"] = json.loads(r["best_design"]) if r.get("best_design") else {}
+                r["best_design"] = _maybe_json(r.get("best_design")) or {}
                 out.append(r)
             return out
         rows = self._conn.execute(
@@ -480,9 +480,9 @@ class Store:
                "created_at": _now(), "filename": record.get("filename", ""),
                "format": record.get("format", ""),
                "source": record.get("source", "upload"),
-               "bbox": _j(record.get("bbox") or {}),
-               "dimensions": _j(record.get("dimensions_m") or {}),
-               "entity_counts": _j(record.get("entity_counts") or {})}
+               "bbox": record.get("bbox") or {},
+               "dimensions": record.get("dimensions_m") or {},
+               "entity_counts": record.get("entity_counts") or {}}
         if self._rest:
             self._pg("POST", "cad_imports",
                      params={"on_conflict": "import_id"},
@@ -495,8 +495,8 @@ class Store:
                         bbox, dimensions, entity_counts)
                        VALUES (?,?,?,?,?,?,?,?)""",
                     (row["import_id"], row["created_at"], row["filename"],
-                     row["format"], row["source"], row["bbox"],
-                     row["dimensions"], row["entity_counts"]))
+                     row["format"], row["source"], _j(row["bbox"]),
+                     _j(row["dimensions"]), _j(row["entity_counts"])))
                 self._conn.commit()
             except sqlite3.OperationalError:
                 pass
@@ -507,7 +507,7 @@ class Store:
                "name": record.get("name") or "Design",
                "created_at": record.get("created_at") or _now(),
                "updated_at": _now(),
-               "design": _j(record.get("design") or {}),
+               "design": record.get("design") or {},
                "notes": record.get("notes", ""),
                "favorite": 1 if record.get("favorite") else 0}
         if self._rest:
@@ -520,7 +520,7 @@ class Store:
                        (design_id, name, created_at, updated_at, design,
                         notes, favorite) VALUES (?,?,?,?,?,?,?)""",
                     (row["design_id"], row["name"], row["created_at"],
-                     row["updated_at"], row["design"], row["notes"],
+                     row["updated_at"], _j(row["design"]), row["notes"],
                      row["favorite"]))
                 self._conn.commit()
             except sqlite3.OperationalError:
