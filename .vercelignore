@@ -29,3 +29,8 @@ __pycache__
 pyproject.toml
 uv.lock
 .python-version
+
+# readable frontend sources — only the obfuscated build in public/ is deployed
+public-src
+# internal design/API/deployment docs — never served to visitors
+docs

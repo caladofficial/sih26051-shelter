@@ -128,3 +128,14 @@ pandas/NumPy · FastAPI · Optuna · Plotly · matplotlib · pytest · SQLite ·
 Supabase · Vercel · (later: ERA5/CDS, QGIS, OpenFOAM)
 
 Windows setup instructions: [`docs/windows_setup.md`](docs/windows_setup.md)
+
+## Frontend build (obfuscation)
+
+The deployed frontend is **not** the readable source:
+
+- `public-src/` — readable HTML/CSS/JS sources (edit these).
+- `public/` — built artifacts (obfuscated JS, minified CSS/HTML) actually deployed.
+- Rebuild: `python scripts/build_frontend.py` (needs node/npm; one-time tool install).
+- `public-src/` and `docs/` are excluded from Vercel deployments (`.vercelignore`).
+- The production API hides its OpenAPI schema (`/docs`, `/openapi.json`, `/redoc` are disabled when `VERCEL=1`); local dev keeps them.
+- E2E smoke: `scripts/` + Playwright against the local preview (`tests/` covers the build contract).

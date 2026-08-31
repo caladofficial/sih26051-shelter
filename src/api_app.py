@@ -54,7 +54,11 @@ from src.cad import ingest as cad_ingest  # noqa: E402
 from src.thermal.rc_model import (comfort_stats, load_materials,  # noqa: E402
                                   simulate)
 
-app = FastAPI(title="SIH26051 Shelter API", version="1.0.0")
+_PROD = os.environ.get("VERCEL") == "1"   # hide API schema on the deployed site
+app = FastAPI(title="SIH26051 Shelter API", version="1.0.0",
+              docs_url=None if _PROD else "/docs",
+              redoc_url=None if _PROD else "/redoc",
+              openapi_url=None if _PROD else "/openapi.json")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"],
                    allow_headers=["*"])
 
