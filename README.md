@@ -65,6 +65,12 @@ east window, TPI 0.53** — see `results/optimization/`.
 
 ## Deploy — Supabase + Vercel
 
+> ✅ **Status: Supabase is LIVE.** The project
+> (`wfqcgxvoqibmljvglqsv` — "caladofficial's Project") has the schema, 12 seeded
+> materials, the Prayagraj location, and 8784 hourly weather rows (2024) already
+> loaded. The API reads/writes it (`/api/health` → `"backend":"supabase"`).
+> Local credentials live in `.env` (gitignored).
+
 The repo is deployment-ready:
 - **`api/index.py`** — FastAPI serverless API (RC thermal model, weather, optimization)
 - **`public/`** — zero-build web frontend (Location → Climate → Design → Simulate → Optimize)

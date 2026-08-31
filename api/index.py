@@ -114,12 +114,14 @@ def get_weather_cached(lat: float, lon: float, year: int, timezone: str,
     location_id = f"loc_{abs(lat):.4f}_{abs(lon):.4f}"
     if not force_refresh:
         try:
-            cached = STORE.load_weather(location_id,
-                                        f"{year}-01-01T00:00:00+00:00",
-                                        f"{year}-12-31T23:59:59+00:00")
-            if cached is not None and len(cached) > 8000:
+            cached = STORE.load_weather(location_id)
+            if cached is not None:
                 cached.index = cached.index.tz_convert(timezone)
-                return cached, "supabase-cache", None
+                # hourly rows may straddle the UTC year boundary — filter on
+                # the LOCAL year (POWER LST hours => :30-offset local stamps)
+                cached = cached[cached.index.year == year]
+                if len(cached) > 8000:
+                    return cached, "supabase-cache", None
         except Exception:
             pass
 
@@ -227,11 +229,21 @@ def materials():
     try:
         rows = STORE.list_materials()
         if rows:
-            return {"materials": rows, "source": STORE.backend}
+            return {"materials": _canon_materials(rows), "source": STORE.backend}
     except Exception:
         pass
     mats = load_materials().reset_index()
     return {"materials": mats.to_dict(orient="records"), "source": "file"}
+
+
+_CANON = {"k_w_mk": "k_W_mK", "cp_j_kgk": "cp_J_kgK"}   # postgres folds these
+
+
+def _canon_materials(rows: list[dict]) -> list[dict]:
+    out = []
+    for r in rows:
+        out.append({_CANON.get(k, k): v for k, v in r.items()})
+    return out
 
 
 @app.get("/api/climate")

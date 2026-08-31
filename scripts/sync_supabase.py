@@ -41,12 +41,15 @@ def main() -> int:
     print(f"✓ materials: {n} rows")
 
     loc = cfg["location"]
+    loc["location_id"] = f"loc_{abs(loc['latitude']):.4f}_{abs(loc['longitude']):.4f}"
     store.upsert_location(loc)
     print(f"✓ location: {loc['name']} ({loc['latitude']}, {loc['longitude']})")
 
     if args.weather_year:
         weather = load_clean()
-        location_id = loc.get("location_id") or f"{loc['name'].lower().replace(' ', '_')}"
+        # same location_id convention as the API cache (api/index.py)
+        location_id = f"loc_{abs(cfg['location']['latitude']):.4f}_" \
+                      f"{abs(cfg['location']['longitude']):.4f}"
         n = store.save_weather(weather, location_id)
         print(f"✓ weather {args.weather_year}: {n} hourly rows cached")
 

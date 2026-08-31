@@ -20,6 +20,12 @@ from pathlib import Path
 
 import pandas as pd
 
+try:                                  # auto-load .env when present (local runs)
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 SCHEMA_SQLITE = """
 CREATE TABLE IF NOT EXISTS locations (
   location_id TEXT PRIMARY KEY,
@@ -148,14 +154,17 @@ class Store:
 
     # ------------------------------------------------------------- materials
     def upsert_materials(self, materials: pd.DataFrame) -> int:
+        # NOTE: Postgres folds unquoted DDL identifiers to lowercase
+        # (cp_J_kgK -> cp_j_kgk, k_W_mK -> k_w_mk); use those keys with
+        # PostgREST. SQLite is case-insensitive, so the same rows work there.
         rows = []
-        for name, r in materials.reset_index().iterrows():
+        for _, r in materials.reset_index().iterrows():
             rows.append({
                 "material": r["material"],
                 "category": r.get("category", ""),
-                "k_W_mK": float(r["k_W_mK"]),
+                "k_w_mk": float(r["k_W_mK"]),
                 "density_kg_m3": float(r["density_kg_m3"]),
-                "cp_J_kgK": float(r["cp_J_kgK"]),
+                "cp_j_kgk": float(r["cp_J_kgK"]),
                 "solar_absorptance": float(r["solar_absorptance"]),
                 "emissivity": float(r["emissivity"]),
                 "thickness_m": float(r["thickness_m"]),
@@ -171,9 +180,11 @@ class Store:
                 """INSERT OR REPLACE INTO materials
                    (material, category, k_W_mK, density_kg_m3, cp_J_kgK,
                     solar_absorptance, emissivity, thickness_m, source, notes)
-                   VALUES (:material, :category, :k_W_mK, :density_kg_m3,
-                           :cp_J_kgK, :solar_absorptance, :emissivity,
-                           :thickness_m, :source, :notes)""", rows)
+                   VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                [tuple(r[k] for k in
+                       ("material", "category", "k_w_mk", "density_kg_m3",
+                        "cp_j_kgk", "solar_absorptance", "emissivity",
+                        "thickness_m", "source", "notes")) for r in rows])
             self._conn.commit()
         return len(rows)
 
@@ -221,15 +232,35 @@ class Store:
                 return 0
         return len(rows)
 
-    def load_weather(self, location_id: str, start_utc: str,
-                     end_utc: str) -> pd.DataFrame | None:
-        """Return hourly weather for the period as a UTC-indexed DataFrame."""
+    def load_weather(self, location_id: str, start_utc: str | None = None,
+                     end_utc: str | None = None) -> pd.DataFrame | None:
+        """Return hourly weather for the location as a UTC-indexed DataFrame.
+
+        Bounds are optional — the caller usually filters by local year after
+        timezone conversion (hourly rows can straddle the UTC year boundary).
+        Only the numeric weather columns are selected.
+        """
         if self._client:
-            res = self._client.table("weather") \
-                .select("*").eq("location_id", location_id) \
-                .gte("ts_utc", start_utc).lte("ts_utc", end_utc) \
-                .order("ts_utc").execute()
-            rows = res.data
+            # PostgREST caps reads at 1000 rows/request (Supabase default) —
+            # page through the range until fewer than 1000 come back.
+            rows = []
+            offset = 0
+            page_size = 1000
+            cols = "ts_utc,t2m,rh2m,ws10m,wd10m,ps,ghi,ghi_clear,precip,t2mdew"
+            while True:
+                query = self._client.table("weather") \
+                    .select(cols).eq("location_id", location_id)
+                if start_utc:
+                    query = query.gte("ts_utc", start_utc)
+                if end_utc:
+                    query = query.lte("ts_utc", end_utc)
+                res = query.order("ts_utc") \
+                    .range(offset, offset + page_size - 1).execute()
+                page = res.data
+                rows.extend(page)
+                if len(page) < page_size:
+                    break
+                offset += page_size
         else:
             rows = self._conn.execute(
                 """SELECT * FROM weather WHERE location_id = ?
