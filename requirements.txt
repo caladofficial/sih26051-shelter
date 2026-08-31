@@ -8,8 +8,8 @@
 # Install both locally:  python -m pip install -r requirements.txt -r requirements-dev.txt
 
 # --- core data + model ---
-numpy>=1.24
-pandas>=2.0
+numpy==2.3.5          # pinned: validated engine bit-exactness (see src/data/solar.py)
+pandas==2.2.3         # pinned: pandas 3.x changed tz-aware asi8 unit + resample defaults
 requests>=2.31
 PyYAML>=6.0
 

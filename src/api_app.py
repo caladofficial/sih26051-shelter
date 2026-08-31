@@ -32,11 +32,19 @@ import copy
 import hashlib
 import hmac
 import json
+import math
 import os
 import secrets
 import sys
 import time
 from pathlib import Path
+import numpy as np
+
+from src.ai_model import (  # noqa: E402
+    build_features, model_meta, model_metrics, predict_batch,
+    predict_design, sample_design, FEATURES, TARGETS)
+
+import pandas as pd  # noqa: F401  (used by profile/comparison helpers)
 
 from fastapi import FastAPI, HTTPException, Request, UploadFile, File
 from fastapi.responses import Response
@@ -463,6 +471,13 @@ def simulate_endpoint(req: SimulateRequest):
         raise HTTPException(500, f"simulation failed: {exc}")
 
     stats = comfort_stats(res, cfg["climate"]["comfort_range_c"])
+    if period == "full_year" and "indoor_t_c" in res:
+        lo, hi = cfg["climate"]["comfort_range_c"]
+        in_band = (res["indoor_t_c"] >= lo) & (res["indoor_t_c"] <= hi)
+        by_month = in_band.groupby(res.index.month).mean()
+        stats["monthly_comfort"] = [
+            {"month": int(m), "comfort_fraction": round(float(by_month.get(m, 0.0)), 3)}
+            for m in range(1, 13)]
     design = {k: v for k, v in cfg["shelter"].items() if k != "door"}
 
     sim_id = new_id("sim")
@@ -858,6 +873,41 @@ def _location_profile(weather: pd.DataFrame) -> dict:
                 pr[wet_mask & (pr.index.month.isin([6, 7, 8, 9]))].size
                 / wet_mask.sum() * 100.0)
 
+    # wind rose — 16 compass sectors from the hourly wind direction/speed
+    rose = []
+    if "ws10m" in df and "wd10m" in df and len(df):
+        wd = df["wd10m"].dropna()
+        ws = df["ws10m"].dropna()
+        if len(wd) and len(ws):
+            joined = pd.concat([wd, ws], axis=1).dropna()
+            if len(joined):
+                total = len(joined)
+                for i in range(16):
+                    lo = i * 22.5 - 11.25
+                    hi = i * 22.5 + 11.25
+                    if i == 0:
+                        mask = (joined["wd10m"] >= 348.75) | (joined["wd10m"] < 11.25)
+                    else:
+                        mask = (joined["wd10m"] >= lo) & (joined["wd10m"] < hi)
+                    sect = joined[mask]
+                    rose.append({
+                        "sector": i, "center_deg": round(i * 22.5, 1),
+                        "label": ["N", "NNE", "NE", "ENE", "E", "ESE", "SE",
+                                  "SSE", "S", "SSW", "SW", "WSW", "W", "WNW",
+                                  "NW", "NNW"][i],
+                        "freq_pct": round(float(sect.shape[0]) / total * 100.0, 2),
+                        "mean_ws_ms": round(float(sect["ws10m"].mean()), 2)
+                        if len(sect) else 0.0,
+                    })
+
+    # diurnal profile — mean temperature by hour of day (local time)
+    diurnal_curve = []
+    if "t2m" in df and len(df):
+        by_hour = df.groupby(df.index.hour)["t2m"].mean()
+        for h in range(24):
+            diurnal_curve.append({"hour": h,
+                                  "mean_c": round(float(by_hour.get(h, float("nan"))), 2)})
+
     return {
         "zone": zone,
         "zone_name": _ZONE_NAMES[zone],
@@ -873,6 +923,8 @@ def _location_profile(weather: pd.DataFrame) -> dict:
         "wind_mean_ms": round(float(ws.mean()), 2) if len(ws) else None,
         "wet_hours_pct": round(wet_hours, 1),
         "monsoon_share_pct": round(monsoon_share, 1),
+        "wind_rose": rose,
+        "diurnal": diurnal_curve,
         "guidance": _ZONE_GUIDANCE[zone],
     }
 
@@ -1016,6 +1068,225 @@ def location_recommend(req: AdaptRequest):
     return {"location": loc, "weather_source": source, "profile": prof,
             "recommendation": rec, "baseline_metrics": base_metrics,
             "recommended_metrics": rec_metrics, "delta": delta}
+
+
+# --------------------------------------------------------------------------
+# multi-zone validation — the same shelter across India's climate zones
+# --------------------------------------------------------------------------
+REFERENCE_CITIES = [
+    {"name": "Prayagraj", "lat": 25.4358, "lon": 81.8463},
+    {"name": "Jaisalmer", "lat": 26.9157, "lon": 70.9083},
+    {"name": "Chennai", "lat": 13.0827, "lon": 80.2707},
+    {"name": "Bengaluru", "lat": 12.9716, "lon": 77.5946},
+    {"name": "Leh", "lat": 34.1526, "lon": 77.5771},
+]
+
+
+def _coerce_design(base: dict) -> dict:
+    """Normalise a design dict coming from the UI (strings -> floats)."""
+    d = dict(base)
+    for k in ("length_m", "width_m", "height_m", "orientation_deg",
+              "wall_thickness_m", "roof_thickness_m", "insulation_thickness_m",
+              "window_width_m", "window_height_m", "window_shgc"):
+        v = d.get(k)
+        if isinstance(v, str):
+            try:
+                d[k] = float(v)
+            except ValueError:
+                d.pop(k, None)
+    return d
+
+
+def _design_metrics(weather: pd.DataFrame, design: dict,
+                    mats: pd.DataFrame) -> dict:
+    """Hot-week comfort metrics for a design at a site (sourced RC engine)."""
+    base = _coerce_design(design)
+    base.setdefault("orientation_deg", 0)
+    ins = base.get("insulation_material") or "none"
+    if ins == "none":
+        base["insulation_material"] = "eps"
+        base["insulation_thickness_m"] = 0.0
+    cfg = _apply_design(CFG, base)
+    weeks = design_weeks(weather, int(CFG["climate"]["data_year"]))
+    res = simulate(cfg, weeks["hot_week"], mats)
+    st = comfort_stats(res, cfg["climate"]["comfort_range_c"])
+    return {k: (round(float(v), 3) if isinstance(v, float) else v)
+            for k, v in st.items()}
+
+
+class CompareRequest(SimulateRequest):
+    design: dict | None = None
+    sites: list[dict] | None = None
+
+
+@app.post("/api/location/compare")
+def location_compare(req: CompareRequest):
+    """Run the same shelter design against real weather in up to 5
+    reference cities spanning India's climate zones. Every number is
+    computed by the sourced RC engine on that site's actual hourly
+    weather — a true cross-zone validation."""
+    mats = load_materials()
+    design = req.design or _flat_design(CFG)
+    sites = req.sites or REFERENCE_CITIES
+    if not sites or len(sites) > 8:
+        raise HTTPException(400, "sites must hold 1-8 entries")
+    out = []
+    for s in sites:
+        name = s.get("name") or f"{s['lat']},{s['lon']}"
+        try:
+            weather, source, _ = get_weather_cached(
+                float(s["lat"]), float(s["lon"]),
+                int(CFG["climate"]["data_year"]), CFG["location"]["timezone"])
+        except Exception as exc:
+            out.append({"site": name, "error": f"weather fetch failed: {exc}"})
+            continue
+        prof = _location_profile(weather)
+        try:
+            metrics = _design_metrics(weather, design, mats)
+        except Exception as exc:
+            out.append({"site": name, "zone": prof["zone"],
+                        "zone_name": prof["zone_name"], "error": str(exc)})
+            continue
+        out.append({
+            "site": name, "latitude": s["lat"], "longitude": s["lon"],
+            "zone": prof["zone"], "zone_name": prof["zone_name"],
+            "t_hottest_month_c": prof["t_hottest_month_c"],
+            "t_coldest_month_c": prof["t_coldest_month_c"],
+            "diurnal_range_c": prof["diurnal_range_c"],
+            "rh_mean_pct": prof["rh_mean_pct"],
+            "cdd18": prof["cdd18"], "hdd18": prof["hdd18"],
+            "wind_mean_ms": prof["wind_mean_ms"],
+            "weather_source": source,
+            **metrics,
+        })
+    valid = [r for r in out if "error" not in r]
+    best = min(valid, key=lambda r: r.get("mean_indoor_c", 1e9)) if valid else None
+    return {"design": design, "sites": out,
+            "best": {"site": best["site"], "zone_name": best["zone_name"],
+                     "mean_indoor_c": best["mean_indoor_c"]} if best else None,
+            "note": "Each site uses its own real hourly weather (NASA POWER + "
+                    "Open-Meteo cross-check) and the same sourced RC engine."}
+
+
+# --------------------------------------------------------------------------
+# AI design assistant (optional accelerator — engine stays the truth)
+# --------------------------------------------------------------------------
+class AiSuggestRequest(SimulateRequest):
+    design: dict | None = None
+    objective: str = "coolest_peak"   # coolest_peak | max_comfort | coolest_mean
+    n_candidates: int = 800
+
+
+@app.get("/api/ai/info")
+def ai_info():
+    """Model card: what the AI was trained on and how accurate it is."""
+    try:
+        mm = model_metrics()
+        meta = model_meta()
+    except FileNotFoundError:
+        raise HTTPException(503, "AI model not trained yet")
+    return {
+        "model": meta,
+        "accuracy": mm.get("targets", {}),
+        "features": FEATURES,
+        "targets": TARGETS,
+        "note": "The AI is a surrogate trained on the sourced RC engine's "
+                "own output (real hourly weather, 12 Indian cities). Its "
+                "numbers are ESTIMATES with the disclosed MAE above — the "
+                "engine remains the source of truth. Manual mode is always "
+                "available; verify any AI result with the engine.",
+    }
+
+
+def _ai_weather_profile(req: SimulateRequest):
+    loc = _loc(req)
+    weather, source, _ = get_weather_cached(
+        loc["latitude"], loc["longitude"], loc["year"], loc["timezone"])
+    prof = _location_profile(weather)
+    prof["location"] = loc
+    prof["weather_source"] = source
+    return weather, prof
+
+
+@app.post("/api/ai/predict")
+def ai_predict(req: AdaptRequest):
+    """Instant comfort estimates for a design at a site (surrogate)."""
+    try:
+        model_metrics()
+    except FileNotFoundError:
+        raise HTTPException(503, "AI model not trained yet")
+    weather, prof = _ai_weather_profile(req)
+    mats = load_materials()
+    design = req.design or _flat_design(CFG)
+    out = predict_design(design, prof, mats)
+    out["design"] = design
+    out["profile"] = {k: prof[k] for k in (
+        "zone_name", "t_hottest_month_c", "t_coldest_month_c",
+        "diurnal_range_c", "cdd18", "hdd18", "wind_mean_ms",
+        "ghi_mean_w_m2", "weather_source")}
+    out["note"] = ("AI estimate (surrogate of the sourced RC engine, MAE "
+                   "disclosed in /api/ai/info). Run the engine to verify.")
+    return out
+
+
+@app.post("/api/ai/suggest")
+def ai_suggest(req: AiSuggestRequest):
+    """AI-suggested design for a site + objective, engine-verified.
+
+    The surrogate ranks ~n_candidates sampled designs instantly; the top
+    candidates are then verified with the REAL engine (same hot-week
+    simulation /api/location/compare uses) so the returned metrics are
+    engine truth, not estimates.
+    """
+    try:
+        model_metrics()
+    except FileNotFoundError:
+        raise HTTPException(503, "AI model not trained yet")
+    if req.objective not in ("coolest_peak", "max_comfort", "coolest_mean"):
+        raise HTTPException(400, "objective must be coolest_peak | "
+                                 "max_comfort | coolest_mean")
+    weather, prof = _ai_weather_profile(req)
+    mats = load_materials()
+    rng = np.random.default_rng(26051)
+    candidates = [sample_design(rng) for _ in range(max(50, req.n_candidates))]
+
+    X = np.asarray([build_features(d, prof, mats) for d in candidates],
+                   dtype=float)
+    p = predict_batch(X)
+    if req.objective == "coolest_peak":
+        rank = np.argsort(p["hot_max_c"])
+    elif req.objective == "coolest_mean":
+        rank = np.argsort(p["hot_mean_c"])
+    else:
+        rank = np.argsort(-p["hot_comfort_fraction"])
+
+    top = [candidates[i] for i in rank[:12]]
+    verified = [_design_metrics(weather, d, mats) for d in top]
+    score = {
+        "coolest_peak": lambda m: m["max_indoor_c"],
+        "coolest_mean": lambda m: m["mean_indoor_c"],
+        "max_comfort": lambda m: -m["comfort_fraction"],
+    }[req.objective]
+    order = sorted(range(len(top)), key=lambda i: score(verified[i]))
+    best_i = order[0]
+    best = top[best_i]
+    est = predict_design(best, prof, mats)["estimates"]
+    return {
+        "objective": req.objective,
+        "design": best,
+        "estimates": est,
+        "verified": {k: verified[best_i][k] for k in
+                     ("mean_indoor_c", "max_indoor_c", "comfort_fraction")},
+        "alternatives": [
+            {"design": top[i], "verified": {
+                k: verified[i][k] for k in
+                ("mean_indoor_c", "max_indoor_c", "comfort_fraction")}}
+            for i in order[1:4]],
+        "profile": {"zone_name": prof["zone_name"],
+                    "weather_source": prof["weather_source"]},
+        "note": "Top candidates were re-verified with the real RC engine; "
+                "the 'verified' block is engine truth.",
+    }
 
 
 # --------------------------------------------------------------------------
@@ -1173,7 +1444,59 @@ def cad_structure(req: SimulateRequest):
         "bounding": cad_model.bounding_box(comps),
         "surfaces": cad_model.surfaces(flat, comps),
         "mass": cad_model.mass(comps),
+        "thermal_mass": _thermal_mass(flat, mat),
     }
+
+
+def _thermal_mass(flat: dict, mat: dict) -> dict:
+    """Assembly thermal lag (time constant tau = R*C) and the decrement
+    factor of a 24 h sinusoidal excitation, computed from sourced material
+    properties (k, rho, cp) — no invented values. DF = 1/sqrt(1+(omega*tau)^2)
+    is the standard lumped-wall approximation (ASHRAE-style treatment)."""
+    def layer(mat_name: str | None, thickness: float) -> dict | None:
+        m = mat.get(mat_name) if mat_name else None
+        if not m or thickness <= 0:
+            return None
+        k, rho, cp = m.get("k_W_mK"), m.get("density_kg_m3"), m.get("cp_J_kgK")
+        if not k or not rho or not cp:
+            return None
+        r = thickness / k
+        c = rho * cp * thickness
+        return {"R": r, "C": c}
+
+    def assembly_lag(layers: list[dict | None]) -> dict | None:
+        R = sum(l["R"] for l in layers if l)
+        C = sum(l["C"] for l in layers if l)
+        if not R or not C:
+            return None
+        tau_h = R * C / 3600.0
+        omega = 2.0 * math.pi / 24.0          # one cycle per day
+        df = 1.0 / math.sqrt(1.0 + (omega * tau_h) ** 2)
+        return {"lag_hours": round(tau_h, 2),
+                "decrement_factor": round(df, 4)}
+
+    wall_layers = [layer(flat.get("wall_material"), flat.get("wall_thickness_m")),
+                   layer(flat.get("insulation_material")
+                         if flat.get("insulation_material") != "none" else None,
+                         flat.get("insulation_thickness_m"))]
+    roof_layers = [layer(flat.get("roof_material"), flat.get("roof_thickness_m")),
+                   layer(flat.get("insulation_material")
+                         if flat.get("insulation_material") != "none" else None,
+                         flat.get("insulation_thickness_m"))]
+    wall = assembly_lag(wall_layers)
+    roof = assembly_lag(roof_layers)
+    out = {}
+    if wall:
+        out["wall_assembly_lag_hours"] = wall["lag_hours"]
+        out["wall_decrement_factor"] = wall["decrement_factor"]
+    if roof:
+        out["roof_assembly_lag_hours"] = roof["lag_hours"]
+        out["roof_decrement_factor"] = roof["decrement_factor"]
+    out["note"] = ("Thermal lag = R·C time constant of the assembly; decrement "
+                   "factor = attenuation of a 24 h outdoor swing through the "
+                   "assembly (1/sqrt(1+(2·pi·tau/24)^2)). Both computed from "
+                   "sourced k, density and specific heat.")
+    return out
 
 
 @app.get("/api/cad/export")

@@ -36,10 +36,22 @@ TEMPERATURE_C = 12.0          # pvlib get_solarposition default
 
 
 def _to_unixtime(index: pd.DatetimeIndex) -> np.ndarray:
-    """UTC epoch seconds, exactly like pvlib._datetime_to_unixtime."""
+    """UTC epoch seconds, exactly like pvlib._datetime_to_unixtime.
+
+    ``DatetimeIndex.asi8`` returns the raw integer in the dtype's own unit:
+    nanoseconds on pandas 2.x, microseconds on pandas 3.x (tz-aware
+    indices default to microsecond resolution there). Rescaling from the
+    dtype unit — instead of assuming nanoseconds — keeps the SPA timestamps
+    correct on every pandas version (bit-identical unixtime in both).
+    """
     if getattr(index, "tz", None) is not None:
         index = index.tz_convert("UTC")
-    return index.asi8.astype(np.float64) / 1e9
+    unit = getattr(index.dtype, "unit", None)
+    if unit is None:                       # pandas < 2.1 fallback
+        dstr = str(index.dtype)
+        unit = dstr.split("[")[1].split(",")[0] if "[" in dstr else "ns"
+    scale = {"ns": 1.0, "us": 1e3, "ms": 1e6, "s": 1e9}.get(str(unit).strip(), 1.0)
+    return index.asi8.astype(np.float64) * scale / 1e9
 
 
 def solar_position(index: pd.DatetimeIndex, latitude: float, longitude: float,

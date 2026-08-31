@@ -160,6 +160,16 @@
                 <span class="tag" id="locZoneBasis">—</span>
               </div>
               <div class="metrics" id="locMetrics"></div>
+              <div class="mini-charts">
+                <div class="mod">
+                  <div class="mod-hd"><i></i>WIND ROSE · 16 SECTORS</div>
+                  <div id="chartWind" class="chart mini"></div>
+                </div>
+                <div class="mod">
+                  <div class="mod-hd"><i></i>DIURNAL TEMPERATURE CURVE · LOCAL TIME</div>
+                  <div id="chartDiurnal" class="chart mini"></div>
+                </div>
+              </div>
               <div class="strat" id="locStrategies"></div>
               <p class="hint">Zone = NBC 2016-style approximation from monthly mean temperature + annual humidity. All indicators computed from the same sourced hourly weather — nothing fabricated.</p>
             </div>
@@ -181,6 +191,24 @@
                 <button id="applyAdapt" class="primary" hidden>APPLY ADAPTED DESIGN →</button>
                 <span id="adaptStatus" class="tag"></span>
               </div>
+            </div>
+          </div>
+        </div>
+        <div class="mod">
+          <div class="mod-hd"><i></i>MOD·02E — MULTI-ZONE VALIDATION · SAME DESIGN × INDIAN CLIMATES</div>
+          <div class="loc-profile">
+            <p class="hint">Run the current design against real hourly weather in five reference cities spanning India's climate zones — the same sourced RC engine everywhere.</p>
+            <div class="zone-chips" id="cmpChips"></div>
+            <div class="adapt-actions">
+              <button id="cmpBtn" class="primary">⚖ VALIDATE ACROSS ZONES</button>
+              <span id="cmpStatus" class="tag"></span>
+            </div>
+            <div id="cmpChart" class="chart" style="min-height:240px"></div>
+            <div class="tblwrap" id="cmpWrap" hidden>
+              <table class="rec-table">
+                <thead><tr><th>Site</th><th>Zone</th><th>Hot month °C</th><th>Diurnal °C</th><th>Mean indoor °C</th><th>Peak indoor °C</th><th>Comfort %</th></tr></thead>
+                <tbody id="cmpBody"></tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -252,6 +280,7 @@
               <span class="grow" style="flex:1"></span>
               <span class="tag" id="structDims">—</span>
               <span class="tag" id="structVol">—</span>
+              <span class="tag" id="structThermal" title="Assembly thermal lag (R·C) and decrement factor">—</span>
             </div>
             <div class="legend" id="structLegend"></div>
           </div>
@@ -262,7 +291,7 @@
               <table class="struct-sheet">
                 <thead><tr>
                   <th>Element</th><th>Material</th><th>t·m</th><th>k·W/mK</th>
-                  <th>ρ·kg/m³</th><th>cp·J/kgK</th><th>R·m²K/W</th><th>U·W/m²K</th>
+                  <th>ρ·kg/m³</th><th>cp·J/kgK</th><th>R·m²K/W</th><th>U·W/m²K</th><th>LAG·h</th>
                 </tr></thead>
                 <tbody id="structSheet"></tbody>
               </table>
@@ -316,6 +345,10 @@
             <span id="sweepStatus" class="status"></span>
           </div>
           <div id="chartSweep" class="chart"></div>
+        </div>
+        <div class="mod" id="monthlyWrap" hidden>
+          <div class="mod-hd"><i></i>MOD·04D — MONTHLY COMFORT FRACTION · FULL YEAR</div>
+          <div id="chartMonthly" class="chart"></div>
         </div>
       </div>
     </section>
@@ -423,6 +456,58 @@
         </table>
       </div>
       <p class="hint">Fleet metrics are computed live by the same sourced RC thermal engine used for simulation — nothing fabricated.</p>
+    </section>
+
+    <!-- ============ 8 · AI ASSIST (optional accelerator) ============ -->
+    <section class="module" id="sec8">
+      <div class="mod-head">
+        <span class="sec">SEC/08</span>
+        <h2>AI Design Assistant</h2>
+        <span class="code">OPTIONAL · ESTIMATES, NOT REPLACEMENTS</span>
+      </div>
+      <div class="ai-panel">
+        <div class="ai-head">
+          <label class="switch" title="Toggle AI assist">
+            <input type="checkbox" id="aiToggle" checked />
+            <span class="slider"></span>
+          </label>
+          <span id="aiToggleLabel">AI ASSIST ON — instant estimates as you edit</span>
+          <span class="tag" id="aiModelTag">model —</span>
+        </div>
+        <div id="aiBody">
+          <p class="hint" id="aiNote"></p>
+          <div class="grid2">
+            <div class="mod">
+              <div class="mod-hd"><i></i>MOD·08A — INSTANT COMFORT ESTIMATE · SURROGATE</div>
+              <div class="loc-profile">
+                <div class="metrics" id="aiMetrics"></div>
+                <p class="hint" id="aiEstNote">Estimates refresh as you edit the design — no engine run needed. ±MAE error bars are disclosed.</p>
+              </div>
+            </div>
+            <div class="mod">
+              <div class="mod-hd"><i></i>MOD·08B — AI DESIGN SUGGESTION · ENGINE-VERIFIED</div>
+              <div class="loc-profile">
+                <p class="hint">The AI ranks candidate designs instantly; the top candidates are then re-run on the real RC engine, so the returned numbers are engine truth.</p>
+                <div class="adapt-actions">
+                  <select id="aiObjective" title="Suggestion objective">
+                    <option value="coolest_peak">Coolest peak indoor temp</option>
+                    <option value="max_comfort">Most comfort hours</option>
+                    <option value="coolest_mean">Coolest mean indoor temp</option>
+                  </select>
+                  <button id="aiSuggestBtn" class="primary">✦ AI SUGGEST DESIGN</button>
+                  <span id="aiSuggestStatus" class="tag"></span>
+                </div>
+                <div id="aiSuggestBody" hidden></div>
+                <div class="adapt-actions">
+                  <button id="aiApplyBtn" class="primary" hidden>APPLY SUGGESTION →</button>
+                  <button id="aiVerifyBtn" class="ghost" hidden>⚙ VERIFY CURRENT DESIGN WITH ENGINE</button>
+                </div>
+                <div id="aiCompare" hidden></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
   </main>
 

@@ -225,6 +225,19 @@ async function runSimulate() {
         { x: s.ts, y: s.q_vent_w, type: "scatter", name: "VENTILATION", line: { color: "#5eea8d", width: 2 } },
       ], { title: "HEAT FLOW BUDGET · W (+ INTO SHELTER)" });
     }
+    if (data.metrics.monthly_comfort && typeof Plotly !== "undefined") {
+      $("monthlyWrap").hidden = false;
+      const mc = data.metrics.monthly_comfort;
+      plot($("chartMonthly"), [{
+        x: mc.map((m) => m.month), y: mc.map((m) => m.comfort_fraction * 100),
+        type: "bar",
+        marker: { color: mc.map((m) => (m.comfort_fraction >= 0.5 ? "#5fd08a" : "#ff9933")) },
+        hovertemplate: "%{y:.0f}% of hours comfortable<extra></extra>",
+      }], { title: "MONTHLY COMFORT FRACTION · % HOURS INSIDE 18-32 °C",
+            yaxis: { ticksuffix: "%", rangemode: "tozero" },
+            xaxis: { dtick: 1, title: "month" },
+            margin: { l: 44, r: 16, t: 40, b: 30 } });
+    }
     $("simSection").hidden = false;
   } catch (err) {
     toast(`Simulation failed: ${err.message}`, true);
@@ -364,6 +377,9 @@ async function buildStructure() {
     const b = data.bounding;
     $("structDims").textContent = `${b.length_m.toFixed(2)} × ${b.width_m.toFixed(2)} × ${b.height_m.toFixed(2)} m`;
     $("structVol").textContent = `V ${data.surfaces.volume_m3.toFixed(2)} m³`;
+    const tm = data.thermal_mass || {};
+    $("structThermal").textContent =
+      `LAG wall ${tm.wall_assembly_lag_hours != null ? tm.wall_assembly_lag_hours.toFixed(1) : "—"} h · DF ${tm.wall_decrement_factor != null ? tm.wall_decrement_factor.toFixed(3) : "—"} | roof ${tm.roof_assembly_lag_hours != null ? tm.roof_assembly_lag_hours.toFixed(1) : "—"} h`;
     v.classList.add("ready");
     renderStruct3D();
     renderStructSheet(data);
@@ -619,6 +635,13 @@ function drawIso() {
 }
 
 /* ---------------- structure data sheet ---------------- */
+function lagCell(L, p) {
+  if (L.r_m2K_W == null || !p.density_kg_m3 || !p.cp_J_kgK) return "—";
+  const tauH = L.r_m2K_W * p.density_kg_m3 * p.cp_J_kgK * L.thickness_m / 3600;
+  if (!isFinite(tauH) || tauH <= 0) return "—";
+  return `<span title="Thermal lag = R·C of this layer (sourced k, ρ, cp)">${tauH.toFixed(1)}</span>`;
+}
+
 function renderStructSheet(data) {
   const tb = $("structSheet");
   if (!tb) return;
@@ -638,7 +661,8 @@ function renderStructSheet(data) {
         `<td>${p.density_kg_m3 != null ? p.density_kg_m3.toFixed(0) : "—"}</td>` +
         `<td>${p.cp_J_kgK != null ? p.cp_J_kgK.toFixed(0) : "—"}</td>` +
         `<td>${L.r_m2K_W != null ? L.r_m2K_W.toFixed(3) : "—"}</td>` +
-        `<td>${L.u_w_m2k != null ? L.u_w_m2k.toFixed(3) : "—"}</td>`;
+        `<td>${L.u_w_m2k != null ? L.u_w_m2k.toFixed(3) : "—"}</td>` +
+        `<td>${lagCell(L, p)}</td>`;
       tb.appendChild(tr);
       label = "";
     }
@@ -889,6 +913,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   /* --- site adaptation --- */
   initAdapt();
+  initAi();
 });
 
 /* ============================================================
@@ -1483,6 +1508,31 @@ function renderProfile(p) {
     [fmt(p.wet_hours_pct, 0), "wet hours %"],
   ];
   items.forEach(([v, l]) => wrap.append(metric(v, l)));
+  if (p.wind_rose && p.wind_rose.length && typeof Plotly !== "undefined") {
+    plot($("chartWind"), [{
+      type: "barpolar", r: p.wind_rose.map((x) => x.freq_pct),
+      theta: p.wind_rose.map((x) => x.center_deg),
+      hovertemplate: "%{theta}° · %{r}% of hours<extra></extra>",
+      marker: { color: p.wind_rose.map((x) => x.freq_pct),
+                colorscale: [[0, "#3a4a5e"], [1, "#ff9933"]],
+                colorbar: { title: "% of hours", thickness: 8 } },
+      width: 0.9,
+    }], { title: "WIND DIRECTION FREQUENCY · % HOURS",
+           polar: { radialaxis: { showticklabels: false } },
+           margin: { l: 40, r: 30, t: 36, b: 20 },
+           paper_bgcolor: "transparent", plot_bgcolor: "transparent" });
+  }
+  if (p.diurnal && p.diurnal.length && typeof Plotly !== "undefined") {
+    plot($("chartDiurnal"), [{
+      x: p.diurnal.map((x) => x.hour), y: p.diurnal.map((x) => x.mean_c),
+      type: "scatter", mode: "lines+markers",
+      line: { color: "#ff5d5d", width: 2 }, marker: { size: 4, color: "#ff5d5d" },
+      fill: "tozeroy", fillcolor: "rgba(255,93,93,0.10)",
+    }], { title: "MEAN TEMPERATURE BY HOUR OF DAY · °C",
+          xaxis: { title: "hour", dtick: 3 },
+          margin: { l: 44, r: 20, t: 36, b: 30 },
+          paper_bgcolor: "transparent", plot_bgcolor: "transparent" });
+  }
   const st = $("locStrategies");
   st.innerHTML = "";
   (p.guidance || []).forEach((g) => {
@@ -1582,6 +1632,9 @@ function applyAdapt() {
 function initAdapt() {
   const ab = $("adaptBtn");
   if (ab) ab.addEventListener("click", runAdapt);
+  const cb = $("cmpBtn");
+  if (cb) cb.addEventListener("click", runCompare);
+  renderCmpChips();
   const ap = $("applyAdapt");
   if (ap) ap.addEventListener("click", applyAdapt);
   const gb = $("geoBtn");
@@ -1605,4 +1658,278 @@ function detectLocation() {
     $("geoBtn").textContent = "◎ DETECT MY LOCATION";
     toast(`Location denied: ${err.message}`, true);
   }, { timeout: 15000 });
+}
+
+/* ============================================================
+   10 · MULTI-ZONE VALIDATION (MOD·02E)
+============================================================ */
+const ZONE_COLORS = {
+  composite: "#ff9933", hot_dry: "#ffb25e", warm_humid: "#5fd08a",
+  temperate: "#c3b6ff", cold: "#8ecae6",
+};
+
+function renderCmpChips(zones) {
+  const wrap = $("cmpChips");
+  if (!wrap) return;
+  const names = zones || ["Prayagraj", "Jaisalmer", "Chennai", "Bengaluru", "Leh"];
+  wrap.innerHTML = "";
+  names.forEach((n) => {
+    const el = document.createElement("span");
+    el.className = "zone-chip";
+    el.textContent = n;
+    wrap.appendChild(el);
+  });
+}
+
+async function runCompare() {
+  const btn = $("cmpBtn");
+  btn.disabled = true; $("cmpStatus").textContent = "RUNNING 5 SITE SIMULATIONS…";
+  try {
+    const j = await api("/api/location/compare", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ design: structPayload() || undefined }),
+    });
+    const sites = j.sites;
+    renderCmpChips(sites.map((x) => x.site));
+    sites.forEach((s, i) => {
+      const el = $("cmpChips").children[i];
+      if (el) {
+        el.textContent = `${s.site} · ${s.zone_name}`;
+        el.style.borderColor = ZONE_COLORS[s.zone] || "var(--line)";
+        el.style.color = ZONE_COLORS[s.zone] || "var(--txt)";
+        if (s.error) el.textContent += " · ERR";
+      }
+    });
+    const tb = $("cmpBody");
+    tb.innerHTML = "";
+    for (const s of sites) {
+      if (s.error) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${escapeHtml(s.site)}</td><td colspan="6" class="err">${escapeHtml(s.error)}</td>`;
+        tb.appendChild(tr);
+        continue;
+      }
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${escapeHtml(s.site)}</td>
+        <td><span class="chip chip-zone">${escapeHtml(s.zone_name)}</span></td>
+        <td>${fmt(s.t_hottest_month_c, 1)}</td>
+        <td>${fmt(s.diurnal_range_c, 1)}</td>
+        <td class="rec"><b>${fmt(s.mean_indoor_c, 1)} °C</b></td>
+        <td>${fmt(s.max_indoor_c, 1)} °C</td>
+        <td>${fmt(s.comfort_fraction * 100, 0)}%</td>`;
+      tb.appendChild(tr);
+    }
+    $("cmpWrap").hidden = false;
+    if (j.best) {
+      $("cmpStatus").textContent =
+        `BEST SITE FOR THIS DESIGN · ${j.best.site} (${j.best.zone_name}) · ${fmt(j.best.mean_indoor_c, 1)} °C mean indoor`;
+    } else {
+      $("cmpStatus").textContent = "comparison incomplete — see table";
+    }
+    const valid = sites.filter((x) => !x.error);
+    if (valid.length && typeof Plotly !== "undefined") {
+      plot($("cmpChart"), [{
+        x: valid.map((x) => x.site), y: valid.map((x) => x.mean_indoor_c),
+        type: "bar",
+        marker: { color: valid.map((x) => ZONE_COLORS[x.zone] || "#9aa3ad") },
+        hovertemplate: "%{y:.1f} °C mean indoor · hot week<extra></extra>",
+      }, {
+        x: valid.map((x) => x.site), y: valid.map((x) => x.max_indoor_c),
+        type: "bar", name: "peak",
+        marker: { color: valid.map((x) => "rgba(255,255,255,0.25)") },
+        hovertemplate: "%{y:.1f} °C peak<extra></extra>",
+      }], { title: "SAME DESIGN · PREDICTED HOT-WEEK INDOOR TEMPERATURE BY CLIMATE ZONE",
+            barmode: "group", yaxis: { title: "°C" },
+            margin: { l: 44, r: 16, t: 44, b: 30 } });
+    }
+    toast("Cross-zone validation complete — same design, five real climates");
+  } catch (err) {
+    $("cmpStatus").textContent = "FAILED";
+    toast(`Compare failed: ${err.message}`, true);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+
+/* ============================================================
+   11 · AI ASSIST — optional accelerator (engine stays truth)
+   ============================================================ */
+const aiState = { on: true, info: null, last: null, suggest: null, timer: null };
+
+function aiLocation() {
+  const sel = $("location");
+  if (!sel || !sel.selectedOptions || !sel.selectedOptions[0]) return null;
+  const o = sel.selectedOptions[0];
+  const lat = parseFloat(o.dataset.lat), lon = parseFloat(o.dataset.lon);
+  if (!isFinite(lat) || !isFinite(lon)) return null;
+  return { lat, lon, name: (o.textContent || "").split(" ")[0] };
+}
+
+function aiScoreLine(est, bars) {
+  return `±${fmt(bars && bars.hot_mean_c, 1)} °C mean · ±${fmt(bars && bars.hot_max_c, 1)} °C peak`;
+}
+
+async function aiPredict() {
+  if (!aiState.on || !aiState.info) return;
+  const loc = aiLocation();
+  const p = structPayload();
+  if (!loc || !p) return;
+  const wrap = $("aiMetrics");
+  if (!wrap) return;
+  try {
+    const j = await api("/api/ai/predict", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lat: loc.lat, lon: loc.lon, name: loc.name, design: p }),
+    });
+    aiState.last = j;
+    const e = j.estimates;
+    wrap.innerHTML = "";
+    wrap.append(metric(`${fmt(e.hot_mean_c, 1)} °C`, "hot-week mean · AI est."));
+    wrap.append(metric(`${fmt(e.hot_max_c, 1)} °C`, "hot-week peak · AI est."));
+    wrap.append(metric(`${Math.round(e.hot_comfort_fraction * 100)}%`, "comfort hrs in band · est."));
+    wrap.append(metric(`${fmt(e.cold_min_c, 1)} °C`, "cold-week min · AI est."));
+    const zb = document.createElement("span");
+    zb.className = "zone-badge";
+    zb.textContent = `CLIMATE ZONE · ${(j.profile && j.profile.zone_name) || "—"}`;
+    wrap.prepend(zb);
+    $("aiEstNote").textContent =
+      `Estimates refresh as you edit · model ${j.model.n_samples.toLocaleString()} samples · ` +
+      `MAE ${aiScoreLine(e, j.error_bars_c)} · source: ${(j.profile && j.profile.weather_source) || "—"}`;
+  } catch (err) {
+    $("aiEstNote").textContent = `AI estimate unavailable: ${err.message}`;
+  }
+}
+
+function scheduleAiPredict() {
+  if (!aiState.on) return;
+  clearTimeout(aiState.timer);
+  aiState.timer = setTimeout(aiPredict, 450);
+}
+
+async function aiSuggest() {
+  const btn = $("aiSuggestBtn");
+  if (!btn) return;
+  const loc = aiLocation();
+  if (!loc) { toast("Pick a location first", true); return; }
+  btn.disabled = true;
+  $("aiSuggestStatus").textContent = "RANKING + ENGINE-VERIFYING…";
+  try {
+    const j = await api("/api/ai/suggest", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lat: loc.lat, lon: loc.lon, name: loc.name,
+                             objective: $("aiObjective").value }),
+    });
+    aiState.suggest = j;
+    const d = j.design, v = j.verified;
+    const body = $("aiSuggestBody");
+    body.hidden = false;
+    body.innerHTML = `
+      <div class="rec-grid">
+        <span class="tag">wall ${escapeHtml(d.wall_material)} ${d.wall_thickness_m} m</span>
+        <span class="tag">roof ${escapeHtml(d.roof_material)} ${d.roof_thickness_m} m</span>
+        <span class="tag">ins ${escapeHtml(d.insulation_material)} ${d.insulation_thickness_m} m</span>
+        <span class="tag">win ${d.window_width_m}×${d.window_height_m} m ${escapeHtml(d.window_wall)} · SHGC ${d.window_shgc}</span>
+        <span class="tag">orient ${Math.round(d.orientation_deg)}°</span>
+      </div>
+      <div class="tblwrap">
+        <table class="rec-table">
+          <thead><tr><th></th><th>Mean indoor °C</th><th>Peak indoor °C</th><th>Comfort %</th></tr></thead>
+          <tbody>
+            <tr><td><b>AI estimate</b></td>
+                <td>${fmt(j.estimates.hot_mean_c, 1)}</td>
+                <td>${fmt(j.estimates.hot_max_c, 1)}</td>
+                <td>${Math.round(j.estimates.hot_comfort_fraction * 100)}</td></tr>
+            <tr><td><b>Engine verified</b> <span class="tag">TRUTH</span></td>
+                <td>${fmt(v.mean_indoor_c, 1)}</td>
+                <td>${fmt(v.max_indoor_c, 1)}</td>
+                <td>${Math.round(v.comfort_fraction * 100)}</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="hint">Top ${(j.alternatives || []).length + 1} candidates were re-run on the real RC engine; numbers above are engine truth.</p>`;
+    $("aiSuggestStatus").textContent = `BEST ${j.objective.replace(/_/g, " ").toUpperCase()} · peak ${fmt(v.max_indoor_c, 1)} °C`;
+    $("aiApplyBtn").hidden = false;
+    $("aiVerifyBtn").hidden = false;
+    $("aiCompare").hidden = true;
+  } catch (err) {
+    $("aiSuggestStatus").textContent = `suggestion failed: ${err.message}`;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function aiApply() {
+  if (!aiState.suggest) return;
+  applyDesignToForm(aiState.suggest.design);
+  scheduleStructure();
+  toast("AI suggestion applied — rebuild 3D + run simulation to verify");
+}
+
+async function aiVerify() {
+  const loc = aiLocation();
+  const p = structPayload();
+  if (!loc || !p) return;
+  const cmp = $("aiCompare");
+  cmp.hidden = false;
+  cmp.innerHTML = `<p class="hint">Running the real engine on the current design…</p>`;
+  try {
+    const j = await api("/api/simulate", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...p, lat: loc.lat, lon: loc.lon, period: "hot_week" }),
+    });
+    const m = j.metrics, e = aiState.last ? aiState.last.estimates : null;
+    cmp.innerHTML = `
+      <div class="mod-hd"><i></i>AI ESTIMATE vs ENGINE · HOT WEEK · CURRENT DESIGN</div>
+      <div class="tblwrap">
+        <table class="rec-table">
+          <thead><tr><th></th><th>Mean indoor °C</th><th>Peak indoor °C</th><th>Comfort %</th></tr></thead>
+          <tbody>
+            <tr><td><b>AI estimate</b></td>
+                <td>${e ? fmt(e.hot_mean_c, 1) : "—"}</td>
+                <td>${e ? fmt(e.hot_max_c, 1) : "—"}</td>
+                <td>${e ? Math.round(e.hot_comfort_fraction * 100) : "—"}</td></tr>
+            <tr><td><b>Engine</b> <span class="tag">TRUTH</span></td>
+                <td>${fmt(m.mean_indoor_c, 1)}</td>
+                <td>${fmt(m.max_indoor_c, 1)}</td>
+                <td>${Math.round(m.comfort_fraction * 100)}</td></tr>
+          </tbody>
+        </table>
+      </div>`;
+  } catch (err) {
+    cmp.innerHTML = `<p class="hint">Engine verify failed: ${escapeHtml(err.message)}</p>`;
+  }
+}
+
+function initAi() {
+  const tog = $("aiToggle");
+  if (!tog) return;
+  tog.addEventListener("change", () => {
+    aiState.on = tog.checked;
+    $("aiToggleLabel").textContent = aiState.on
+      ? "AI ASSIST ON — instant estimates as you edit"
+      : "AI ASSIST OFF — classic manual workflow";
+    if ($("aiBody")) $("aiBody").style.display = aiState.on ? "" : "none";
+    if (aiState.on) aiPredict();
+  });
+  if ($("aiSuggestBtn")) $("aiSuggestBtn").addEventListener("click", aiSuggest);
+  if ($("aiApplyBtn")) $("aiApplyBtn").addEventListener("click", aiApply);
+  if ($("aiVerifyBtn")) $("aiVerifyBtn").addEventListener("click", aiVerify);
+  if ($("location")) $("location").addEventListener("change", scheduleAiPredict);
+  ["length", "width", "height", "orientation", "wallMat", "wallThick",
+   "roofMat", "roofThick", "insMat", "insThick", "winWall", "winSize"]
+    .forEach((id) => { const el = $(id); if (el) el.addEventListener("input", scheduleAiPredict); });
+  (async () => {
+    try {
+      aiState.info = await api("/api/ai/info");
+      const m = aiState.info.model;
+      $("aiModelTag").textContent =
+        `${m.name} · ${Number(m.n_samples).toLocaleString()} samples · ${m.n_sites} cities · ` +
+        `MAE hot-mean ${fmt(aiState.info.accuracy.hot_mean_c.mae_c, 2)} °C`;
+      $("aiNote").textContent = aiState.info.note;
+    } catch (err) {
+      $("aiModelTag").textContent = `model unavailable: ${err.message}`;
+    }
+    aiPredict();
+  })();
 }

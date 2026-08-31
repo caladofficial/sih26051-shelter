@@ -34,3 +34,4 @@ uv.lock
 public-src
 # internal design/API/deployment docs — never served to visitors
 docs
+ml/data

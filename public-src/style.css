@@ -991,3 +991,40 @@ body { overflow-x: clip; }
   .loc-head { flex-direction: column; align-items: flex-start; }
   .rec-table td.why { min-width: 180px; }
 }
+
+/* ============================================================
+   ADVANCED ANALYTICS — wind rose / diurnal / multi-zone
+============================================================ */
+.mini-charts {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: 12px;
+}
+.mini-charts .mod { margin: 0; }
+.chart.mini { min-height: 200px; }
+.zone-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.zone-chip {
+  font-family: var(--mono); font-size: 0.6rem; letter-spacing: 1.6px;
+  padding: 6px 12px; border: 1px solid var(--line); color: var(--mut);
+  background: var(--m1);
+}
+.zone-chip:nth-child(1) { color: var(--saff); border-color: rgba(255, 153, 51, 0.5); }
+
+/* ============ 11 · AI ASSIST ============ */
+.ai-panel { border: 1px solid var(--line); border-radius: 12px; padding: 14px; background: var(--bg2); }
+.ai-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.ai-head .tag { margin-left: auto; }
+.switch { position: relative; display: inline-block; width: 46px; height: 24px; flex: none; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; inset: 0; background: #3a4a5e; border-radius: 24px; transition: 0.25s; }
+.slider::before { content: ""; position: absolute; height: 18px; width: 18px; left: 3px; top: 3px;
+  background: #ffb35c; border-radius: 50%; transition: 0.25s; }
+.switch input:checked + .slider { background: var(--accent); }
+.switch input:checked + .slider::before { transform: translateX(22px); background: #0d1b2a; }
+#aiToggleLabel { font-size: 0.82rem; letter-spacing: 0.08em; color: var(--txt2); }
+.rec-grid { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+.rec-grid .tag { font-size: 0.72rem; padding: 3px 8px; }
+.ai-suggest { margin-top: 8px; }
+.ghost { background: transparent; color: var(--txt2); border: 1px dashed var(--line); }
+.ghost:hover { color: var(--accent); border-color: var(--accent); }
+#aiObjective { max-width: 260px; }
+#aiMetrics .zone-badge { display: inline-block; margin-bottom: 8px; }
