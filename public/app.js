@@ -1,8 +1,9 @@
-/* SIH26051 Shelter Studio — frontend logic (vanilla JS, no build step) */
+/* SIH26051 · Shelter-Studio — "Command Deck" frontend logic (vanilla JS, no build step) */
 "use strict";
 
 const $ = (id) => document.getElementById(id);
 
+/* ---------- api ---------- */
 async function api(path, options) {
   const res = await fetch(path, options);
   if (!res.ok) {
@@ -15,13 +16,38 @@ async function api(path, options) {
 
 const fmt = (v, d = 1) => (v === null || v === undefined ? "—" : v.toFixed(d));
 
-/* ---------- layout helpers ---------- */
+/* ---------- toast (replaces browser alert) ---------- */
+function toast(msg, isErr = false) {
+  let t = $("toast");
+  if (!t) {
+    t = document.createElement("div");
+    t.id = "toast";
+    document.body.appendChild(t);
+  }
+  t.textContent = `▲ ${msg}`;
+  t.className = isErr ? "show err" : "show";
+  clearTimeout(t._h);
+  t._h = setTimeout(() => { t.className = ""; }, 4200);
+}
+
+/* ---------- plot (matte command-deck theme) ---------- */
 function plot(el, data, layout, config = {}) {
+  if (typeof Plotly === "undefined") {
+    el.classList.add("has-data");
+    el.textContent = "CHART FEED UNAVAILABLE — OFFLINE PREVIEW";
+    return;
+  }
+  el.classList.add("has-data");
   Plotly.react(el, data, Object.assign({
-    template: { layout: { paper_bgcolor: "transparent", plot_bgcolor: "transparent",
-      font: { color: "#cbd5e1" }, xaxis: { gridcolor: "#334155" },
-      yaxis: { gridcolor: "#334155" } } },
-    margin: { l: 50, r: 20, t: 30, b: 40 }, height: 300,
+    template: { layout: {
+      paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)",
+      font: { color: "#c3cad2", family: "'Cascadia Mono','Consolas',monospace" },
+      xaxis: { gridcolor: "#2b3036", zerolinecolor: "#333940", linecolor: "#333940" },
+      yaxis: { gridcolor: "#2b3036", zerolinecolor: "#333940", linecolor: "#333940" },
+    } },
+    margin: { l: 54, r: 16, t: 40, b: 46 }, height: 320,
+    paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)",
+    font: { color: "#c3cad2", family: "'Cascadia Mono','Consolas',monospace" },
   }, layout), { responsive: true, displayModeBar: false, ...config });
 }
 
@@ -73,8 +99,9 @@ async function loadMaterials() {
 /* ---------- 2 · climate ---------- */
 async function loadClimate() {
   const sel = $("location").selectedOptions[0];
-  $("loadClimate").disabled = true;
-  $("loadClimate").textContent = "Loading…";
+  const btn = $("loadClimate");
+  btn.disabled = true; btn.classList.add("busy");
+  btn.textContent = "◈ Fetching…";
   try {
     const data = await api(`/api/climate?lat=${sel.dataset.lat}&lon=${sel.dataset.lon}` +
       `&year=${$("year").value}`);
@@ -90,18 +117,20 @@ async function loadClimate() {
                 metric(fmt(data.n_hours / 24, 0), "days of data"));
     plot($("chartTemp"), [{
       x: data.monthly.ts, y: data.monthly.t2m, type: "scatter", mode: "lines+markers",
-      name: "t2m", line: { color: "#f87171" },
-    }], { title: "Monthly mean temperature (°C)" });
+      name: "t2m", line: { color: "#ff5d5d", width: 2 },
+      marker: { size: 5, color: "#ff5d5d" },
+    }], { title: "MONTHLY MEAN TEMPERATURE · °C" });
     plot($("chartSolar"), [{
       x: data.monthly.ts, y: data.monthly.ghi, type: "scatter", mode: "lines+markers",
-      name: "GHI", line: { color: "#fbbf24" },
-    }], { title: "Monthly mean solar irradiance (W/m²)" });
+      name: "GHI", line: { color: "#ffb25e", width: 2 },
+      marker: { size: 5, color: "#ffb25e" },
+    }], { title: "MONTHLY MEAN SOLAR IRRADIANCE · W/m²" });
     $("climateSection").hidden = false;
   } catch (err) {
-    alert(`Climate load failed: ${err.message}`);
+    toast(`Climate load failed: ${err.message}`, true);
   } finally {
-    $("loadClimate").disabled = false;
-    $("loadClimate").textContent = "Load climate";
+    btn.disabled = false; btn.classList.remove("busy");
+    btn.textContent = "◈ Load Climate";
   }
 }
 
@@ -125,7 +154,8 @@ async function runSimulate() {
   const sel = $("location").selectedOptions[0];
   const body = { lat: parseFloat(sel.dataset.lat), lon: parseFloat(sel.dataset.lon),
                  year: parseInt($("year").value, 10), ...designPayload() };
-  $("simulate").disabled = true;
+  const btn = $("simulate");
+  btn.disabled = true; btn.classList.add("busy");
   try {
     const data = await api("/api/simulate", {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -141,24 +171,24 @@ async function runSimulate() {
                 metric(fmt(m.solar_gain_kwh, 0), "solar gain kWh"));
     const s = data.series;
     plot($("chartSim"), [
-      { x: s.ts, y: s.outdoor_t_c, type: "scatter", name: "Outdoor",
-        line: { color: "#94a3b8", width: 1.5 } },
-      { x: s.ts, y: s.indoor_t_c, type: "scatter", name: "Indoor",
-        line: { color: "#38bdf8", width: 2.5 } },
-    ], { title: "Indoor vs outdoor temperature (°C)",
+      { x: s.ts, y: s.outdoor_t_c, type: "scatter", name: "OUTDOOR",
+        line: { color: "#98a1ab", width: 1.5 } },
+      { x: s.ts, y: s.indoor_t_c, type: "scatter", name: "INDOOR",
+        line: { color: "#6ab7ff", width: 2.5 } },
+    ], { title: "INDOOR VS OUTDOOR TEMPERATURE · °C",
          xaxis: { tickangle: -30 } });
     if (s.q_solar_w) {
       plot($("chartHeat"), [
-        { x: s.ts, y: s.q_solar_w, type: "scatter", name: "Solar", line: { color: "#fbbf24" } },
-        { x: s.ts, y: s.q_conduct_w, type: "scatter", name: "Conduction", line: { color: "#f87171" } },
-        { x: s.ts, y: s.q_vent_w, type: "scatter", name: "Ventilation", line: { color: "#60a5fa" } },
-      ], { title: "Heat flows (W, + into shelter)" });
+        { x: s.ts, y: s.q_solar_w, type: "scatter", name: "SOLAR", line: { color: "#ffb25e", width: 2 } },
+        { x: s.ts, y: s.q_conduct_w, type: "scatter", name: "CONDUCTION", line: { color: "#ff5d5d", width: 2 } },
+        { x: s.ts, y: s.q_vent_w, type: "scatter", name: "VENTILATION", line: { color: "#5eea8d", width: 2 } },
+      ], { title: "HEAT FLOW BUDGET · W (+ INTO SHELTER)" });
     }
     $("simSection").hidden = false;
   } catch (err) {
-    alert(`Simulation failed: ${err.message}`);
+    toast(`Simulation failed: ${err.message}`, true);
   } finally {
-    $("simulate").disabled = false;
+    btn.disabled = false; btn.classList.remove("busy");
   }
 }
 
@@ -166,8 +196,11 @@ async function runSimulate() {
 async function runOptimize() {
   const sel = $("location").selectedOptions[0];
   const n = parseInt($("trials").value, 10);
-  $("optimize").disabled = true;
-  $("optStatus").textContent = `running ${n} trials… (≈${Math.ceil(n / 8)} s)`;
+  const btn = $("optimize");
+  btn.disabled = true; btn.classList.add("busy");
+  const st = $("optStatus");
+  st.textContent = `running ${n} trials… (≈${Math.ceil(n / 8)} s)`;
+  st.classList.remove("err");
   try {
     const data = await api("/api/optimize", {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -175,9 +208,9 @@ async function runOptimize() {
                              lon: parseFloat(sel.dataset.lon),
                              year: parseInt($("year").value, 10), n_trials: n }),
     });
-    $("optStatus").textContent = `best TPI ${data.best.tpi.toFixed(3)}`;
+    st.textContent = `BEST TPI ${data.best.tpi.toFixed(3)} — ${data.best.design.wall_material} / ${data.best.design.roof_material}`;
     const b = data.best.design;
-    $("bestCard").innerHTML = `<h4>🏆 Best design — TPI ${data.best.tpi.toFixed(3)}</h4>` +
+    $("bestCard").innerHTML = `<h4>★ Best design — TPI ${data.best.tpi.toFixed(3)}</h4>` +
       `<p>Orientation: <b>${b.orientation_deg}°</b></p>` +
       `<p>Walls: <b>${b.wall_material}</b> (${fmt(b.wall_thickness_m, 2)} m)</p>` +
       `<p>Roof: <b>${b.roof_material}</b> (${fmt(b.roof_thickness_m, 2)} m)</p>` +
@@ -185,8 +218,9 @@ async function runOptimize() {
       `<p>Window: <b>${b.window.wall}</b> ${fmt(b.window.width_m, 1)}×${fmt(b.window.height_m, 1)} m, SHGC ${fmt(b.window.shgc, 2)}</p>`;
     plot($("chartOpt"), [{
       y: data.history, type: "scatter", mode: "lines+markers",
-      name: "1 − TPI (lower better)", line: { color: "#2dd4bf" },
-    }], { title: "Optimization history" });
+      name: "1 − TPI (lower better)", line: { color: "#5eea8d", width: 2 },
+      marker: { size: 6, color: "#5eea8d" },
+    }], { title: "OPTIMIZATION HISTORY · TRIAL PROGRESS" });
     const tb = $("optTable").querySelector("tbody");
     tb.innerHTML = "";
     data.top10.forEach((t, i) => {
@@ -202,14 +236,64 @@ async function runOptimize() {
     });
     $("optSection").hidden = false;
   } catch (err) {
-    $("optStatus").textContent = `failed: ${err.message}`;
+    st.textContent = `FAILED: ${err.message}`;
+    st.classList.add("err");
   } finally {
-    $("optimize").disabled = false;
+    btn.disabled = false; btn.classList.remove("busy");
   }
+}
+
+/* ---------- HUD extras ---------- */
+function tickClock() {
+  const f = new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+    hour12: false, timeZone: "Asia/Kolkata",
+  });
+  const c = $("clockIST");
+  if (c) c.textContent = f.format(new Date());
+}
+setInterval(tickClock, 1000);
+
+async function checkHealth() {
+  const led = $("sysLed"), link = $("sysLink"), foot = $("footStatus");
+  try {
+    const h = await api("/api/health");
+    led.className = "led ok";
+    link.textContent = `DATA-LINK OK · ${h.backend.toUpperCase()} · PY ${h.python}`;
+    if (foot) { foot.textContent = "SYS/ONLINE · BACKEND LINKED"; foot.className = "ok"; }
+  } catch (err) {
+    led.className = "led warn";
+    link.textContent = "DATA-LINK DEGRADED — RETRYING";
+    if (foot) { foot.textContent = "SYS/ONLINE · BACKEND DEGRADED"; foot.className = "warn"; }
+  }
+}
+
+function setupTicker() {
+  const t = $("tickerTrack");
+  if (t) t.innerHTML += t.innerHTML; // duplicate for seamless loop
+}
+
+function setupNavSpy() {
+  const links = Array.from(document.querySelectorAll(".navbar a"));
+  const secs = ["sec1", "sec2", "sec3", "sec4", "sec5"]
+    .map((id) => document.getElementById(id)).filter(Boolean);
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (e.isIntersecting) {
+        const idx = secs.indexOf(e.target);
+        links.forEach((a, i) => a.classList.toggle("active", i === idx));
+      }
+    });
+  }, { rootMargin: "-30% 0px -55% 0px" });
+  secs.forEach((s) => io.observe(s));
 }
 
 /* ---------- init ---------- */
 document.addEventListener("DOMContentLoaded", async () => {
+  tickClock();
+  setupTicker();
+  setupNavSpy();
+  checkHealth();
   try {
     await loadLocations();
     await loadMaterials();

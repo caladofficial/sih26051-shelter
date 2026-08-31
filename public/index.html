@@ -3,104 +3,217 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SIH26051 Shelter Studio</title>
+  <title>SIH26051 · Shelter-Studio — Tactical Thermal Design Deck</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
 </head>
 <body>
-  <header>
-    <h1>🏕️ SIH26051 Shelter Studio</h1>
-    <p class="sub">Area-specific passive shelter design · DRDO · Smart India Hackathon 2026</p>
+
+  <!-- ============ TOPBAR ============ -->
+  <header class="topbar">
+    <svg class="crest" viewBox="0 0 48 48" aria-hidden="true">
+      <defs>
+        <linearGradient id="crestFill" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#262b31"/><stop offset="1" stop-color="#16191d"/>
+        </linearGradient>
+      </defs>
+      <path d="M24 3 L42 13 V33 L24 45 L6 33 V13 Z"
+            fill="url(#crestFill)" stroke="#ff9933" stroke-width="1.6"/>
+      <path d="M24 12 L35 20 V30 L24 38 L13 30 V20 Z" fill="none"
+            stroke="#e8eaed" stroke-width="1.1" opacity="0.85"/>
+      <!-- shelter roof -->
+      <path d="M16.5 25.5 L24 18 L31.5 25.5" fill="none" stroke="#ff9933" stroke-width="1.6"/>
+      <!-- walls -->
+      <path d="M19 25.5 V33 M29 25.5 V33 M16.5 33 H31.5" fill="none"
+            stroke="#e8eaed" stroke-width="1.1"/>
+      <!-- sun -->
+      <circle cx="24" cy="14.5" r="1.6" fill="#5eea8d"/>
+      <path d="M24 9.5 V11.5 M24 17.5 V19.5 M19 14.5 H21 M27 14.5 H29"
+            stroke="#5eea8d" stroke-width="1"/>
+    </svg>
+    <div class="brand">
+      <p class="b1">Shelter-Studio</p>
+      <p class="b2">PS·SIH26051 &nbsp;|&nbsp; Area-Specific Passive Shelter Thermal Design &nbsp;|&nbsp; <b>DRDO INSPIRED INTERFACE</b></p>
+    </div>
+    <div class="top-right">
+      <div class="clock">
+        <div class="t" id="clockIST">--:--:--</div>
+        <div class="z">IST · UTC+05:30</div>
+      </div>
+      <div class="linkled"><span class="led" id="sysLed"></span><span id="sysLink">DATA-LINK …</span></div>
+    </div>
   </header>
 
+  <!-- ============ TICKER ============ -->
+  <div class="ticker" aria-hidden="true">
+    <div class="track" id="tickerTrack">
+      <span><b>MODEL</b> FAST RC · 3R2C LUMPED</span>
+      <span><b>VALIDATION</b> ENERGYPLUS 26.1 — PHASE 8</span>
+      <span><b>WEATHER</b> NASA POWER × OPEN-METEO CROSS-CHECK</span>
+      <span><b>STORAGE</b> SUPABASE · POSTGRESQL</span>
+      <span><b>STACK</b> 100% FREE &amp; OPEN-SOURCE — ₹0</span>
+      <span><b>SITE</b> PRAYAGRAJ · 25.4358°N 81.8463°E · 98 M ASL</span>
+      <span><b>PHASE</b> 09 / 09 — DEPLOYED</span>
+    </div>
+  </div>
+
+  <!-- ============ HERO ============ -->
+  <section class="hero">
+    <p class="kicker">Command Deck · Design &amp; Analysis Console</p>
+    <h1>Tactical Shelter<br /><span class="thin">Thermal Design System</span></h1>
+    <div class="rule"><i></i><i></i><i></i></div>
+    <p class="sub">Defence-grade, area-specific passive shelter design — site climate intake,
+    <b>RC thermal core</b> (validated against EnergyPlus), parametric <b>design</b>,
+    <b>simulation</b> and <b>Optuna optimization</b> for extreme-zone field comfort.</p>
+  </section>
+
+  <!-- ============ NAV ============ -->
+  <nav class="navbar" id="navbar">
+    <a href="#sec1"><b>01</b>Site</a>
+    <a href="#sec2"><b>02</b>Climate</a>
+    <a href="#sec3"><b>03</b>Design</a>
+    <a href="#sec4"><b>04</b>Simulate</a>
+    <a href="#sec5"><b>05</b>Optimize</a>
+  </nav>
+
   <main>
-    <!-- ================= 1 · LOCATION ================= -->
-    <section>
-      <h2>1 · Location</h2>
+
+    <!-- ============ 1 · SITE / LOCATION ============ -->
+    <section class="module" id="sec1">
+      <div class="mod-head">
+        <span class="sec">SEC/01</span>
+        <h2>Site &amp; Climate Intake</h2>
+        <span class="code">MODULE: ENV-INT</span>
+        <span class="grow"></span>
+      </div>
       <div class="row">
-        <label>Site
+        <label class="ctl">Site
+          <em>operation area</em>
           <select id="location"></select>
         </label>
-        <label>Climate year
+        <label class="ctl">Climate year
+          <em>analysis period</em>
           <select id="year"><option>2024</option><option>2023</option></select>
         </label>
-        <button id="loadClimate" class="primary">Load climate</button>
+        <button id="loadClimate" class="primary">◈ Load Climate</button>
       </div>
       <div id="climateSummary" class="metrics"></div>
     </section>
 
-    <!-- ================= 2 · CLIMATE ================= -->
-    <section id="climateSection" hidden>
-      <h2>2 · Climate <span id="climateSource" class="tag"></span></h2>
-      <div class="grid2">
-        <div id="chartTemp" class="chart"></div>
-        <div id="chartSolar" class="chart"></div>
+    <!-- ============ 2 · CLIMATE ============ -->
+    <section id="sec2">
+      <div class="module" id="climateSection" hidden>
+        <div class="mod-head">
+          <span class="sec">SEC/02</span>
+          <h2>Climate Recon</h2>
+          <span class="code">SOURCE: <span id="climateSource" class="tag">—</span></span>
+        </div>
+        <div class="grid2">
+          <div class="mod">
+            <div class="mod-hd"><i></i>MOD·02A — TEMPERATURE PROFILE</div>
+            <div id="chartTemp" class="chart"></div>
+          </div>
+          <div class="mod">
+            <div class="mod-hd"><i></i>MOD·02B — SOLAR IRRADIANCE</div>
+            <div id="chartSolar" class="chart"></div>
+          </div>
+        </div>
       </div>
     </section>
 
-    <!-- ================= 3 · DESIGN ================= -->
-    <section>
-      <h2>3 · Shelter design</h2>
+    <!-- ============ 3 · DESIGN ============ -->
+    <section class="module" id="sec3">
+      <div class="mod-head">
+        <span class="sec">SEC/03</span>
+        <h2>Shelter Design Matrix</h2>
+        <span class="code">MODULE: CONFIG-3D</span>
+      </div>
       <div class="grid4">
-        <label>Length (m) <input id="length" type="number" step="0.5" value="3.0" /></label>
-        <label>Width (m) <input id="width" type="number" step="0.5" value="3.0" /></label>
-        <label>Height (m) <input id="height" type="number" step="0.1" value="2.6" /></label>
-        <label>Orientation (°) <input id="orientation" type="number" step="15" value="0" /></label>
-        <label>Wall material <select id="wallMat"></select></label>
-        <label>Wall thickness (m) <input id="wallThick" type="number" step="0.01" value="0.2" /></label>
-        <label>Roof material <select id="roofMat"></select></label>
-        <label>Roof thickness (m) <input id="roofThick" type="number" step="0.01" value="0.12" /></label>
-        <label>Insulation <select id="insMat"><option value="none">none</option></select></label>
-        <label>Insulation (mm) <input id="insThick" type="number" step="5" value="0" /></label>
-        <label>Window wall <select id="winWall"><option>south</option><option>east</option><option>west</option><option>north</option></select></label>
-        <label>Window W × H (m) <input id="winSize" type="text" value="1.2 × 1.2" /></label>
-        <label>Period
+        <label class="ctl">Length <em>m · X axis</em><input id="length" type="number" step="0.5" value="3.0" /></label>
+        <label class="ctl">Width <em>m · Y axis</em><input id="width" type="number" step="0.5" value="3.0" /></label>
+        <label class="ctl">Height <em>m · Z axis</em><input id="height" type="number" step="0.1" value="2.6" /></label>
+        <label class="ctl">Orientation <em>deg · azimuth</em><input id="orientation" type="number" step="15" value="0" /></label>
+        <label class="ctl">Wall material <em>sourced table</em><select id="wallMat"></select></label>
+        <label class="ctl">Wall thickness <em>m</em><input id="wallThick" type="number" step="0.01" value="0.2" /></label>
+        <label class="ctl">Roof material <em>sourced table</em><select id="roofMat"></select></label>
+        <label class="ctl">Roof thickness <em>m</em><input id="roofThick" type="number" step="0.01" value="0.12" /></label>
+        <label class="ctl">Insulation <em>class</em><select id="insMat"><option value="none">none</option></select></label>
+        <label class="ctl">Insulation <em>mm</em><input id="insThick" type="number" step="5" value="0" /></label>
+        <label class="ctl">Window wall <em>facing</em><select id="winWall"><option>south</option><option>east</option><option>west</option><option>north</option></select></label>
+        <label class="ctl">Window W × H <em>m</em><input id="winSize" type="text" value="1.2 × 1.2" /></label>
+        <label class="ctl">Period <em>analysis window</em>
           <select id="period">
             <option value="hot_week">Hottest week</option>
             <option value="cold_week">Coldest week</option>
             <option value="full_year">Full year</option>
           </select>
         </label>
-        <button id="simulate" class="primary">▶ Simulate</button>
+        <button id="simulate" class="primary">▶ Run Simulation</button>
       </div>
       <div id="simMetrics" class="metrics"></div>
     </section>
 
-    <!-- ================= 4 · SIMULATION ================= -->
-    <section id="simSection" hidden>
-      <h2>4 · Simulation <span id="simEngine" class="tag"></span></h2>
-      <div id="chartSim" class="chart"></div>
-      <div id="chartHeat" class="chart"></div>
+    <!-- ============ 4 · SIMULATION ============ -->
+    <section id="sec4">
+      <div class="module" id="simSection" hidden>
+        <div class="mod-head">
+          <span class="sec">SEC/04</span>
+          <h2>Thermal Telemetry</h2>
+          <span class="code">ENGINE: <span id="simEngine" class="tag">—</span></span>
+        </div>
+        <div class="mod">
+          <div class="mod-hd"><i></i>MOD·04A — INDOOR / OUTDOOR TEMPERATURE</div>
+          <div id="chartSim" class="chart"></div>
+        </div>
+        <div class="mod">
+          <div class="mod-hd"><i></i>MOD·04B — HEAT FLOW BUDGET</div>
+          <div id="chartHeat" class="chart"></div>
+        </div>
+      </div>
     </section>
 
-    <!-- ================= 5 · OPTIMIZATION ================= -->
-    <section>
-      <h2>5 · Optimization</h2>
+    <!-- ============ 5 · OPTIMIZATION ============ -->
+    <section class="module" id="sec5">
+      <div class="mod-head">
+        <span class="sec">SEC/05</span>
+        <h2>Optimization Campaign</h2>
+        <span class="code">MODULE: OPTUNA-TPE</span>
+      </div>
       <div class="row">
-        <label>Trials <input id="trials" type="number" min="5" max="60" value="30" /></label>
-        <button id="optimize" class="primary">🚀 Optimize</button>
+        <label class="ctl">Trials <em>5–60</em><input id="trials" type="number" min="5" max="60" value="30" /></label>
+        <button id="optimize" class="primary">⛭ Optimize Design</button>
         <span id="optStatus" class="status"></span>
       </div>
       <div id="optSection" hidden>
         <div class="grid2">
-          <div id="chartOpt" class="chart"></div>
+          <div class="mod">
+            <div class="mod-hd"><i></i>MOD·05A — TRIAL HISTORY</div>
+            <div id="chartOpt" class="chart"></div>
+          </div>
           <div id="bestCard" class="card"></div>
         </div>
-        <h3>Top 10 designs</h3>
-        <table id="optTable">
-          <thead><tr>
-            <th>#</th><th>TPI</th><th>Orient.</th><th>Wall</th><th>Roof</th>
-            <th>Insulation</th><th>Window</th>
-          </tr></thead>
-          <tbody></tbody>
-        </table>
+        <h3>Top 10 designs — leaderboard</h3>
+        <div class="tblwrap">
+          <table id="optTable">
+            <thead><tr>
+              <th>#</th><th>TPI</th><th>Orient.</th><th>Wall</th><th>Roof</th>
+              <th>Insulation</th><th>Window</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
       </div>
     </section>
   </main>
 
+  <!-- ============ FOOTER ============ -->
   <footer>
-    <p>Fast RC thermal model (validated against EnergyPlus) · weather: NASA POWER +
-    Open-Meteo · storage: Supabase · deployed on Vercel · 100% free/open-source stack.</p>
+    <div class="tribar"><i></i><i></i><i></i></div>
+    <div class="fbody">
+      <span>SHELTER-STUDIO · SIH-2026 · PS-26051</span>
+      <span>Fast RC core, validated vs EnergyPlus 26.1 — NASA POWER × Open-Meteo — Supabase · Vercel</span>
+      <span class="ok" id="footStatus">SYS/ONLINE</span>
+    </div>
   </footer>
 
   <script src="app.js"></script>
