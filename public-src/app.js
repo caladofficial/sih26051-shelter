@@ -193,6 +193,8 @@ function designPayload() {
     insulation_material: $("insMat").value,
     insulation_thickness_m: parseFloat($("insThick").value) / 1000,
     window_wall: $("winWall").value, window_width_m: ww, window_height_m: wh,
+    window_shgc: parseFloat($("winShgc").value),
+    window_u_w_m2k: parseFloat($("winU").value),
     period: $("period").value,
   };
 }
@@ -1201,6 +1203,7 @@ function applyDesignToForm(d) {
   };
   opt("wallMat", d.wall_material); opt("roofMat", d.roof_material);
   opt("insMat", d.insulation_material || "none"); opt("winWall", d.window_wall);
+  set("winShgc", num(d.window_shgc)); set("winU", num(d.window_u_w_m2k));
 }
 
 function currentFlatDesign() {

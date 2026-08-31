@@ -112,6 +112,7 @@ class SimulateRequest(BaseModel):
     window_width_m: float | None = None
     window_height_m: float | None = None
     window_shgc: float | None = None
+    window_u_w_m2k: float | None = None
     ach: float | None = None
 
 
@@ -178,7 +179,8 @@ def _design_from_request(req: SimulateRequest) -> dict:
                   "wall_material", "wall_thickness_m", "roof_material",
                   "roof_thickness_m", "insulation_material",
                   "insulation_thickness_m", "window_wall", "window_width_m",
-                  "window_height_m", "window_shgc", "ach"):
+                  "window_height_m", "window_shgc", "window_u_w_m2k",
+                  "ach"):
         value = getattr(req, field)
         if value is not None:
             design[field] = value

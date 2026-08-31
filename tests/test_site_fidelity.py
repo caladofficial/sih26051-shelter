@@ -36,6 +36,37 @@ def test_window_u_mapping_reaches_engine():
             assert s["u_w_m2k"] == 1.6
 
 
+def test_request_mapping_carries_window_u():
+    """The user-facing simulate endpoint must honor window_u_w_m2k — it was
+    silently dropped (engine always used the default U 5.8), making
+    AI-suggest 'verified' numbers unreproducible via /api/simulate."""
+    from src.api_app import _design_from_request, SimulateRequest
+
+    req = SimulateRequest(window_u_w_m2k=1.6, window_shgc=0.5)
+    d = _design_from_request(req)
+    assert d["window_u_w_m2k"] == 1.6
+    assert d["window_shgc"] == 0.5
+
+
+def test_simulate_endpoint_u_sensitivity():
+    """Full endpoint check: same design at Leh with U 1.6 vs 5.8 must
+    produce different metrics."""
+    from fastapi.testclient import TestClient
+    from src.api_app import app
+
+    client = TestClient(app)
+    body = {"lat": 34.164, "lon": 77.585, "year": 2024,
+            "wall_material": "brick", "wall_thickness_m": 0.23,
+            "roof_material": "rcc_slab", "roof_thickness_m": 0.15,
+            "insulation_material": "eps", "insulation_thickness_m": 0.05,
+            "window_wall": "south", "window_width_m": 1.2,
+            "window_height_m": 1.2, "window_shgc": 0.55,
+            "orientation_deg": 0}
+    m1 = client.post("/api/simulate", json={**body, "window_u_w_m2k": 1.6}).json()["metrics"]
+    m2 = client.post("/api/simulate", json={**body, "window_u_w_m2k": 5.8}).json()["metrics"]
+    assert abs(m1["mean_indoor_c"] - m2["mean_indoor_c"]) > 0.05
+
+
 def test_site_location_applied_to_cfg():
     cfg = _apply_site_location(CFG, 34.164, 77.585, "Asia/Kolkata")
     assert cfg["location"]["latitude"] == 34.164
