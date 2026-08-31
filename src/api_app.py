@@ -195,6 +195,7 @@ def _apply_design(cfg: dict, design: dict) -> dict:
         "window_width_m": ("window", "width_m"),
         "window_height_m": ("window", "height_m"),
         "window_shgc": ("window", "shgc"),
+        "window_u_w_m2k": ("window", "u_w_m2k"),
     }
     for k, v in design.items():
         if k == "ach":
@@ -210,6 +211,23 @@ def _apply_design(cfg: dict, design: dict) -> dict:
 
 
 _GROUND_OFFSET_K = 2.0   # shallow-ground temp ≈ mean annual air temp + 2 K
+
+
+def _apply_site_location(cfg: dict, lat: float, lon: float,
+                         timezone: str | None = None) -> dict:
+    """Set the simulation site's coordinates BEFORE running the engine.
+
+    Solar geometry (SPA sun position) is computed from cfg['location'];
+    previously it silently used the config default (Prayagraj) for every
+    site — up to ~9 deg of solar-zenith error at Leh. Site-adapted data
+    must use the site's own coordinates.
+    """
+    cfg = copy.deepcopy(cfg)
+    cfg["location"]["latitude"] = float(lat)
+    cfg["location"]["longitude"] = float(lon)
+    if timezone:
+        cfg["location"]["timezone"] = timezone
+    return cfg
 
 
 def _apply_ground_temp(cfg: dict, weather: pd.DataFrame) -> dict:
@@ -471,8 +489,9 @@ def simulate_endpoint(req: SimulateRequest):
     except Exception as exc:
         raise HTTPException(502, f"weather fetch failed: {exc}")
 
-    cfg = _apply_ground_temp(_apply_design(CFG, _design_from_request(req)),
-                             weather)
+    cfg = _apply_ground_temp(_apply_site_location(
+        _apply_design(CFG, _design_from_request(req)),
+        loc["latitude"], loc["longitude"], loc["timezone"]), weather)
     mats = load_materials()
 
     # validate material names
@@ -528,8 +547,9 @@ def optimize_endpoint(req: OptimizeRequest):
 
     from src.optimization.optuna_optimizer import run_study
     try:
-        study = run_study(_apply_ground_temp(CFG, weather), weather,
-                          load_materials(),
+        study = run_study(_apply_ground_temp(_apply_site_location(
+            CFG, loc["latitude"], loc["longitude"], loc["timezone"]), weather),
+            weather, load_materials(),
                           n_trials=req.n_trials)
     except Exception as exc:
         raise HTTPException(500, f"optimization failed: {exc}")
@@ -722,7 +742,8 @@ def _shelter_metrics(latitude: float, longitude: float,
         for key in ("wall_material", "roof_material"):
             if base.get(key) not in mats.index:
                 base[key] = "brick" if key == "wall_material" else "rcc_slab"
-        cfg = _apply_ground_temp(_apply_design(CFG, base), weather)
+        cfg = _apply_ground_temp(_apply_site_location(
+            _apply_design(CFG, base), latitude, longitude), weather)
         weeks = design_weeks(weather, int(CFG["climate"]["data_year"]))
         res = simulate(cfg, weeks["hot_week"], mats)
         st = comfort_stats(res, cfg["climate"]["comfort_range_c"])
@@ -1069,7 +1090,9 @@ def location_recommend(req: AdaptRequest):
         if ins == "none":
             base["insulation_material"] = "eps"
             base["insulation_thickness_m"] = 0.0
-        cfg = _apply_ground_temp(_apply_design(CFG, base), weather)
+        cfg = _apply_ground_temp(_apply_site_location(
+            _apply_design(CFG, base), loc["latitude"], loc["longitude"],
+            loc["timezone"]), weather)
         try:
             weeks = design_weeks(weather, loc["year"])
             res = simulate(cfg, weeks["hot_week"], mats)
@@ -1122,15 +1145,25 @@ def _coerce_design(base: dict) -> dict:
 
 
 def _design_metrics(weather: pd.DataFrame, design: dict,
-                    mats: pd.DataFrame) -> dict:
-    """Hot-week comfort metrics for a design at a site (sourced RC engine)."""
+                    mats: pd.DataFrame, lat: float | None = None,
+                    lon: float | None = None,
+                    timezone: str | None = None) -> dict:
+    """Hot-week comfort metrics for a design at a site (sourced RC engine).
+
+    Solar geometry uses the SITE's coordinates (previously the config
+    default — up to 9 deg zenith error at high-latitude sites).
+    """
     base = _coerce_design(design)
     base.setdefault("orientation_deg", 0)
     ins = base.get("insulation_material") or "none"
     if ins == "none":
         base["insulation_material"] = "eps"
         base["insulation_thickness_m"] = 0.0
-    cfg = _apply_ground_temp(_apply_design(CFG, base), weather)
+    cfg = _apply_ground_temp(_apply_site_location(
+        _apply_design(CFG, base),
+        lat if lat is not None else float(CFG["location"]["latitude"]),
+        lon if lon is not None else float(CFG["location"]["longitude"]),
+        timezone), weather)
     weeks = design_weeks(weather, int(CFG["climate"]["data_year"]))
     res = simulate(cfg, weeks["hot_week"], mats)
     st = comfort_stats(res, cfg["climate"]["comfort_range_c"])
@@ -1166,7 +1199,9 @@ def location_compare(req: CompareRequest):
             continue
         prof = _location_profile(weather)
         try:
-            metrics = _design_metrics(weather, design, mats)
+            metrics = _design_metrics(weather, design, mats,
+                                      float(s["lat"]), float(s["lon"]),
+                                      CFG["location"]["timezone"])
         except Exception as exc:
             out.append({"site": name, "zone": prof["zone"],
                         "zone_name": prof["zone_name"], "error": str(exc)})
@@ -1328,7 +1363,10 @@ def ai_suggest(req: AiSuggestRequest):
         rank = np.argsort(-p["hot_comfort_fraction"])
 
     top = [candidates[i] for i in rank[:12]]
-    verified = [_design_metrics(weather, d, mats) for d in top]
+    verified = [_design_metrics(weather, d, mats,
+                                 prof["location"]["latitude"],
+                                 prof["location"]["longitude"],
+                                 prof["location"]["timezone"]) for d in top]
     score = {
         "coolest_peak": lambda m: m["max_indoor_c"],
         "coolest_mean": lambda m: m["mean_indoor_c"],
@@ -1627,3 +1665,95 @@ def optimizations(limit: int = 5):
         return {"optimizations": STORE.list_optimizations(limit)}
     except Exception as exc:
         raise HTTPException(500, str(exc))
+
+
+# ---------------------------------------------------------------------------
+# offline mode — a full-fledged offline edition of the studio, downloadable
+# only after a LOGIN or an explicit GUEST CHECK.
+# ---------------------------------------------------------------------------
+OFFLINE_TEMPLATE = ROOT / "offline" / "offline_app_template.html"
+OFFLINE_ENGINE = ROOT / "offline" / "engine.js"
+OFFLINE_BUNDLE = ROOT / "src" / "data" / "offline_bundle.json"
+_offline_app: bytes | None = None
+_offline_app_at: float = 0.0
+
+
+def _build_offline_app() -> bytes:
+    """Assemble the self-contained offline app (template + engine + bundle)
+    once, then serve from memory. Rebuilds when any source file changes."""
+    global _offline_app, _offline_app_at
+    try:
+        mtime = max(OFFLINE_TEMPLATE.stat().st_mtime,
+                    OFFLINE_ENGINE.stat().st_mtime,
+                    OFFLINE_BUNDLE.stat().st_mtime)
+    except OSError as exc:
+        raise HTTPException(
+            503, "offline bundle not built (run scripts/build_offline_bundle.py)") \
+            from exc
+    if _offline_app is not None and mtime <= _offline_app_at:
+        return _offline_app
+    bundle = OFFLINE_BUNDLE.read_text(encoding="utf-8").replace("</", "<\\/")
+    engine = OFFLINE_ENGINE.read_text(encoding="utf-8")
+    html = (OFFLINE_TEMPLATE.read_text(encoding="utf-8")
+            .replace("/*__BUNDLE__*/", bundle)
+            .replace("/*__ENGINE__*/", engine))
+    _offline_app = html.encode("utf-8")
+    _offline_app_at = mtime
+    return _offline_app
+
+
+class OfflineDownloadRequest(BaseModel):
+    mode: str = "guest"   # "login" (requires bearer token) or "guest"
+
+
+@app.get("/api/offline/info")
+def offline_info():
+    """What the offline edition contains (for the download UI)."""
+    bundle = {}
+    try:
+        bundle = json.loads(OFFLINE_BUNDLE.read_text(encoding="utf-8"))
+    except Exception:
+        pass
+    size = 0
+    try:
+        size = len(_build_offline_app())
+    except Exception:
+        size = 0
+    return {
+        "available": bool(bundle),
+        "size_bytes": size,
+        "sites": len(bundle.get("sites", [])),
+        "materials": len(bundle.get("materials", [])),
+        "presets": len(bundle.get("presets", {}).get("designs", [])),
+        "model": bundle.get("model", {}).get("metadata", {}).get("name"),
+        "n_samples": bundle.get("model", {}).get("metadata", {}).get("n_samples"),
+        "generated_on": bundle.get("generated_on"),
+    }
+
+
+@app.post("/api/offline/download")
+def offline_download(req: OfflineDownloadRequest, request: Request):
+    """Download the offline edition of the studio.
+
+    Gated: mode='login' requires a valid session token; mode='guest' is
+    the explicit guest check (anyone can use it — guests are anonymous by
+    design). The returned file is a single self-contained HTML application:
+    design, materials, simulate, AI suggest, presets, geometry views and
+    local persistence all run with zero network afterwards.
+    """
+    mode = (req.mode or "").strip().lower()
+    if mode not in ("login", "guest"):
+        raise HTTPException(400, "mode must be 'login' or 'guest'")
+    if mode == "login" and not _uid(request):
+        raise HTTPException(401, "authentication required — log in first")
+    body = _build_offline_app()
+    return Response(
+        content=body,
+        media_type="text/html",
+        headers={
+            "Content-Disposition":
+                'attachment; filename="shelter-studio-offline.html"',
+            "Content-Length": str(len(body)),
+            "X-Offline-Mode": mode,
+            "Cache-Control": "no-store",
+        })

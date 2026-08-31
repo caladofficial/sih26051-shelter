@@ -49,12 +49,16 @@
     </svg>
     <div class="brand">
       <p class="b1">Shelter-Studio</p>
-      <p class="b2">PS·SIH26051 &nbsp;|&nbsp; Area-Specific Passive Shelter Thermal Design &nbsp;|&nbsp; <b>DRDO INSPIRED INTERFACE</b></p>
+      <p class="b2">PS·SIH26051 &nbsp;|&nbsp; Area-Specific Passive Shelter Thermal Design</p>
     </div>
     <div class="top-right">
       <button id="themeToggle" class="theme-toggle" type="button" title="Switch theme" aria-label="Switch theme">
         <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"></svg>
         <span id="themeLabel">LIGHT</span>
+      </button>
+      <button id="offlineBtn" class="theme-toggle" type="button" title="Download the offline edition (works with zero network)">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>OFFLINE</span>
       </button>
       <div class="clock">
         <div class="t" id="clockIST">--:--:--</div>
@@ -559,6 +563,29 @@
       <span class="ok" id="footStatus">SYS/ONLINE</span>
     </div>
   </footer>
+
+  <!-- ============ OFFLINE EDITION MODAL ============ -->
+  <div class="modal-overlay" id="offlineOverlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="offlineTitle">
+      <h3 id="offlineTitle">📦 Offline Edition</h3>
+      <p class="mut">Download the full Shelter-Studio as ONE self-contained file
+        that works as a complete application with <b>zero network</b> — simulations,
+        AI suggestions, presets, geometry views and saved designs, all inside.</p>
+      <ul class="offline-facts">
+        <li><b id="offSites">—</b> reference sites with real 2024 hourly weather (site-correct solar)</li>
+        <li><b id="offMats">—</b> sourced materials · <b id="offPresets">—</b> engine-verified presets</li>
+        <li>AI surrogate trained on <b id="offSamples">—</b> engine samples — parity-verified JS engine</li>
+        <li>Runs by double-clicking the downloaded file. Nothing is uploaded.</li>
+      </ul>
+      <p class="mut small">Issued after a login <i>or</i> a guest check — required before download.</p>
+      <div class="modal-actions">
+        <button id="offAsGuest" class="primary">⬇ Download as GUEST</button>
+        <button id="offAsLogin" class="primary">⬇ Download with my LOGIN</button>
+        <button id="offCancel" type="button">Cancel</button>
+      </div>
+      <p class="mut small" id="offHint"></p>
+    </div>
+  </div>
 
   <script src="auth.js"></script>
   <script src="app.js"></script>

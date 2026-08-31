@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shelter-Studio · Offline Edition</title>
+<meta name="description" content="PS·SIH26051 — area-specific passive shelter thermal design, fully offline. Run simulations, AI suggestions and presets with zero network.">
+<style>
+  :root{
+    --bg:#f4f1e8; --panel:#fffdf6; --panel2:#efe9d8; --ink:#1c1e21; --mut:#5c6168;
+    --line:#d8d2c0; --saff:#e8862e; --green:#2e7d4f; --accent:#1e5aa8;
+    --chart1:#c0392b; --chart2:#1e5aa8; --chart3:#e8862e; --chart4:#2e7d4f;
+    --shadow:0 2px 10px rgba(30,30,20,.08);
+  }
+  [data-theme="dark"]{
+    --bg:#14171a; --panel:#1c2024; --panel2:#23282d; --ink:#e8e6df; --mut:#9aa0a6;
+    --line:#333a41; --saff:#ffa04d; --green:#5ec48b; --accent:#6fa8e8;
+    --chart1:#e06050; --chart2:#6fa8e8; --chart3:#ffa04d; --chart4:#5ec48b;
+    --shadow:0 2px 10px rgba(0,0,0,.4);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:14px/1.45 ui-sans-serif,system-ui,"Segoe UI",Roboto,Arial,sans-serif}
+  header{display:flex;align-items:center;gap:12px;padding:10px 16px;
+         border-bottom:1px solid var(--line);background:var(--panel);
+         position:sticky;top:0;z-index:5;flex-wrap:wrap}
+  .crest{width:34px;height:34px;flex:none}
+  .brand b{font-size:15px;letter-spacing:.4px}
+  .brand small{display:block;color:var(--mut)}
+  .badge{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .offline-pill{border:1px solid var(--green);color:var(--green);border-radius:999px;
+                padding:2px 10px;font-size:11px;letter-spacing:1px;font-weight:700}
+  button{font:inherit;color:var(--ink);background:var(--panel2);border:1px solid var(--line);
+         border-radius:8px;padding:7px 12px;cursor:pointer}
+  button:hover{border-color:var(--saff)}
+  button.primary{background:var(--saff);border-color:var(--saff);color:#fff;font-weight:700}
+  button.primary:hover{filter:brightness(1.08)}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  select,input{font:inherit;color:var(--ink);background:var(--panel);
+               border:1px solid var(--line);border-radius:8px;padding:6px 8px;min-width:0}
+  .wrap{max-width:1180px;margin:0 auto;padding:14px 16px 60px;display:grid;gap:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+        padding:14px 16px;box-shadow:var(--shadow)}
+  .card h2{margin:0 0 10px;font-size:13px;letter-spacing:1.4px;text-transform:uppercase;
+           color:var(--mut);display:flex;align-items:center;gap:8px}
+  .card h2 .dot{width:8px;height:8px;border-radius:50%;background:var(--saff);flex:none}
+  .grid{display:grid;gap:10px}
+  .g2{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+  .g3{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+  .g4{grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}
+  label{display:flex;flex-direction:column;gap:4px;font-size:11.5px;color:var(--mut)}
+  label b{color:var(--ink)}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+  .kpi{background:var(--panel2);border:1px solid var(--line);border-radius:10px;
+       padding:10px 12px}
+  .kpi .v{font-size:20px;font-weight:800;margin-top:2px}
+  .kpi .k{font-size:11px;color:var(--mut);letter-spacing:.6px;text-transform:uppercase}
+  .kpi.warm .v{color:var(--chart1)} .kpi.cool .v{color:var(--chart2)}
+  .kpi.ok .v{color:var(--green)} .kpi.bad .v{color:var(--chart3)}
+  canvas{width:100%;display:block;border-radius:8px;background:var(--panel)}
+  .tabs{display:flex;gap:6px;margin-bottom:8px}
+  .tabs button.active{border-color:var(--saff);color:var(--saff);font-weight:700}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .mut{color:var(--mut)} .small{font-size:12px}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+  th{color:var(--mut);font-size:11px;letter-spacing:.6px;text-transform:uppercase}
+  .saved-item{display:flex;gap:8px;align-items:center;justify-content:space-between;
+              padding:7px 4px;border-bottom:1px dashed var(--line)}
+  .saved-item .nm{font-weight:600}
+  .msg{padding:8px 12px;border-radius:8px;border:1px solid var(--line);display:none}
+  .msg.show{display:block}
+  .msg.err{border-color:var(--chart1);color:var(--chart1);background:rgba(192,57,43,.08)}
+  .msg.ok{border-color:var(--green);color:var(--green);background:rgba(46,125,79,.08)}
+  .alt{display:grid;gap:8px}
+  .alt-item{border:1px solid var(--line);border-radius:10px;padding:10px 12px;
+            display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+  .alt-item .d{font-size:12px;color:var(--mut)}
+  footer{border-top:1px solid var(--line);margin-top:8px;padding-top:12px;
+         color:var(--mut);font-size:12px}
+  @media (max-width:640px){.badge{margin-left:0;width:100%}}
+</style>
+</head>
+<body data-theme="light">
+<header>
+  <svg class="crest" viewBox="0 0 48 48" aria-hidden="true">
+    <defs><linearGradient id="crf" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#262b31"/><stop offset="1" stop-color="#16191d"/>
+    </linearGradient></defs>
+    <path d="M24 3 L42 13 V33 L24 45 L6 33 V13 Z" fill="#262b31" stroke="#e8862e" stroke-width="1.6"/>
+    <path d="M24 12 L35 20 V30 L24 38 L13 30 V20 Z" fill="none" stroke="#e8e6df" stroke-width="1.1" opacity=".85"/>
+    <path d="M16.5 25.5 L24 18 L31.5 25.5" fill="none" stroke="#e8862e" stroke-width="1.6"/>
+    <path d="M19 25.5 V33 M29 25.5 V33 M16.5 33 H31.5" fill="none" stroke="#e8e6df" stroke-width="1.1"/>
+    <circle cx="24" cy="14.5" r="1.6" fill="#5ec48b"/>
+  </svg>
+  <div class="brand"><b>Shelter-Studio · Offline Edition</b>
+    <small>PS·SIH26051 | Area-Specific Passive Shelter Thermal Design</small></div>
+  <div class="badge">
+    <span class="offline-pill">● FULLY OFFLINE</span>
+    <button id="themeBtn" type="button" title="Switch theme">☾ LIGHT</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="msg" id="msg"></div>
+
+  <!-- site -->
+  <div class="card">
+    <h2><span class="dot"></span>1 · Site &amp; climate (bundled, no network)</h2>
+    <div class="row">
+      <label>Reference site <select id="siteSel"></select></label>
+      <label>Simulation week
+        <select id="weekSel"><option value="hot_week">Hottest design week</option>
+        <option value="cold_week">Coldest design week</option></select></label>
+      <label>Data year <b id="siteYear" class="small"></b></label>
+      <label>Weather source <b id="siteSrc" class="small"></b></label>
+    </div>
+    <div class="kpis" style="margin-top:10px" id="siteKpis"></div>
+  </div>
+
+  <!-- design -->
+  <div class="card">
+    <h2><span class="dot"></span>2 · Shelter design</h2>
+    <div class="grid g4">
+      <label>Length (m)<input id="d_length_m" type="number" step="0.1" min="2" max="10"></label>
+      <label>Width (m)<input id="d_width_m" type="number" step="0.1" min="2" max="10"></label>
+      <label>Height (m)<input id="d_height_m" type="number" step="0.1" min="2" max="5"></label>
+      <label>Orientation (°)<input id="d_orientation_deg" type="number" step="15" min="0" max="345"></label>
+    </div>
+    <div class="grid g3" style="margin-top:10px">
+      <label>Wall material<select id="d_wall_material"></select></label>
+      <label>Wall thickness (m)<input id="d_wall_thickness_m" type="number" step="0.005" min="0.05" max="0.6"></label>
+      <label>Roof material<select id="d_roof_material"></select></label>
+      <label>Roof thickness (m)<input id="d_roof_thickness_m" type="number" step="0.005" min="0.05" max="0.4"></label>
+      <label>Insulation<select id="d_insulation_material">
+        <option value="none">none</option></select></label>
+      <label>Insulation thickness (m)<input id="d_insulation_thickness_m" type="number" step="0.005" min="0" max="0.3"></label>
+      <label>Window wall<select id="d_window_wall">
+        <option value="south">South</option><option value="north">North</option>
+        <option value="east">East</option><option value="west">West</option></select></label>
+      <label>Window width (m)<input id="d_window_width_m" type="number" step="0.05" min="0.3" max="3"></label>
+      <label>Window height (m)<input id="d_window_height_m" type="number" step="0.05" min="0.3" max="2.5"></label>
+      <label>Window sill (m)<input id="d_window_sill_m" type="number" step="0.05" min="0.2" max="2"></label>
+      <label>Window SHGC<input id="d_window_shgc" type="number" step="0.05" min="0.2" max="0.9"></label>
+      <label>Window U (W/m²K)<input id="d_window_u_w_m2k" type="number" step="0.1" min="0.8" max="7"></label>
+      <label>Ventilation (ACH)<input id="d_ach" type="number" step="0.5" min="0" max="20"></label>
+      <label>Internal gains (W)<input id="d_internal_gains_w" type="number" step="10" min="0" max="1000"></label>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button id="simulateBtn" class="primary">▶ Run Simulation</button>
+      <button id="suggestBtn">✦ AI Suggest Design</button>
+      <span class="mut small">Engine: RC thermal model (10-min steps) · AI: gradient-boosted surrogate v1 — both parity-verified against the online engine.</span>
+    </div>
+  </div>
+
+  <!-- presets -->
+  <div class="card">
+    <h2><span class="dot"></span>Presets (engine-verified at this site)</h2>
+    <div class="row">
+      <label>Preset <select id="presetSel"></select></label>
+      <button id="presetApply" class="primary">APPLY PRESET →</button>
+      <span class="mut small" id="presetMeta"></span>
+    </div>
+    <div id="presetNums" class="kpis" style="margin-top:10px"></div>
+  </div>
+
+  <!-- results -->
+  <div class="card">
+    <h2><span class="dot"></span>Results</h2>
+    <div class="kpis" id="resKpis"></div>
+    <div class="tabs" style="margin-top:12px">
+      <button id="tabHot" class="active">Hot week</button>
+      <button id="tabCold">Cold week</button>
+    </div>
+    <canvas id="chart" height="280"></canvas>
+    <p class="mut small" id="chartLegend"></p>
+  </div>
+
+  <!-- ai -->
+  <div class="card" id="aiCard" style="display:none">
+    <h2><span class="dot"></span>AI suggestions (surrogate v1 · 28,000 samples · 14 sites)</h2>
+    <div class="alt" id="aiList"></div>
+  </div>
+
+  <!-- geometry -->
+  <div class="card">
+    <h2><span class="dot"></span>Geometry · section view (to scale)</h2>
+    <div class="tabs">
+      <button id="viewSection" class="active">SECTION</button>
+      <button id="viewPlan">PLAN</button>
+    </div>
+    <canvas id="geom" height="300"></canvas>
+  </div>
+
+  <!-- materials -->
+  <div class="card">
+    <h2><span class="dot"></span>Materials (sourced — ASHRAE Handbook-Fundamentals 2021 etc.)</h2>
+    <div style="max-height:300px;overflow:auto"><table id="matTable"></table></div>
+  </div>
+
+  <!-- persistence -->
+  <div class="card">
+    <h2><span class="dot"></span>My designs (saved in this browser — works offline)</h2>
+    <div class="row">
+      <input id="saveName" placeholder="Design name…" style="width:220px">
+      <button id="saveBtn">💾 Save design</button>
+      <button id="exportBtn">⬇ Export JSON</button>
+      <button id="importBtn">⬆ Import JSON</button>
+      <input id="importFile" type="file" accept=".json" style="display:none">
+    </div>
+    <div id="savedList" style="margin-top:10px"></div>
+  </div>
+
+  <footer>
+    <b>Shelter-Studio Offline Edition</b> — PS·SIH26051. This single file contains the full
+    working model: the sourced RC thermal engine (parity-verified against the Python engine),
+    the AI surrogate (28,000 engine samples, 14 sites), real 2024 hourly weather for 14
+    reference sites with site-correct solar geometry, and 10 curated presets. No network is
+    used at any point. Issued after a login or guest check on the online studio.
+    Weather: NASA POWER + Open-Meteo cross-check (2024, Asia/Kolkata). Ground temperature =
+    mean annual air temperature + 2 K. All numbers are engine-computed; nothing is invented.
+  </footer>
+</div>
+
+<script id="bundle-data" type="application/json">/*__BUNDLE__*/</script>
+<script>/*__ENGINE__*/</script>
+<script>
+"use strict";
+/* ============ bootstrap: bundle + engine + materials ============ */
+var BUNDLE = JSON.parse(document.getElementById("bundle-data").textContent);
+var ENG = window.OfflineEngine;
+var MATS = {};
+BUNDLE.materials.forEach(function (m) {
+  MATS[m.name] = { k_W_mK: m.k_W_mK, density_kg_m3: m.density_kg_m3,
+                   cp_J_kgK: m.cp_J_kgK, solar_absorptance: m.solar_absorptance,
+                   emissivity: m.emissivity };
+});
+var COMFORT = [18, 32];
+var LS_KEY = "sih-offline-state-v1", LS_SAVED = "sih-offline-saved-v1";
+var state = { site: BUNDLE.sites[0].name, week: "hot_week", design: null,
+              theme: "light", results: null, tab: "hot" };
+
+function $(id) { return document.getElementById(id); }
+function msg(txt, kind) {
+  var el = $("msg");
+  el.textContent = txt; el.className = "msg show " + (kind || "ok");
+  clearTimeout(el._t);
+  el._t = setTimeout(function () { el.className = "msg"; }, 6000);
+}
+function fmt(x, d) { return (x === null || x === undefined || !isFinite(x)) ? "—" : Number(x).toFixed(d === undefined ? 1 : d); }
+function siteOf(name) { return BUNDLE.sites.find(function (s) { return s.name === name; }); }
+function currentWeek() { return siteOf(state.site).weeks[state.week]; }
+
+/* ============ theme ============ */
+function applyTheme() {
+  document.body.dataset.theme = state.theme;
+  $("themeBtn").textContent = state.theme === "dark" ? "☀ DARK" : "☾ LIGHT";
+}
+$("themeBtn").onclick = function () {
+  state.theme = state.theme === "dark" ? "light" : "dark";
+  applyTheme(); persist();
+};
+
+/* ============ site selector ============ */
+function fillSites() {
+  var sel = $("siteSel");
+  sel.innerHTML = "";
+  BUNDLE.sites.forEach(function (s) {
+    var o = document.createElement("option");
+    o.value = s.name; o.textContent = s.name + " — " + s.profile.zone_name;
+    sel.appendChild(o);
+  });
+  sel.value = state.site;
+}
+function renderSite() {
+  var s = siteOf(state.site), p = s.profile;
+  $("siteYear").textContent = s.year;
+  $("siteSrc").textContent = s.weather_source === "supabase-cache" ? "POWER+Open-Meteo cache" : s.weather_source;
+  var items = [
+    ["Hottest month", fmt(p.t_hottest_month_c) + " °C", "warm"],
+    ["Coldest month", fmt(p.t_coldest_month_c) + " °C", "cool"],
+    ["Diurnal range", fmt(p.diurnal_range_c) + " K", ""],
+    ["Mean RH", fmt(p.rh_mean_pct) + " %", ""],
+    ["CDD18", fmt(p.cdd18, 0), ""],
+    ["HDD18", fmt(p.hdd18, 0), ""],
+    ["Mean GHI", fmt(p.ghi_mean_w_m2, 0) + " W/m²", ""],
+    ["Wind", fmt(p.wind_mean_ms) + " m/s", ""],
+  ];
+  $("siteKpis").innerHTML = items.map(function (it) {
+    return '<div class="kpi ' + it[2] + '"><div class="k">' + it[0] +
+           '</div><div class="v">' + it[1] + "</div></div>";
+  }).join("");
+  renderPresets();
+}
+
+/* ============ design form ============ */
+function materialNames() { return BUNDLE.materials.map(function (m) { return m.name; }); }
+function fillDesignForm() {
+  var mats = materialNames();
+  ["d_wall_material", "d_roof_material"].forEach(function (id) {
+    var sel = $(id); sel.innerHTML = "";
+    mats.forEach(function (n) {
+      var o = document.createElement("option");
+      o.value = n; o.textContent = n; sel.appendChild(o);
+    });
+  });
+  var ins = ["none"].concat(mats);
+  var isel = $("d_insulation_material"); isel.innerHTML = "";
+  ins.forEach(function (n) {
+    var o = document.createElement("option");
+    o.value = n; o.textContent = n; isel.appendChild(o);
+  });
+  var d = state.design || BUNDLE.presets.designs[0].design;
+  setDesign(d);
+}
+function readDesign() {
+  var num = function (id) { return parseFloat($(id).value); };
+  return {
+    length_m: num("d_length_m"), width_m: num("d_width_m"), height_m: num("d_height_m"),
+    orientation_deg: num("d_orientation_deg"),
+    wall_material: $("d_wall_material").value, wall_thickness_m: num("d_wall_thickness_m"),
+    roof_material: $("d_roof_material").value, roof_thickness_m: num("d_roof_thickness_m"),
+    floor_material: "concrete", floor_thickness_m: 0.1,
+    insulation_material: $("d_insulation_material").value,
+    insulation_thickness_m: num("d_insulation_thickness_m"),
+    window_wall: $("d_window_wall").value, window_width_m: num("d_window_width_m"),
+    window_height_m: num("d_window_height_m"), window_sill_m: num("d_window_sill_m"),
+    window_shgc: num("d_window_shgc"), window_u_w_m2k: num("d_window_u_w_m2k"),
+    ach: num("d_ach"), internal_gains_w: num("d_internal_gains_w"),
+  };
+}
+function setDesign(d) {
+  state.design = d;
+  $("d_length_m").value = d.length_m; $("d_width_m").value = d.width_m;
+  $("d_height_m").value = d.height_m; $("d_orientation_deg").value = d.orientation_deg;
+  $("d_wall_material").value = d.wall_material; $("d_wall_thickness_m").value = d.wall_thickness_m;
+  $("d_roof_material").value = d.roof_material; $("d_roof_thickness_m").value = d.roof_thickness_m;
+  $("d_insulation_material").value = d.insulation_material || "none";
+  $("d_insulation_thickness_m").value = d.insulation_thickness_m || 0;
+  $("d_window_wall").value = d.window_wall || "south";
+  $("d_window_width_m").value = d.window_width_m; $("d_window_height_m").value = d.window_height_m;
+  $("d_window_sill_m").value = d.window_sill_m || 0.9;
+  $("d_window_shgc").value = d.window_shgc; $("d_window_u_w_m2k").value = d.window_u_w_m2k;
+  $("d_ach").value = d.ach || 2; $("d_internal_gains_w").value = d.internal_gains_w || 100;
+  renderGeometry();
+}
+
+/* ============ simulate ============ */
+function simulateDesign(design, wkName) {
+  var week = siteOf(state.site).weeks[wkName];
+  var res = ENG.simulate(design, week, MATS);
+  return { res: res, stats: ENG.comfort_stats(res, COMFORT), week: week, wkName: wkName };
+}
+function renderResults() {
+  var wk = state.results[state.tab];
+  var s = wk.stats;
+  var kpis = [
+    ["Mean indoor", fmt(s.mean_indoor_c) + " °C", ""],
+    ["Peak indoor", fmt(s.max_indoor_c) + " °C", "warm"],
+    ["Min indoor", fmt(s.min_indoor_c) + " °C", "cool"],
+    ["Comfort", Math.round(s.comfort_fraction * 100) + " %", s.comfort_fraction >= 0.8 ? "ok" : "bad"],
+    ["Solar gain", fmt(s.solar_gain_kwh, 2) + " kWh", ""],
+    ["Night loss", fmt(s.night_heat_loss_kwh, 2) + " kWh", s.night_heat_loss_kwh > -12 ? "ok" : "bad"],
+    ["Total loss", fmt(s.total_heat_loss_kwh, 2) + " kWh", ""],
+    ["Outdoor mean", fmt(wk.week.t2m.reduce(function (a, b) { return a + b; }, 0) / wk.week.t2m.length) + " °C", ""],
+  ];
+  $("resKpis").innerHTML = kpis.map(function (it) {
+    return '<div class="kpi ' + it[2] + '"><div class="k">' + it[0] +
+           '</div><div class="v">' + it[1] + "</div></div>";
+  }).join("");
+  $("tabHot").classList.toggle("active", state.tab === "hot");
+  $("tabCold").classList.toggle("active", state.tab === "cold");
+  drawChart(wk);
+}
+function drawChart(wk) {
+  var c = $("chart"), ctx = c.getContext("2d");
+  var W = c.clientWidth || 600, H = 280, dpr = window.devicePixelRatio || 1;
+  c.width = W * dpr; c.height = H * dpr; ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+  var r = wk.res, n = r.n_hours, tOut = wk.week.t2m;
+  var all = [];
+  for (var i = 0; i < n; i++) all.push(r.indoor_t_c[i], tOut[i]);
+  var lo = Math.floor(Math.min.apply(null, all)) - 1;
+  var hi = Math.ceil(Math.max.apply(null, all)) + 1;
+  var padL = 34, padR = 10, padT = 10, padB = 22;
+  var pw = W - padL - padR, ph = H - padT - padB;
+  var X = function (i) { return padL + (i / (n - 1)) * pw; };
+  var Y = function (v) { return padT + (hi - v) / (hi - lo) * ph; };
+  ctx.font = "10px system-ui"; ctx.fillStyle = "var(--mut)";
+  ctx.strokeStyle = "var(--line)";
+  for (var g = lo; g <= hi; g++) {
+    ctx.beginPath(); ctx.moveTo(padL, Y(g)); ctx.lineTo(W - padR, Y(g)); ctx.stroke();
+    ctx.fillText(g + "°", 4, Y(g) + 3);
+  }
+  function series(arr, color, wdt) {
+    ctx.strokeStyle = color; ctx.lineWidth = wdt; ctx.beginPath();
+    for (var i = 0; i < n; i++) {
+      var x = X(i), y = Y(arr[i]);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+  var hot = state.tab === "hot";
+  series(tOut, "var(--chart2)", 1.2);
+  series(r.indoor_t_c, "var(--chart1)", 2.2);
+  ctx.fillStyle = "var(--mut)";
+  for (var hh = 0; hh < n; hh += Math.max(1, Math.round(n / 8))) {
+    ctx.fillText(r.hour_of_day[hh] + "h", X(hh) - 6, H - 6);
+  }
+  $("chartLegend").innerHTML =
+    "<b>" + (hot ? "Hottest" : "Coldest") + " design week · " + state.site + " 2024</b> — " +
+    "red: indoor temperature · blue: outdoor temperature (hourly, from bundled weather). " +
+    "Engine: 10-min RC integration, window/door cut-outs, ground coupling, sol-air opaque surfaces.";
+}
+
+/* ============ presets ============ */
+function renderPresets() {
+  var sel = $("presetSel");
+  sel.innerHTML = "";
+  BUNDLE.presets.designs.forEach(function (p) {
+    var o = document.createElement("option");
+    o.value = p.id; o.textContent = p.name; sel.appendChild(o);
+  });
+  var results = BUNDLE.presets.results.sites[state.site];
+  $("presetMeta").textContent = results ?
+    "Engine-verified on " + state.site + " weather (" + BUNDLE.presets.results.engine.split("—")[0] + ")" :
+    "Preset verified on this site's bundled weather";
+  var pid = sel.value;
+  var pr = results ? results[pid] : null;
+  if (!pr) { $("presetNums").innerHTML = ""; return; }
+  var items = [
+    ["Hot mean", fmt(pr.hot_week.mean_indoor_c) + " °C", ""],
+    ["Hot peak", fmt(pr.hot_week.max_indoor_c) + " °C", pr.hot_week.max_indoor_c <= 34 ? "ok" : "warm"],
+    ["Hot comfort", Math.round((pr.hot_week.comfort_fraction || 0) * 100) + " %", ""],
+    ["Cold min", fmt(pr.cold_week.min_indoor_c) + " °C", pr.cold_week.min_indoor_c >= 12 ? "ok" : "cool"],
+    ["Cold comfort", Math.round((pr.cold_week.comfort_fraction || 0) * 100) + " %", ""],
+    ["Night loss (cold)", fmt(pr.cold_week.night_heat_loss_kwh, 2) + " kWh", ""],
+  ];
+  $("presetNums").innerHTML = items.map(function (it) {
+    return '<div class="kpi ' + it[2] + '"><div class="k">' + it[0] +
+           '</div><div class="v">' + it[1] + "</div></div>";
+  }).join("");
+}
+$("presetApply").onclick = function () {
+  var pid = $("presetSel").value;
+  var p = BUNDLE.presets.designs.find(function (x) { return x.id === pid; });
+  setDesign(p.design);
+  msg("Preset applied: " + p.name + " — run simulation to see its numbers.", "ok");
+};
+
+/* ============ AI suggest ============ */
+$("suggestBtn").onclick = function () {
+  var d = readDesign(); state.design = d;
+  var site = siteOf(state.site);
+  var prof = Object.assign({}, site.profile, site.weeks);  // + hot_week/cold_week for engine verification
+  var est = ENG.predictDesign(d, prof, MATS, BUNDLE.model);
+  var sug = ENG.suggest(prof, MATS, BUNDLE.model, { objective: "coolest_peak", n_candidates: 800 });
+  var rows = [{ tag: "Suggested best (engine-verified)", d: sug.design, v: sug.verified },
+              { tag: "Alternative 2 (engine-verified)", d: sug.alternatives[0].design, v: sug.alternatives[0].verified },
+              { tag: "Alternative 3 (engine-verified)", d: sug.alternatives[1].design, v: sug.alternatives[1].verified },
+              { tag: "Alternative 4 (engine-verified)", d: sug.alternatives[2].design, v: sug.alternatives[2].verified }];
+  var list = $("aiList");
+  var html = '<div class="alt-item"><div><b>Current design (surrogate estimate)</b>' +
+    '<div class="d">hot mean ' + fmt(est.hot_mean_c) + " °C · hot peak " + fmt(est.hot_max_c) +
+    " °C · hot comfort " + Math.round(est.hot_comfort_fraction * 100) + " % · cold min " +
+    fmt(est.cold_min_c) + " °C</div></div></div>";
+  rows.forEach(function (a, idx) {
+    html += '<div class="alt-item"><div><b>' + a.tag + "</b>" +
+      '<div class="d">' + a.d.wall_material + " " + a.d.wall_thickness_m + " m wall · " +
+      a.d.roof_material + " " + a.d.roof_thickness_m + " m roof · insul " +
+      (a.d.insulation_material === "none" ? "none" :
+        a.d.insulation_material + " " + a.d.insulation_thickness_m + " m") +
+      " · window " + a.d.window_wall + " " + a.d.window_width_m + "×" +
+      a.d.window_height_m + " m · SHGC " + a.d.window_shgc + " · U " +
+      a.d.window_u_w_m2k + "</div></div>" +
+      '<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">' +
+      '<span class="mut small">hot mean ' + fmt(a.v.mean_indoor_c) + " °C · hot peak " +
+      fmt(a.v.max_indoor_c) + " °C · comfort " +
+      Math.round(a.v.comfort_fraction * 100) + " %</span>" +
+      '<button onclick="window.__applySugg(' + idx + ')">APPLY →</button></div>';
+  });
+  list.innerHTML = html;
+  $("aiCard").style.display = "block";
+  window.__applySugg = function (idx) {
+    setDesign(rows[idx].d);
+    msg("Suggested design applied — run simulation to confirm.", "ok");
+  };
+  msg("Top candidates engine-verified locally (" + sug.note + ")", "ok");
+};
+
+/* ============ geometry drawing ============ */
+var viewMode = "section";
+function renderGeometry() {
+  var c = $("geom"), ctx = c.getContext("2d");
+  var W = c.clientWidth || 600, H = 300, dpr = window.devicePixelRatio || 1;
+  c.width = W * dpr; c.height = H * dpr; ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+  var d = readDesign();
+  var scale = Math.min((W - 80) / (d.length_m + 1.5), (H - 90) / (d.height_m + 1.2));
+  var originX = 40, originY = H - 40;
+  ctx.font = "10px system-ui"; ctx.fillStyle = "var(--mut)";
+  ctx.strokeStyle = "var(--line)"; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(10, originY); ctx.lineTo(W - 10, originY); ctx.stroke();
+  ctx.fillText("ground", 12, originY - 4);
+  function rect(x, y, w, h, fill, stroke) {
+    ctx.fillStyle = fill; ctx.strokeStyle = stroke || "var(--ink)";
+    ctx.lineWidth = 1.2; ctx.fillRect(x, y, w, h); ctx.strokeRect(x, y, w, h);
+  }
+  function hatch(x, y, w, h, color) {
+    ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+    ctx.strokeStyle = color; ctx.lineWidth = 1;
+    for (var i = -h; i < w + h; i += 6) {
+      ctx.beginPath(); ctx.moveTo(x + i, y + h); ctx.lineTo(x + i + h, y); ctx.stroke();
+    }
+    ctx.restore();
+  }
+  var view = viewMode === "section" ? d.length_m : d.width_m;
+  var hgt = d.height_m;
+  if (viewMode === "section") {
+    var wx = originX + 0.2 * scale, ww = view * scale;
+    var wallT = d.wall_thickness_m * scale;
+    var groundY = originY, topY = groundY - hgt * scale;
+    // floor slab
+    rect(wx - 8, groundY - 6, ww + 16, 10, "var(--panel2)", "var(--line)");
+    // left wall
+    rect(wx, topY, wallT, hgt * scale, "var(--panel2)");
+    // right wall
+    rect(wx + ww - wallT, topY, wallT, hgt * scale, "var(--panel2)");
+    // roof
+    var roofT = d.roof_thickness_m * scale;
+    rect(wx - 8, topY - roofT, ww + 16, roofT + 1, "var(--panel2)");
+    if (d.insulation_material !== "none" && d.insulation_thickness_m > 0) {
+      hatch(wx + wallT, topY - d.insulation_thickness_m * scale - 1,
+            ww - 2 * wallT, d.insulation_thickness_m * scale + 1, "var(--saff)");
+    }
+    // window on its wall
+    var winOnLeft = d.window_wall === "south" || d.window_wall === "east";
+    var winX = winOnLeft ? wx + 4 : wx + ww - wallT - 4 - d.window_width_m * scale;
+    var sillY = groundY - (d.window_sill_m + d.window_height_m) * scale;
+    rect(winX, sillY, d.window_width_m * scale, d.window_height_m * scale, "var(--accent)");
+    ctx.fillStyle = "var(--ink)";
+    ctx.fillText("window " + d.window_width_m + "×" + d.window_height_m + " m",
+                 winX, sillY - 6);
+    // dims
+    ctx.fillStyle = "var(--mut)";
+    ctx.fillText("L " + view + " m", wx + ww / 2 - 14, groundY + 16);
+    ctx.fillText("H " + hgt + " m", wx - 34, topY + hgt * scale / 2 + 3);
+    ctx.fillText("wall " + d.wall_material + " " + d.wall_thickness_m + " m",
+                 wx + ww / 2 - 60, topY - roofT - 8);
+  } else {
+    var px = originX + 0.2 * scale, py = originY - view * scale;
+    rect(px, py, view * scale, view * scale, "var(--panel2)");
+    var wT = d.wall_thickness_m * scale;
+    // wall faces (plan): draw inner opening
+    ctx.fillStyle = "var(--panel)";
+    ctx.fillRect(px + wT, py + wT, view * scale - 2 * wT, view * scale - 2 * wT);
+    ctx.strokeRect(px + wT, py + wT, view * scale - 2 * wT, view * scale - 2 * wT);
+    // window on its wall (plan as a notch)
+    var wOpen = d.window_width_m * scale;
+    var wD = d.window_wall;
+    ctx.fillStyle = "var(--accent)";
+    if (wD === "south") ctx.fillRect(px + view * scale / 2 - wOpen / 2, py, wOpen, 4);
+    if (wD === "north") ctx.fillRect(px + view * scale / 2 - wOpen / 2, py + view * scale - 4, wOpen, 4);
+    if (wD === "east") ctx.fillRect(px + view * scale - 4, py + view * scale / 2 - wOpen / 2, 4, wOpen);
+    if (wD === "west") ctx.fillRect(px, py + view * scale / 2 - wOpen / 2, 4, wOpen);
+    ctx.fillStyle = "var(--ink)";
+    ctx.fillText("plan " + d.length_m + " × " + d.width_m + " m", px, py - 8);
+    ctx.fillText("N ↑", px + 4, py + 14);
+  }
+}
+$("viewSection").onclick = function () { viewMode = "section"; $("viewSection").classList.add("active"); $("viewPlan").classList.remove("active"); renderGeometry(); };
+$("viewPlan").onclick = function () { viewMode = "plan"; $("viewPlan").classList.add("active"); $("viewSection").classList.remove("active"); renderGeometry(); };
+
+/* ============ materials table ============ */
+function renderMaterials() {
+  var html = "<tr><th>Material</th><th>k W/m·K</th><th>ρ kg/m³</th><th>cp J/kg·K</th>" +
+    "<th>α solar</th><th>ε</th><th>Source</th></tr>";
+  BUNDLE.materials.forEach(function (m) {
+    html += "<tr><td><b>" + m.name + "</b></td><td>" + m.k_W_mK + "</td><td>" +
+      m.density_kg_m3 + "</td><td>" + m.cp_J_kgK + "</td><td>" + m.solar_absorptance +
+      "</td><td>" + m.emissivity + "</td><td class=\"mut small\">" + m.source + "</td></tr>";
+  });
+  $("matTable").innerHTML = html;
+}
+
+/* ============ persistence ============ */
+function persist() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify({ site: state.site, week: state.week,
+    design: state.design, theme: state.theme, tab: state.tab })); } catch (_) {}
+}
+function loadSaved() {
+  try {
+    var raw = localStorage.getItem(LS_KEY);
+    if (raw) Object.assign(state, JSON.parse(raw));
+  } catch (_) {}
+  try { return JSON.parse(localStorage.getItem(LS_SAVED) || "[]"); } catch (_) { return []; }
+}
+function storeSaved(list) {
+  try { localStorage.setItem(LS_SAVED, JSON.stringify(list)); } catch (_) {}
+}
+function renderSaved() {
+  var list = loadSaved();
+  $("savedList").innerHTML = list.length ? "" : '<p class="mut small">No saved designs yet — design one and press 💾 Save.</p>';
+  list.forEach(function (it, i) {
+    var div = document.createElement("div");
+    div.className = "saved-item";
+    div.innerHTML = '<span class="nm">' + it.name + '</span>' +
+      '<span class="mut small">' + it.design.wall_material + " " + it.design.wall_thickness_m +
+      "m · " + it.design.roof_material + " · insul " + (it.design.insulation_material || "none") +
+      "</span><span>" +
+      '<button data-i="' + i + '" data-a="load">Load</button> ' +
+      '<button data-i="' + i + '" data-a="del">Delete</button></span>';
+    $("savedList").appendChild(div);
+  });
+  $("savedList").querySelectorAll("button").forEach(function (b) {
+    b.onclick = function () {
+      var list2 = loadSaved(), i = +b.dataset.i;
+      if (b.dataset.a === "load") { setDesign(list2[i].design); msg("Design loaded: " + list2[i].name, "ok"); }
+      else { list2.splice(i, 1); storeSaved(list2); renderSaved(); }
+    };
+  });
+}
+$("saveBtn").onclick = function () {
+  var name = $("saveName").value.trim() || "Design " + (loadSaved().length + 1);
+  var list = loadSaved();
+  list.push({ name: name, design: readDesign(), saved_at: new Date().toISOString() });
+  storeSaved(list); renderSaved(); msg("Saved \"" + name + "\" in this browser.", "ok");
+};
+$("exportBtn").onclick = function () {
+  var blob = new Blob([JSON.stringify(readDesign(), null, 2)], { type: "application/json" });
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "shelter-design-" + state.site.toLowerCase().replace(/[^a-z0-9]/g, "") + ".json";
+  a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+  msg("Design exported as JSON.", "ok");
+};
+$("importBtn").onclick = function () { $("importFile").click(); };
+$("importFile").onchange = function () {
+  var f = this.files[0]; if (!f) return;
+  var r = new FileReader();
+  r.onload = function () {
+    try {
+      var d = JSON.parse(r.result);
+      if (!d.wall_material || !d.roof_material) throw new Error("not a design");
+      setDesign(d); msg("Design imported from " + f.name + ".", "ok");
+    } catch (e) { msg("Import failed — not a valid design JSON.", "err"); }
+  };
+  r.readAsText(f); this.value = "";
+};
+
+/* ============ wiring ============ */
+$("siteSel").onchange = function () { state.site = this.value; state.results = null; renderSite(); persist(); };
+$("weekSel").onchange = function () { state.week = this.value; persist(); };
+$("tabHot").onclick = function () { state.tab = "hot"; if (state.results) renderResults(); };
+$("tabCold").onclick = function () { state.tab = "cold"; if (state.results) renderResults(); };
+$("simulateBtn").onclick = function () {
+  var d = readDesign(); state.design = d;
+  try {
+    var hot = simulateDesign(d, "hot_week");
+    var cold = simulateDesign(d, "cold_week");
+    state.results = { hot: hot, cold: cold };
+    state.tab = "hot";
+    renderResults();
+    msg("Simulation complete — hot & cold design weeks for " + state.site + " (2024).", "ok");
+  } catch (e) {
+    msg("Simulation failed: " + e.message, "err");
+  }
+  persist();
+};
+["d_length_m","d_width_m","d_height_m","d_orientation_deg","d_wall_material","d_wall_thickness_m",
+ "d_roof_material","d_roof_thickness_m","d_insulation_material","d_insulation_thickness_m",
+ "d_window_wall","d_window_width_m","d_window_height_m","d_window_sill_m","d_window_shgc",
+ "d_window_u_w_m2k","d_ach","d_internal_gains_w"].forEach(function (id) {
+  var el = $(id);
+  el.addEventListener("input", function () {
+    state.design = readDesign(); persist(); renderGeometry();
+  });
+  el.addEventListener("change", function () { state.design = readDesign(); persist(); });
+});
+window.addEventListener("resize", function () {
+  if (state.results) drawChart(state.results[state.tab]);
+  renderGeometry();
+});
+
+/* ============ init ============ */
+loadSaved();
+applyTheme();
+fillSites();
+fillDesignForm();
+renderSite();
+renderMaterials();
+renderSaved();
+renderGeometry();
+if (state.results) renderResults();
+</script>
+</body>
+</html>

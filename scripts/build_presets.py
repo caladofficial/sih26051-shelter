@@ -18,8 +18,9 @@ import time
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, REPO)
 
-from src.api_app import (_apply_design, _apply_ground_temp, CFG,  # noqa: E402
-                         _location_profile, get_weather_cached)
+from src.api_app import (_apply_design, _apply_ground_temp,  # noqa: E402
+                         _apply_site_location, CFG, _location_profile,
+                         get_weather_cached)
 from src.data.climate import design_weeks  # noqa: E402
 from src.presets import PRESETS  # noqa: E402
 from src.thermal.rc_model import comfort_stats, load_materials, simulate  # noqa: E402
@@ -44,8 +45,10 @@ WEEK_KEYS = {
 }
 
 
-def _sim(preset, weather, mats, cfg_base):
-    cfg = _apply_ground_temp(_apply_design(cfg_base, preset["design"]), weather)
+def _sim(preset, weather, mats, cfg_base, lat, lon):
+    cfg = _apply_ground_temp(_apply_site_location(
+        _apply_design(cfg_base, preset["design"]), lat, lon,
+        CFG["location"]["timezone"]), weather)
     weeks = design_weeks(weather, YEAR)
     out = {}
     for wk_name, keys in WEEK_KEYS.items():
@@ -68,7 +71,7 @@ def main():
         site = {"latitude": lat, "longitude": lon, "weather_source": source,
                 "zone": prof.get("zone"), "zone_name": prof.get("zone_name")}
         for p in PRESETS:
-            site[p["id"]] = _sim(p, weather, mats, cfg_base)
+            site[p["id"]] = _sim(p, weather, mats, cfg_base, lat, lon)
         sites_out[name] = site
         print(f"[presets] {name}: {len(PRESETS)} presets simulated "
               f"({time.time()-t0:.0f}s)", flush=True)

@@ -1091,3 +1091,15 @@ body { overflow-x: clip; }
 /* keep Plotly charts inside their container even mid-relayout */
 .js-plotly-plot, .plot-container { max-width: 100%; }
 .chart svg { max-width: 100% !important; }
+
+/* ---------- offline edition modal ---------- */
+.modal-overlay{position:fixed;inset:0;background:rgba(10,12,14,.55);display:flex;
+  align-items:center;justify-content:center;z-index:60;padding:16px}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+  max-width:520px;width:100%;padding:20px 22px;box-shadow:0 12px 40px rgba(0,0,0,.35)}
+.modal h3{margin:0 0 10px;font-size:16px}
+.modal p{margin:0 0 10px}
+.offline-facts{margin:10px 0 12px;padding-left:18px}
+.offline-facts li{margin:5px 0;font-size:13px}
+.modal-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.modal-actions button{flex:1;min-width:150px}

@@ -130,7 +130,29 @@
   }
 
   /* ---------------- boot ---------------- */
+  /* ---------------- theme toggle (shared localStorage with the workspace) ---------------- */
+  function applyTheme(t) {
+    document.documentElement.dataset.theme = t;
+    try { localStorage.setItem("shl-theme", t); } catch (e) {}
+    const icon = $("lndThemeIcon"), label = $("lndThemeLabel");
+    if (!icon || !label) return;
+    const dark = t === "dark";
+    label.textContent = dark ? "LIGHT" : "DARK";
+    icon.innerHTML = dark
+      ? '<circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6"/>'
+      : '<path d="M19.5 15.1A7.5 7.5 0 0 1 8.9 4.5 7.5 7.5 0 1 0 19.5 15.1Z"/>';
+  }
+  function initTheme() {
+    let t = "dark";
+    try { t = localStorage.getItem("shl-theme") || "dark"; } catch (e) {}
+    applyTheme(t);
+    const btn = $("lndTheme");
+    if (btn) btn.addEventListener("click", () =>
+      applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark"));
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
+    initTheme();
     renderAuth();
     if (window.SHI) SHI.onAuth(renderAuth);
     loadStats();

@@ -25,8 +25,9 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, REPO)
 
 from src.ai_model import sample_design  # noqa: E402
-from src.api_app import (_apply_design, _apply_ground_temp, CFG,  # noqa: E402
-                         get_weather_cached, _location_profile)
+from src.api_app import (_apply_design, _apply_ground_temp,  # noqa: E402
+                         _apply_site_location, CFG, get_weather_cached,
+                         _location_profile)
 from src.data.climate import design_weeks  # noqa: E402
 from src.thermal.rc_model import (comfort_stats, load_materials,  # noqa: E402
                                   simulate)
@@ -88,9 +89,11 @@ def generate_site(site, n_designs, profile, mats):
                                             CFG["location"]["timezone"])
     rng = np.random.default_rng(_site_seed(name))
     weeks = design_weeks(weather, YEAR)
-    # site-adapted ground temperature (MAAT + 2 K) — a flat 26 C slab is
-    # physically wrong for cold-altitude sites like Leh/Kargil/Dras
-    cfg_site = _apply_ground_temp(CFG, weather)
+    # site-adapted physics: ground temperature (MAAT + 2 K) AND solar
+    # geometry from the SITE's own coordinates (the engine reads
+    # cfg['location'] for the SPA sun position)
+    cfg_site = _apply_ground_temp(_apply_site_location(
+        CFG, lat, lon, CFG["location"]["timezone"]), weather)
     rows = []
     t0 = time.time()
     for i in range(n_designs):

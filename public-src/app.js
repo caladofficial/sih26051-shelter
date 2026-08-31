@@ -769,11 +769,83 @@ async function loadCadRecent() {
   } catch (e) { /* silent */ }
 }
 
+/* ---------- offline edition ---------- */
+let _offlineInfo = null;
+
+async function openOfflineModal() {
+  const overlay = $("offlineOverlay");
+  if (!overlay) return;
+  overlay.hidden = false;
+  const hint = $("offHint");
+  if (SHI.isAuthed()) {
+    hint.textContent = "You are logged in — both buttons work. Login mode attributes the download to your account; guest mode needs no account.";
+  } else {
+    hint.textContent = "You are browsing as a guest — use “Download as GUEST” (no account needed), or log in first for the login option.";
+  }
+  try {
+    const info = await SHI.apiFetch("/api/offline/info");
+    _offlineInfo = info;
+    $("offSites").textContent = info.sites;
+    $("offMats").textContent = info.materials;
+    $("offPresets").textContent = info.presets;
+    $("offSamples").textContent = (info.n_samples || 0).toLocaleString("en-IN");
+  } catch (_) { /* non-fatal — facts stay “—” */ }
+}
+
+async function downloadOffline(mode) {
+  const btn = mode === "guest" ? $("offAsGuest") : $("offAsLogin");
+  const prev = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Preparing…";
+  try {
+    const headers = { "Content-Type": "application/json" };
+    const tok = SHI.getToken();
+    if (tok) headers["Authorization"] = "Bearer " + tok;
+    const res = await fetch("/api/offline/download", {
+      method: "POST", headers, body: JSON.stringify({ mode }),
+    });
+    if (!res.ok) {
+      let msg = String(res.status);
+      try { const j = await res.json(); msg = j.detail || msg; } catch (_) {}
+      throw new Error(msg);
+    }
+    const blob = await res.blob();
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "shelter-studio-offline.html";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 8000);
+    $("offlineOverlay").hidden = true;
+    toast(`Offline edition downloaded (${(blob.size / 1048576).toFixed(1)} MB) — open the file anywhere; it works fully offline.`);
+  } catch (err) {
+    toast(`Offline download failed: ${err.message}`, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = prev;
+  }
+}
+
 /* ---------- init ---------- */
 document.addEventListener("DOMContentLoaded", async () => {
   updateThemeToggle();
   const tt = $("themeToggle");
   if (tt) tt.addEventListener("click", () => applyTheme(currentTheme() === "dark" ? "light" : "dark"));
+  const ob = $("offlineBtn");
+  if (ob) ob.addEventListener("click", openOfflineModal);
+  const oc = $("offCancel");
+  if (oc) oc.addEventListener("click", () => { $("offlineOverlay").hidden = true; });
+  const og = $("offAsGuest");
+  if (og) og.addEventListener("click", () => downloadOffline("guest"));
+  const ol = $("offAsLogin");
+  if (ol) ol.addEventListener("click", () => {
+    if (!SHI.isAuthed()) {
+      toast("Please log in first — use the account chip in the top bar.", true);
+      return;
+    }
+    downloadOffline("login");
+  });
   tickClock();
   setupTicker();
   setupNavSpy();
