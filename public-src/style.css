@@ -223,7 +223,7 @@ body {
 .hero .kicker::before { content: ""; width: 34px; height: 2px; background: var(--saff); }
 .hero h1 {
   font-family: var(--disp); font-weight: 900; text-transform: uppercase;
-  font-size: clamp(1.7rem, 4.2vw, 3.1rem); letter-spacing: 2px; line-height: 1.05;
+  font-size: clamp(1.7rem, 4.2vw, 3.1rem); letter-spacing: 1.5px; line-height: 1.05;
   margin: 0; max-width: 900px;
 }
 .hero h1 .thin { color: var(--mut); font-weight: 600; }
