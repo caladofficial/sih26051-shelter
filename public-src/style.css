@@ -5,6 +5,18 @@
    All colors are CSS variables — switch via <html data-theme>.
    ============================================================ */
 
+/* ---------- typeface: self-hosted Poppins (latin subset, no CDN) ---------- */
+@font-face { font-family: "Poppins"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url("fonts/poppins-400.woff2") format("woff2"); }
+@font-face { font-family: "Poppins"; font-style: normal; font-weight: 500; font-display: swap;
+  src: url("fonts/poppins-500.woff2") format("woff2"); }
+@font-face { font-family: "Poppins"; font-style: normal; font-weight: 600; font-display: swap;
+  src: url("fonts/poppins-600.woff2") format("woff2"); }
+@font-face { font-family: "Poppins"; font-style: normal; font-weight: 700; font-display: swap;
+  src: url("fonts/poppins-700.woff2") format("woff2"); }
+@font-face { font-family: "Poppins"; font-style: normal; font-weight: 800; font-display: swap;
+  src: url("fonts/poppins-800.woff2") format("woff2"); }
+
 :root {
   color-scheme: dark;
   --scheme: dark;
@@ -56,11 +68,11 @@
   --crest-fill2: #16191d;
 
   /* type */
-  --disp: "Bahnschrift", "Arial Narrow", "Roboto Condensed",
+  --disp: "Poppins", "Bahnschrift", "Arial Narrow", "Roboto Condensed",
           "Segoe UI", system-ui, sans-serif;
   --mono: "Cascadia Mono", "JetBrains Mono", "Consolas",
           "SF Mono", ui-monospace, Menlo, monospace;
-  --body: "Segoe UI", system-ui, -apple-system, sans-serif;
+  --body: "Poppins", "Segoe UI", system-ui, -apple-system, sans-serif;
 }
 
 /* ============ LIGHT THEME — "field manual" ============ */
@@ -152,7 +164,7 @@ body {
   font-size: 1.05rem; text-transform: uppercase; margin: 0;
 }
 .brand .b2 {
-  font-family: var(--mono); font-size: 0.62rem; letter-spacing: 3px;
+  font-family: var(--mono); font-size: 0.62rem; letter-spacing: 3.5px;
   color: var(--mut); text-transform: uppercase; margin: 2px 0 0;
 }
 .brand .b2 b { color: var(--saff); font-weight: 600; }
@@ -171,7 +183,8 @@ body {
 /* theme toggle */
 .theme-toggle {
   display: flex; align-items: center; gap: 8px;
-  font-family: var(--mono); font-size: 0.62rem; letter-spacing: 2px;
+  font-family: var(--body); font-size: 0.66rem; font-weight: 600;
+  letter-spacing: 2.5px;
   color: var(--mut); background: var(--m2);
   border: 1px solid var(--line); border-radius: 0; cursor: pointer;
   padding: 8px 13px;
@@ -219,8 +232,9 @@ body {
 /* ---------------- nav tabs ---------------- */
 .navbar { position: sticky; top: 65px; z-index: 40; display: flex; gap: 6px; padding: 0 32px 14px; flex-wrap: wrap; }
 .navbar a {
-  font-family: var(--mono); font-size: 0.68rem; letter-spacing: 2px;
-  text-transform: uppercase; text-decoration: none; color: var(--mut);
+  font-family: var(--body); font-size: 0.7rem; font-weight: 600;
+  letter-spacing: 3px; text-transform: uppercase; text-decoration: none;
+  color: var(--mut);
   padding: 7px 14px; border: 1px solid var(--line); background: var(--m1);
   clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
   transition: all 0.15s ease;
@@ -298,7 +312,7 @@ select { appearance: none; -webkit-appearance: none;
 
 button {
   font-family: var(--disp); font-weight: 800; text-transform: uppercase;
-  letter-spacing: 2px; font-size: 0.78rem;
+  letter-spacing: 2.5px; font-size: 0.78rem;
   color: var(--txt); background: var(--m3);
   border: 1px solid var(--line); border-radius: 0;
   padding: 11px 22px; cursor: pointer;
@@ -399,7 +413,8 @@ footer .tribar i:nth-child(2) { background: var(--tribar-mid); }
 footer .tribar i:nth-child(3) { background: var(--green); }
 footer .fbody {
   max-width: 1240px; margin: 0 auto; padding: 16px 32px 22px;
-  color: var(--dim); font-size: 0.7rem; font-family: var(--mono); letter-spacing: 1px;
+  color: var(--dim); font-size: 0.7rem; font-family: var(--mono);
+  font-weight: 500; letter-spacing: 1.6px;
   display: flex; gap: 18px; flex-wrap: wrap; justify-content: space-between; align-items: center;
 }
 footer .fbody .ok { color: var(--green); }
@@ -695,19 +710,21 @@ body { overflow-x: clip; }
 }
 .lnd-brand { display: flex; align-items: center; gap: 12px; }
 .lnd-brand .crest { width: 38px; height: 38px; }
-.lnd-b1 { font-family: var(--mono); font-weight: 700; font-size: 1.02rem; letter-spacing: 3px; margin: 0; }
-.lnd-b2 { font-family: var(--mono); font-size: 0.56rem; letter-spacing: 2.4px; color: var(--dim); margin: 2px 0 0; }
+.lnd-b1 { font-family: var(--mono); font-weight: 700; font-size: 1.02rem; letter-spacing: 3.5px; margin: 0; }
+.lnd-b2 { font-family: var(--mono); font-size: 0.56rem; letter-spacing: 3px; color: var(--dim); margin: 2px 0 0; }
 .lnd-nav { display: flex; gap: clamp(10px, 2vw, 26px); margin-left: auto; flex-wrap: wrap; }
 .lnd-nav a {
-  font-family: var(--mono); font-size: 0.66rem; letter-spacing: 2.4px;
-  color: var(--mut); text-decoration: none; padding: 6px 2px;
+  font-family: var(--body); font-size: 0.68rem; font-weight: 600;
+  letter-spacing: 3px; color: var(--mut); text-decoration: none;
+  padding: 6px 2px;
   border-bottom: 1px solid transparent;
 }
 .lnd-nav a:hover { color: var(--saff); border-bottom-color: var(--saff); }
 .lnd-cta { display: flex; align-items: center; gap: 12px; }
 
 .btn {
-  font-family: var(--mono); letter-spacing: 2.2px; text-decoration: none;
+  font-family: var(--mono); font-weight: 700; letter-spacing: 2.8px;
+  text-decoration: none;
   display: inline-flex; align-items: center; justify-content: center;
   cursor: pointer; border: 1px solid var(--line);
 }
@@ -810,7 +827,8 @@ body { overflow-x: clip; }
 .lnd-foot {
   padding: 34px clamp(16px, 5vw, 60px); text-align: center;
   border-top: 1px solid var(--line-soft);
-  font-family: var(--mono); font-size: 0.62rem; letter-spacing: 1.6px; color: var(--mut);
+  font-family: var(--mono); font-size: 0.62rem; font-weight: 500;
+  letter-spacing: 2.2px; color: var(--mut);
 }
 .lnd-foot p { margin: 6px 0; }
 .lnd-foot .dim { color: var(--dim); }

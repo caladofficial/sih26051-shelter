@@ -91,6 +91,17 @@ def build_css() -> None:
              "--output", str(OUT / name)])
 
 
+def build_fonts() -> None:
+    """Self-hosted typefaces: copy woff2 files verbatim (never CDN)."""
+    src, out = SRC / "fonts", OUT / "fonts"
+    if not src.is_dir():
+        return
+    out.mkdir(exist_ok=True)
+    for f in sorted(src.glob("*.woff2")):
+        (out / f.name).write_bytes(f.read_bytes())
+        print(f"[build] fonts/{f.name} {f.stat().st_size:,} bytes")
+
+
 def build_html() -> None:
     for name in HTML_FILES:
         print(f"[build] {name} {SRC/name} -> {OUT/name}")
@@ -106,6 +117,7 @@ def main() -> None:
     ensure_tools()
     build_js()
     build_css()
+    build_fonts()
     build_html()
     for name in JS_FILES + CSS_FILES + HTML_FILES:
         if not (OUT / name).exists():
