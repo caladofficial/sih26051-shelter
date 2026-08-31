@@ -25,8 +25,8 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, REPO)
 
 from src.ai_model import sample_design  # noqa: E402
-from src.api_app import (_apply_design, CFG, get_weather_cached,  # noqa: E402
-                         _location_profile)
+from src.api_app import (_apply_design, _apply_ground_temp, CFG,  # noqa: E402
+                         get_weather_cached, _location_profile)
 from src.data.climate import design_weeks  # noqa: E402
 from src.thermal.rc_model import (comfort_stats, load_materials,  # noqa: E402
                                   simulate)
@@ -43,8 +43,11 @@ SITES = [
     ("Bengaluru", 12.9716, 77.5946),   # warm-humid / temperate
     ("Hyderabad", 17.3850, 78.4867),   # composite / hot-dry
     ("Pune", 18.5204, 73.8567),        # composite / temperate
-    ("Leh", 34.1526, 77.5771),         # cold
-    ("Srinagar", 34.0837, 74.7973),    # cold
+    ("Leh", 34.1526, 77.5771),         # cold (high-altitude Ladakh)
+    ("Srinagar", 34.0837, 74.7973),    # cold (Kashmir valley)
+    ("Kargil", 34.5584, 76.1334),      # cold (Ladakh, ~2,676 m)
+    ("Dras", 34.4306, 75.7499),        # cold (Ladakh, ~3,280 m — among the
+                                       # coldest inhabited places in India)
 ]
 YEAR = int(CFG["climate"]["data_year"])
 BASE_SEED = 26051
@@ -62,8 +65,8 @@ ROW_COLS = [
 ]
 
 
-def _sim_metrics(weather, weeks, design, mats):
-    cfg = _apply_design(CFG, design)
+def _sim_metrics(weather, weeks, design, mats, cfg_base=None):
+    cfg = _apply_design(cfg_base if cfg_base is not None else CFG, design)
     hot = comfort_stats(simulate(cfg, weeks["hot_week"], mats),
                         CFG["climate"]["comfort_range_c"])
     cold = comfort_stats(simulate(cfg, weeks["cold_week"], mats),
@@ -85,12 +88,16 @@ def generate_site(site, n_designs, profile, mats):
                                             CFG["location"]["timezone"])
     rng = np.random.default_rng(_site_seed(name))
     weeks = design_weeks(weather, YEAR)
+    # site-adapted ground temperature (MAAT + 2 K) — a flat 26 C slab is
+    # physically wrong for cold-altitude sites like Leh/Kargil/Dras
+    cfg_site = _apply_ground_temp(CFG, weather)
     rows = []
     t0 = time.time()
     for i in range(n_designs):
         d = sample_design(rng)
         try:
-            hm, hx, hcf, cm = _sim_metrics(weather, weeks, d, mats)
+            hm, hx, hcf, cm = _sim_metrics(weather, weeks, d, mats,
+                                           cfg_site)
         except Exception as exc:          # skip pathological samples
             print(f"[gen] {name} sample {i} skipped: {exc}")
             continue

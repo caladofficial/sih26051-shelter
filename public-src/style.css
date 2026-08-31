@@ -1028,3 +1028,66 @@ body { overflow-x: clip; }
 .ghost:hover { color: var(--accent); border-color: var(--accent); }
 #aiObjective { max-width: 260px; }
 #aiMetrics .zone-badge { display: inline-block; margin-bottom: 8px; }
+
+/* ============================================================
+   SEC/08 — PRE-DESIGNED SHELTERS
+   ============================================================ */
+.preset-head { display: flex; align-items: center; gap: 8px; margin: 6px 0 10px; }
+.preset-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  gap: 12px;
+}
+.preset-card {
+  background: var(--m1); border: 1px solid var(--line);
+  border-radius: 6px; padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.preset-card:hover { border-color: var(--saff); }
+.preset-card-hd { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.preset-card-hd b { font-size: 13px; letter-spacing: 0.02em; }
+.chips { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+.chips i {
+  font-style: normal; font-size: 9px; letter-spacing: 0.08em;
+  color: var(--btn-txt); background: var(--saff); padding: 2px 6px; border-radius: 3px;
+  text-transform: uppercase;
+}
+.preset-tag { color: var(--mut); font-size: 11.5px; margin: 0; }
+.preset-metrics {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
+}
+.preset-metrics span {
+  background: var(--m2); border: 1px solid var(--line-soft); border-radius: 4px;
+  padding: 6px 4px; text-align: center;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.preset-metrics b { font-size: 14px; color: var(--txt); }
+.preset-metrics em { font-style: normal; font-size: 8.5px; letter-spacing: 0.07em; color: var(--dim); }
+.preset-mats { font-size: 10.5px; color: var(--mut); line-height: 1.45; }
+.preset-why summary {
+  cursor: pointer; font-size: 10px; letter-spacing: 0.08em; color: var(--blue);
+}
+.preset-why p { font-size: 11px; color: var(--mut); line-height: 1.5; margin: 6px 0 0; }
+.preset-actions { display: flex; align-items: center; gap: 8px; }
+.preset-actions .tag { font-size: 9px; }
+.preset-err { color: var(--red); font-size: 12px; padding: 12px; }
+
+/* ============================================================
+   CAD — 2D plan/section strip + view buttons
+   ============================================================ */
+.view2d-strip { display: flex; gap: 10px; padding: 8px 0 2px; flex-wrap: wrap; }
+.view2d {
+  flex: 1 1 380px; background: var(--m1); border: 1px solid var(--line);
+  border-radius: 6px; overflow: hidden;
+}
+.view2d-hd {
+  font-size: 9.5px; letter-spacing: 0.09em; color: var(--mut);
+  padding: 6px 10px; border-bottom: 1px solid var(--line-soft);
+  display: flex; gap: 8px;
+}
+.view2d canvas { display: block; background: var(--m2); }
+.view3d-tools .sep { width: 1px; height: 18px; background: var(--line); margin: 0 4px; }
+.view3d-tools { flex-wrap: wrap; }
+
+/* keep Plotly charts inside their container even mid-relayout */
+.js-plotly-plot, .plot-container { max-width: 100%; }
+.chart svg { max-width: 100% !important; }

@@ -51,8 +51,9 @@ from fastapi.responses import Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-# project root: src/api_app.py -> parents[2] (api/index.py -> parents[1])
-ROOT = Path(__file__).resolve().parents[2]
+# project root: src/api_app.py -> parents[1]; keep in sys.path for direct
+# module runs (e.g. scripts) that don't go through the package
+ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
@@ -205,6 +206,27 @@ def _apply_design(cfg: dict, design: dict) -> dict:
             cfg["shelter"][k].update(v)
         else:
             cfg["shelter"][k] = v
+    return cfg
+
+
+_GROUND_OFFSET_K = 2.0   # shallow-ground temp ≈ mean annual air temp + 2 K
+
+
+def _apply_ground_temp(cfg: dict, weather: pd.DataFrame) -> dict:
+    """Site-adapted shallow-ground temperature for floor coupling.
+
+    The config default (26 C) is a warm-climate placeholder; at
+    cold-altitude sites (Leh, Kargil, Dras) a 26 C slab is physically
+    wrong. Standard approximation (ASHRAE Handbook-Fundamentals,
+    undisturbed-ground temperature ≈ mean annual air temperature + 1-3 K;
+    also USDA soil-temperature practice) — we use MAAT + 2 K, rounded to
+    0.1 C, computed from the REAL hourly weather of the site.
+    """
+    if "t2m" not in weather or len(weather) < 1000:
+        return cfg
+    cfg = copy.deepcopy(cfg)
+    maat = float(weather["t2m"].mean())
+    cfg["simulation"]["ground_temperature_c"] = round(maat + _GROUND_OFFSET_K, 1)
     return cfg
 
 
@@ -449,7 +471,8 @@ def simulate_endpoint(req: SimulateRequest):
     except Exception as exc:
         raise HTTPException(502, f"weather fetch failed: {exc}")
 
-    cfg = _apply_design(CFG, _design_from_request(req))
+    cfg = _apply_ground_temp(_apply_design(CFG, _design_from_request(req)),
+                             weather)
     mats = load_materials()
 
     # validate material names
@@ -505,7 +528,8 @@ def optimize_endpoint(req: OptimizeRequest):
 
     from src.optimization.optuna_optimizer import run_study
     try:
-        study = run_study(CFG, weather, load_materials(),
+        study = run_study(_apply_ground_temp(CFG, weather), weather,
+                          load_materials(),
                           n_trials=req.n_trials)
     except Exception as exc:
         raise HTTPException(500, f"optimization failed: {exc}")
@@ -698,7 +722,7 @@ def _shelter_metrics(latitude: float, longitude: float,
         for key in ("wall_material", "roof_material"):
             if base.get(key) not in mats.index:
                 base[key] = "brick" if key == "wall_material" else "rcc_slab"
-        cfg = _apply_design(CFG, base)
+        cfg = _apply_ground_temp(_apply_design(CFG, base), weather)
         weeks = design_weeks(weather, int(CFG["climate"]["data_year"]))
         res = simulate(cfg, weeks["hot_week"], mats)
         st = comfort_stats(res, cfg["climate"]["comfort_range_c"])
@@ -1045,7 +1069,7 @@ def location_recommend(req: AdaptRequest):
         if ins == "none":
             base["insulation_material"] = "eps"
             base["insulation_thickness_m"] = 0.0
-        cfg = _apply_design(CFG, base)
+        cfg = _apply_ground_temp(_apply_design(CFG, base), weather)
         try:
             weeks = design_weeks(weather, loc["year"])
             res = simulate(cfg, weeks["hot_week"], mats)
@@ -1106,7 +1130,7 @@ def _design_metrics(weather: pd.DataFrame, design: dict,
     if ins == "none":
         base["insulation_material"] = "eps"
         base["insulation_thickness_m"] = 0.0
-    cfg = _apply_design(CFG, base)
+    cfg = _apply_ground_temp(_apply_design(CFG, base), weather)
     weeks = design_weeks(weather, int(CFG["climate"]["data_year"]))
     res = simulate(cfg, weeks["hot_week"], mats)
     st = comfort_stats(res, cfg["climate"]["comfort_range_c"])
@@ -1169,6 +1193,49 @@ def location_compare(req: CompareRequest):
 
 
 # --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# pre-designed shelters (engine-verified presets)
+# --------------------------------------------------------------------------
+PRESETS_FILE = ROOT / "src" / "data" / "shelter_presets.json"
+
+
+@app.get("/api/presets")
+def presets_list(site: str = "Prayagraj"):
+    """Engine-verified shelter presets for a known site.
+
+    Numbers come from scripts/build_presets.py: every preset was run
+    through the same sourced RC engine on real hourly weather of each
+    site, so the metrics below are engine truth (not AI estimates).
+    """
+    try:
+        data = json.loads(PRESETS_FILE.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        raise HTTPException(503, "presets not built yet "
+                                 "(run scripts/build_presets.py)")
+    site_data = data["sites"].get(site)
+    if site_data is None:
+        site, site_data = "Prayagraj", data["sites"]["Prayagraj"]
+    presets = []
+    for p in data["presets"]:
+        presets.append({
+            "id": p["id"], "name": p["name"], "tagline": p["tagline"],
+            "zones": p["zones"], "design": p["design"],
+            "rationale": p["rationale"],
+            "metrics": site_data.get(p["id"]),
+        })
+    return {
+        "site": site,
+        "latitude": site_data.get("latitude"),
+        "longitude": site_data.get("longitude"),
+        "zone": site_data.get("zone"),
+        "zone_name": site_data.get("zone_name"),
+        "weather_source": site_data.get("weather_source"),
+        "engine": data.get("engine"),
+        "generated_on": data.get("generated_on"),
+        "presets": presets,
+    }
+
+
 # AI design assistant (optional accelerator — engine stays the truth)
 # --------------------------------------------------------------------------
 class AiSuggestRequest(SimulateRequest):

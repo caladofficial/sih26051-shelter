@@ -12,6 +12,9 @@ xps,insulation,0.033,32,1450,0.3,0.9,0.05,"ISO 10456 / EN 13164 typical: XPS k 0
 puf_sandwich_panel,panel,0.023,40,1400,0.5,0.9,0.05,"PUR/PIR panel cores k 0.022-0.028 W/mK (EN 14509, manufacturer datasheets); outer steel skin absorptance 0.5 typical (galvanised, painted)",prefab shelter option
 gi_sheet,metal,50,7850,480,0.55,0.28,0.0006,"ASHRAE Handbook-Fundamentals 2021 Ch.26 (steel k ~45-50 W/mK, 490 lb/ft3, cp 0.12 Btu/lbF = 502 J/kgK); galvanised steel solar absorptance 0.5-0.65, emissivity 0.28 (ASHRAE Ch.26 Table 24)",corrugated sheet roof/walls
 
+mud_brick,masonry,0.55,1900,840,0.65,0.9,0.15,"ASHRAE Handbook-Fundamentals 2021 Ch.26 (adobe k ~0.57 W/mK, rho ~1900 kg/m3, cp 0.2 Btu/lbF); Chandel & Aggarwal (2017) review of Himalayan vernacular (mud brick k 0.4-0.8 W/mK); absorptance earth 0.6-0.7",Ladakh vernacular masonry
+aerated_concrete,masonry,0.18,600,1000,0.6,0.9,0.2,"ASHRAE Handbook-Fundamentals 2021 Ch.26 (aerated/lightweight concrete k ~0.08-0.25 W/mK, rho 400-800 kg/m3); emissivity 0.9 (ASHRAE Ch.26 Table 24)",autoclaved aerated concrete block (AAC)
+sheep_wool,insulation,0.04,22,1030,0.3,0.9,0.05,"ISO 10456 / EN 13171 typical sheep-wool insulation k 0.038-0.045 W/mK, rho 15-30 kg/m3 (manufacturer datasheets, e.g. Thermafleece); cp ~1.03 kJ/kgK (Kersten 1949 soil/hygroscopic data)",local high-altitude wool (Ladakh khullu) batt
 # ---------------------------------------------------------------------------
 # SOURCING POLICY (docs/materials.md)
 # - k, density, cp: ASHRAE Handbook-Fundamentals 2021 Ch.26; ISO 10456 / EN

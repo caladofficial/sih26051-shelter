@@ -64,7 +64,13 @@ function updateThemeToggle() {
 /* ---------- plot (matte command-deck theme) ---------- */
 const lastPlots = []; // registry so charts re-theme on toggle
 
-function renderPlot(el, data, layout, config = {}) {
+function renderPlot(el, data, layout, config = {}, _retry = 0) {
+  // Plotly defaults to 700px when the container has no laid-out width
+  // (e.g. render during a re-layout); wait until it does, then plot.
+  if (el.clientWidth < 50 && _retry < 10) {
+    setTimeout(() => renderPlot(el, data, layout, config, _retry + 1), 120);
+    return;
+  }
   const c = THEME_COLORS[currentTheme()] || THEME_COLORS.dark;
   Plotly.react(el, data, Object.assign({
     template: { layout: {
@@ -472,6 +478,24 @@ function rebuildMeshes() {
   setWire();
   setCutaway();
   setAutoRot();
+  updateCompass();
+  draw2dViews();
+}
+
+function updateCompass() {
+  const g = document.getElementById("compassArrow");
+  if (!g || !struct.data) return;
+  const orient = struct.data.design && struct.data.design.orientation_deg
+    ? struct.data.design.orientation_deg : 0;
+  g.setAttribute("transform", `rotate(${-orient} 20 20)`);
+  g.setAttribute("style", "transform-origin:20px 20px");
+}
+
+function draw2dViews() {
+  const planOn = document.getElementById("plan2d") && document.getElementById("plan2d").checked;
+  const sectOn = document.getElementById("sect2d") && document.getElementById("sect2d").checked;
+  if (planOn) drawPlan2d();
+  if (sectOn) drawSection2d();
 }
 
 function applyExplode() {
@@ -1933,3 +1957,288 @@ function initAi() {
     aiPredict();
   })();
 }
+
+/* ============================================================
+   8 · PRE-DESIGNED SHELTERS (engine-verified presets)
+   ============================================================ */
+const presets = { data: null, site: null };
+
+async function loadPresets() {
+  const sel = $("location");
+  if (!sel) return;
+  if (!sel.options.length) {         // locations still loading — retry shortly
+    setTimeout(loadPresets, 1200);
+    return;
+  }
+  const site = (sel.selectedOptions[0] && sel.selectedOptions[0].textContent
+    ? sel.selectedOptions[0].textContent.split(" (")[0] : "Prayagraj");
+  try {
+    const j = await api(`/api/presets?site=${encodeURIComponent(site)}`);
+    presets.data = j;
+    presets.site = j.site;
+    renderPresets();
+  } catch (err) {
+    const g = $("presetGrid");
+    if (g) g.innerHTML = `<div class="preset-err">PRESETS UNAVAILABLE — ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function renderPresets() {
+  const g = $("presetGrid");
+  if (!g || !presets.data) return;
+  $("presetSiteTag").textContent =
+    `SITE ${presets.data.site.toUpperCase()} · ${presets.data.zone_name || presets.data.zone || "—"}`;
+  $("presetSource").textContent =
+    `ENGINE ${(presets.data.engine || "").replace("src/thermal/", "").toUpperCase()}`;
+  g.innerHTML = "";
+  for (const p of presets.data.presets) {
+    const m = p.metrics || {};
+    const h = m.hot_week || {}, c = m.cold_week || {};
+    const card = document.createElement("div");
+    card.className = "preset-card";
+    const ins = p.design.insulation_material !== "none"
+      ? `${p.design.insulation_material} ${Math.round((p.design.insulation_thickness_m || 0) * 1000)} mm`
+      : "no insulation";
+    card.innerHTML = `
+      <div class="preset-card-hd">
+        <b>${escapeHtml(p.name)}</b>
+        <span class="chips">${(p.zones || []).map((z) => `<i>${escapeHtml(z)}</i>`).join("")}</span>
+      </div>
+      <p class="preset-tag">${escapeHtml(p.tagline)}</p>
+      <div class="preset-metrics">
+        <span><b>${fmt(h.max_indoor_c)}</b><em>HOT PEAK °C</em></span>
+        <span><b>${fmt(c.min_indoor_c)}</b><em>COLD MIN °C</em></span>
+        <span><b>${fmt(c.night_heat_loss_kwh, 0)}</b><em>NIGHT LOSS kWh</em></span>
+        <span><b>${Math.round((h.comfort_fraction || 0) * 100)}%</b><em>HOT COMFORT</em></span>
+      </div>
+      <div class="preset-mats">
+        ${escapeHtml(p.design.wall_material)} ${p.design.wall_thickness_m} m ·
+        ${escapeHtml(p.design.roof_material)} ${p.design.roof_thickness_m} m ·
+        ${escapeHtml(ins)} · ${escapeHtml(p.design.window_wall)} win
+        ${p.design.window_width_m}×${p.design.window_height_m} · U ${p.design.window_u_w_m2k}
+      </div>
+      <details class="preset-why"><summary>WHY THIS DESIGN</summary><p>${escapeHtml(p.rationale)}</p></details>
+      <div class="preset-actions">
+        <button class="primary" data-preset="${p.id}">⬇ LOAD INTO STUDIO</button>
+        <span class="tag">ENGINE-VERIFIED @ ${presets.data.site.toUpperCase()}</span>
+      </div>`;
+    g.appendChild(card);
+  }
+}
+
+function loadPresetIntoStudio(id) {
+  if (!presets.data) return;
+  const p = presets.data.presets.find((x) => x.id === id);
+  if (!p) return;
+  applyDesignToForm(p.design);
+  $("structSource").textContent = `PRESET · ${p.id.toUpperCase()}`;
+  toast(`Loaded preset — ${p.name}`);
+  scheduleStructure();
+  runSimulate();
+  const aiBody = $("aiBody");
+  if (aiBody && aiState.on) aiPredict();
+}
+
+function initPresets() {
+  const g = $("presetGrid");
+  if (!g) return;
+  loadPresets();
+  if ($("location")) $("location").addEventListener("change", loadPresets);
+  g.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-preset]");
+    if (btn) loadPresetIntoStudio(btn.dataset.preset);
+  });
+}
+
+/* ============================================================
+   CAD versatility — view presets, snapshot, 2D plan/section
+   ============================================================ */
+function cadViewPreset(name) {
+  if (typeof THREE === "undefined" || !struct.scene || !struct.controls) return;
+  const b = struct.data && struct.data.bounding;
+  const hh = b ? b.z1 - b.z0 : 2.6;
+  const pos = {
+    iso:   [4.6, 3.8, 5.4],
+    top:   [0.01, 11, 0.01],
+    front: [0, 2.4, 8],
+    side:  [8, 2.4, 0],
+  }[name];
+  if (!pos) return;
+  struct.controls.target.set(0, hh / 2 + 0.2, 0);
+  struct.camera.position.set(...pos);
+  struct.controls.update();
+  toast(`3D view — ${name.toUpperCase()}`);
+}
+
+function snap3d() {
+  if (typeof THREE === "undefined" || !struct.renderer) return;
+  const url = struct.renderer.domElement.toDataURL("image/png");
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `shelter-cad-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.png`;
+  a.click();
+  toast("3D snapshot downloaded (PNG)");
+}
+
+function setup2dCanvas(id) {
+  const box = $(id + "Box"), cv = $(id + "Canvas");
+  if (!box || !cv) return null;
+  const fit = () => {
+    const dpr = window.devicePixelRatio || 1;
+    cv.width = Math.max(10, box.clientWidth - 12) * dpr;
+    cv.height = Math.max(10, 230) * dpr;
+    cv.style.width = "100%";
+    cv.style.height = "230px";
+  };
+  fit();
+  new ResizeObserver(fit).observe(box);
+  return cv;
+}
+
+function drawPlan2d() {
+  const box = $("plan2dBox");
+  if (!box || box.hidden || !struct.data) return;
+  const cv = $("plan2dCanvas");
+  if (!cv) return;
+  const ctx = cv.getContext("2d");
+  const dpr = window.devicePixelRatio || 1;
+  const W = cv.width, H = cv.height;
+  ctx.clearRect(0, 0, W, H);
+  const pad = 46 * dpr;
+  const b = struct.data.bounding;
+  const L = b.x1 - b.x0, Wd = b.y1 - b.y0;
+  const s = Math.min((W - 2 * pad) / L, (H - 2 * pad) / Wd);
+  const ox = (W - L * s) / 2, oy = (H - Wd * s) / 2;
+  const X = (x) => ox + (x - b.x0) * s;
+  const Y = (y) => oy + (y - b.y0) * s;
+  // footprint rects, bottom-up z order
+  const comps = [...struct.data.components].sort((a, z) => (a.box[2] - z.box[2]));
+  for (const c of comps) {
+    const [x0, y0, , x1, y1] = c.box;
+    ctx.beginPath();
+    ctx.rect(X(x0), Y(y0), (x1 - x0) * s, (y1 - y0) * s);
+    ctx.fillStyle = c.color;
+    ctx.globalAlpha = c.type === "window" ? 0.55 : 0.85;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = "rgba(0,0,0,0.4)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+  // dimension lines
+  ctx.fillStyle = "#ff9933";
+  ctx.strokeStyle = "#ff9933";
+  ctx.font = `${12 * dpr}px monospace`;
+  ctx.textAlign = "center";
+  ctx.fillText(`${L.toFixed(2)} m`, W / 2, H - 8 * dpr);
+  ctx.beginPath();
+  ctx.moveTo(X(b.x0), H - 20 * dpr); ctx.lineTo(X(b.x1), H - 20 * dpr); ctx.stroke();
+  ctx.save();
+  ctx.translate(14 * dpr, H / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText(`${Wd.toFixed(2)} m`, 0, 0);
+  ctx.restore();
+  ctx.beginPath();
+  ctx.moveTo(24 * dpr, Y(b.y0)); ctx.lineTo(24 * dpr, Y(b.y1)); ctx.stroke();
+  // north arrow (rotates with orientation)
+  const orient = struct.data.design.orientation_deg || 0;
+  const nx = W - 30 * dpr, ny = 30 * dpr;
+  ctx.save();
+  ctx.translate(nx, ny);
+  ctx.rotate(-orient * Math.PI / 180);
+  ctx.beginPath(); ctx.moveTo(0, -14 * dpr); ctx.lineTo(6 * dpr, 8 * dpr);
+  ctx.lineTo(0, 4 * dpr); ctx.lineTo(-6 * dpr, 8 * dpr); ctx.closePath();
+  ctx.fillStyle = "#ff9933"; ctx.fill();
+  ctx.restore();
+  ctx.fillText("N", nx, ny + 22 * dpr);
+  ctx.textAlign = "left";
+  ctx.fillText(`ORIENT ${orient}°`, nx - 46 * dpr, ny + 34 * dpr);
+  const ww = struct.data.design.window_wall || "south";
+  ctx.fillText(`WIN ${ww.toUpperCase()}`,
+    X((b.x0 + b.x1) / 2),
+    Y(ww === "north" ? b.y0 : b.y1) + (ww === "north" ? -8 * dpr : 16 * dpr));
+  $("plan2dTitle").textContent = `${L.toFixed(2)} × ${Wd.toFixed(2)} m`;
+}
+
+function drawSection2d() {
+  const box = $("sect2dBox");
+  if (!box || box.hidden || !struct.data) return;
+  const cv = $("sect2dCanvas");
+  if (!cv) return;
+  const ctx = cv.getContext("2d");
+  const dpr = window.devicePixelRatio || 1;
+  const W = cv.width, H = cv.height;
+  ctx.clearRect(0, 0, W, H);
+  const b = struct.data.bounding;
+  // slice through y = 0 (mid-slab): keep components crossing the plane
+  const midY = (b.y0 + b.y1) / 2;
+  const comps = struct.data.components.filter((c) =>
+    c.box[1] <= midY && c.box[4] >= midY &&
+    (c.type === "wall" || c.type === "insulation" || c.type === "roof" ||
+     c.type === "floor" || c.type === "window"));
+  const pad = 40 * dpr;
+  const L = b.x1 - b.x0, Hh = b.z1 - b.z0;
+  const s = Math.min((W - 2 * pad) / L, (H - 2 * pad) / Hh);
+  const ox = (W - L * s) / 2, oy = (H - Hh * s) / 2;
+  const X = (x) => ox + (x - b.x0) * s;
+  const Z = (z) => oy + (b.z1 - z) * s;   // flip so up = up
+  for (const c of comps) {
+    const [x0, , z0, x1, , z1] = c.box;
+    ctx.beginPath();
+    ctx.rect(X(x0), Z(z1), (x1 - x0) * s, (z1 - z0) * s);
+    ctx.fillStyle = c.color;
+    ctx.globalAlpha = c.type === "window" ? 0.5 : 0.85;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = "rgba(0,0,0,0.4)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    if ((x1 - x0) * s > 26 * dpr) {
+      ctx.fillStyle = "#0a0d10";
+      ctx.font = `${10 * dpr}px monospace`;
+      ctx.textAlign = "center";
+      ctx.fillText(c.type.toUpperCase(), X((x0 + x1) / 2), Z((z0 + z1) / 2));
+    }
+  }
+  // dimension lines
+  ctx.fillStyle = "#ff9933"; ctx.strokeStyle = "#ff9933";
+  ctx.font = `${12 * dpr}px monospace`;
+  ctx.textAlign = "center";
+  ctx.fillText(`${Hh.toFixed(2)} m`, W / 2, 12 * dpr);
+  ctx.beginPath();
+  ctx.moveTo(X(b.x0), 22 * dpr); ctx.lineTo(X(b.x1), 22 * dpr); ctx.stroke();
+  ctx.fillText(`${L.toFixed(2)} m`, W - 6 * dpr, H - 12 * dpr);
+  ctx.save();
+  ctx.translate(W - 22 * dpr, H / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText(`${Hh.toFixed(2)} m`, 0, 0);
+  ctx.restore();
+  const wall = struct.data.components.find((c) => c.type === "wall");
+  $("sect2dTitle").textContent =
+    `${wall ? wall.material : ""} WALL · MID-SLAB · ${Hh.toFixed(2)} m`;
+}
+
+function initCadExtras() {
+  const wire = (id, fn) => { const el = $(id); if (el) el.addEventListener("click", fn); };
+  wire("viewIso", () => cadViewPreset("iso"));
+  wire("viewTop", () => cadViewPreset("top"));
+  wire("viewFront", () => cadViewPreset("front"));
+  wire("viewSide", () => cadViewPreset("side"));
+  wire("snap3d", snap3d);
+  ["plan2d", "sect2d"].forEach((id) => {
+    const el = $(id);
+    if (el) el.addEventListener("change", () => {
+      $(`${id}Box`).hidden = !el.checked;
+      if (el.checked) {
+        setup2dCanvas(id);
+        if (id === "plan2d") drawPlan2d(); else drawSection2d();
+      }
+    });
+  });
+}
+
+/* ---- boot: presets + CAD extras (second DOMContentLoaded hook) ---- */
+document.addEventListener("DOMContentLoaded", () => {
+  initPresets();
+  initCadExtras();
+});

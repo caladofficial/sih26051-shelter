@@ -88,3 +88,76 @@ def test_ai_suggest_bad_objective():
     _skip_unless_model()
     r = c.post("/api/ai/suggest", json={**PY, "objective": "nonsense"})
     assert r.status_code == 400
+
+
+# ---------------------------------------------------------------------------
+# Ladakh upgrade: presets, ground temperature, cold-climate materials
+# ---------------------------------------------------------------------------
+def test_presets_endpoint_engine_verified():
+    r = c.get("/api/presets?site=Leh")
+    assert r.status_code == 200
+    d = r.json()
+    assert d["site"] == "Leh"
+    assert d["zone_name"] == "COLD"
+    assert len(d["presets"]) >= 8
+    ids = {p["id"] for p in d["presets"]}
+    assert {"ladakh_vernacular", "ladakh_high_perf", "emergency_relief"} <= ids
+    for p in d["presets"]:
+        assert p["design"]["wall_material"] in {
+            "brick", "rammed_earth", "stone", "mud_brick", "aerated_concrete",
+            "timber", "puf_sandwich_panel", "concrete", "gi_sheet", "plywood"}
+        m = p["metrics"]
+        assert "hot_week" in m and "cold_week" in m
+        assert isinstance(m["hot_week"]["max_indoor_c"], (int, float))
+        assert isinstance(m["cold_week"]["min_indoor_c"], (int, float))
+    # high-performance Ladakh preset must lose far less heat at night than
+    # the vernacular one (engine truth, same site, same weather)
+    by_id = {p["id"]: p for p in d["presets"]}
+    loss_hp = by_id["ladakh_high_perf"]["metrics"]["cold_week"]["night_heat_loss_kwh"]
+    loss_vern = by_id["ladakh_vernacular"]["metrics"]["cold_week"]["night_heat_loss_kwh"]
+    assert loss_hp > loss_vern * 1.5, (loss_hp, loss_vern)
+
+
+def test_presets_unknown_site_falls_back():
+    r = c.get("/api/presets?site=NoSuchPlace")
+    assert r.status_code == 200
+    assert r.json()["site"] == "Prayagraj"
+
+
+def test_ground_temp_site_adapted():
+    import pandas as pd
+    from src.api_app import _apply_ground_temp, CFG
+
+    idx = pd.date_range("2024-01-01", periods=8760, freq="h", tz="UTC")
+    cold = pd.DataFrame({"t2m": [-10.0] * len(idx)}, index=idx)
+    hot = pd.DataFrame({"t2m": [35.0] * len(idx)}, index=idx)
+    cfg_c = _apply_ground_temp(CFG, cold)
+    cfg_h = _apply_ground_temp(CFG, hot)
+    # MAAT + 2 K
+    assert cfg_c["simulation"]["ground_temperature_c"] == pytest.approx(-8.0, abs=0.1)
+    assert cfg_h["simulation"]["ground_temperature_c"] == pytest.approx(37.0, abs=0.1)
+    # default config untouched (helper deep-copies)
+    assert CFG["simulation"]["ground_temperature_c"] == 26.0
+
+
+def test_cold_climate_materials_present():
+    r = c.get("/api/materials")
+    assert r.status_code == 200
+    mats = {m["material"]: m for m in r.json()["materials"]}
+    for name in ("mud_brick", "aerated_concrete", "sheep_wool"):
+        assert name in mats, f"missing {name}"
+    assert 0.3 < mats["mud_brick"]["k_W_mK"] < 1.0          # adobe range
+    assert 0.08 < mats["aerated_concrete"]["k_W_mK"] < 0.3   # AAC range
+    assert 0.03 < mats["sheep_wool"]["k_W_mK"] < 0.06        # wool batt range
+    for name in ("mud_brick", "aerated_concrete", "sheep_wool"):
+        assert "source" in mats[name] and len(mats[name]["source"]) > 10
+
+
+def test_ai_model_cold_site_coverage():
+    """The surrogate must actually cover the Ladakh sites (retrained)."""
+    _skip_unless_model()
+    r = c.get("/api/ai/info")
+    d = r.json()
+    assert d["model"]["n_sites"] >= 14
+    sites = {s.lower() for s in d["model"].get("sites", [])}
+    assert {"leh", "kargil", "dras"} <= sites

@@ -105,6 +105,8 @@
     <a href="#sec5"><b>05</b>Optimize</a>
     <a href="#sec6"><b>06</b>Library</a>
     <a href="#sec7"><b>07</b>Fleet</a>
+    <a href="#sec8"><b>08</b>Presets</a>
+    <a href="#sec9"><b>09</b>AI</a>
     <a href="index.html">HOME</a>
   </nav>
 
@@ -260,7 +262,7 @@
               <div id="view3d" class="view3d"></div>
               <div class="compass" id="compass" title="World north">
                 <svg viewBox="0 0 40 40" aria-hidden="true">
-                  <path d="M20 6 L26 34 L20 28 L14 34 Z" fill="#ff9933"/>
+                  <g id="compassArrow"><path d="M20 6 L26 34 L20 28 L14 34 Z" fill="#ff9933"/></g>
                 </svg><span>N</span>
               </div>
               <div class="zoombox">
@@ -269,12 +271,31 @@
                 <button id="viewReset" type="button" title="Reset view">⌂</button>
               </div>
             </div>
+            <div class="view2d-strip">
+              <div class="view2d" id="plan2dBox" hidden>
+                <div class="view2d-hd">PLAN VIEW · TOP · <span id="plan2dTitle">—</span></div>
+                <canvas id="plan2dCanvas"></canvas>
+              </div>
+              <div class="view2d" id="sect2dBox" hidden>
+                <div class="view2d-hd">WALL SECTION · MID-SLAB · <span id="sect2dTitle">—</span></div>
+                <canvas id="sect2dCanvas"></canvas>
+              </div>
+            </div>
             <div class="view3d-tools">
               <label class="chk"><input type="checkbox" id="explode" /> EXPLODE</label>
               <label class="chk"><input type="checkbox" id="wire" /> WIREFRAME</label>
               <label class="chk"><input type="checkbox" id="cutaway" /> CUTAWAY</label>
               <label class="chk"><input type="checkbox" id="autoRot" /> SPIN</label>
               <button id="measureBtn" type="button" class="btn-sm" title="Click two points to measure (m)">📏 MEASURE</button>
+              <button id="snap3d" type="button" class="btn-sm" title="Download 3D view as PNG">📷 SNAP</button>
+              <span class="sep"></span>
+              <span class="tag" style="margin-right:2px">VIEW</span>
+              <button id="viewIso" type="button" class="btn-sm" title="Isometric">ISO</button>
+              <button id="viewTop" type="button" class="btn-sm" title="Top (plan)">TOP</button>
+              <button id="viewFront" type="button" class="btn-sm" title="Front elevation">FRONT</button>
+              <button id="viewSide" type="button" class="btn-sm" title="Side elevation">SIDE</button>
+              <label class="chk"><input type="checkbox" id="plan2d" /> PLAN 2D</label>
+              <label class="chk"><input type="checkbox" id="sect2d" /> SECTION</label>
               <button id="full3d" type="button" class="btn-sm" title="Fullscreen 3D">⛶ FULL</button>
               <span class="tag" id="measureOut">—</span>
               <span class="grow" style="flex:1"></span>
@@ -462,6 +483,24 @@
     <section class="module" id="sec8">
       <div class="mod-head">
         <span class="sec">SEC/08</span>
+        <h2>Pre-Designed Shelters</h2>
+        <span class="code">ENGINE-VERIFIED STARTING DESIGNS · ONE-CLICK LOAD</span>
+      </div>
+      <p class="hint">Curated shelters for every climate zone — every number below was
+        computed by the real RC engine on this location's hourly weather
+        (scripts/build_presets.py), not estimated. <b>LOAD</b> pulls the full design
+        into the studio for simulation, comparison and iteration.</p>
+      <div class="preset-head">
+        <span class="tag" id="presetSiteTag">site —</span>
+        <span class="grow" style="flex:1"></span>
+        <span class="tag" id="presetSource">engine —</span>
+      </div>
+      <div class="preset-grid" id="presetGrid"></div>
+    </section>
+
+    <section class="module" id="sec9">
+      <div class="mod-head">
+        <span class="sec">SEC/09</span>
         <h2>AI Design Assistant</h2>
         <span class="code">OPTIONAL · ESTIMATES, NOT REPLACEMENTS</span>
       </div>

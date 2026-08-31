@@ -1421,26 +1421,26 @@
   "longitude": 72.8777
  },
  "Kolkata": {
-  "zone": "cold",
-  "zone_name": "COLD",
-  "n_hours": 8784,
+  "zone": "warm_humid",
+  "zone_name": "WARM-HUMID",
+  "n_hours": 8783,
   "t_mean_c": 26.33,
   "t_hottest_month_c": 33.7,
-  "t_coldest_month_c": 13.03,
-  "diurnal_range_c": 9.63,
-  "hdd18": 162.7,
+  "t_coldest_month_c": 16.54,
+  "diurnal_range_c": 9.66,
+  "hdd18": 162.5,
   "cdd18": 3210.8,
   "rh_mean_pct": 74.5,
   "ghi_mean_w_m2": 174.8,
   "wind_mean_ms": 3.09,
-  "wet_hours_pct": 48.2,
+  "wet_hours_pct": 48.3,
   "monsoon_share_pct": 60.1,
   "wind_rose": [
    {
     "sector": 0,
     "center_deg": 0.0,
     "label": "N",
-    "freq_pct": 10.48,
+    "freq_pct": 10.49,
     "mean_ws_ms": 2.54
    },
    {
@@ -1545,7 +1545,7 @@
     "sector": 15,
     "center_deg": 337.5,
     "label": "NNW",
-    "freq_pct": 9.8,
+    "freq_pct": 9.79,
     "mean_ws_ms": 2.62
    }
   ],
@@ -1644,14 +1644,15 @@
    },
    {
     "hour": 23,
-    "mean_c": 23.73
+    "mean_c": 23.76
    }
   ],
   "guidance": [
-   "Insulate the whole envelope heavily (walls + roof + floor edge)",
-   "South-facing glazing for passive solar gain; limit north apertures",
-   "Low air-change rate \u2014 minimise infiltration and heat loss",
-   "Use a better glazing if available (lower U-value)"
+   "Shade every glazed opening \u2014 direct sun is the main heat source",
+   "Maximise cross-ventilation; keep ACH high (moisture + heat removal)",
+   "Moderate insulation only \u2014 avoid trapping humidity with heavy mass",
+   "Ventilated / elevated roof construction to shed solar gain",
+   "Light-coloured, reflective exterior surfaces"
   ],
   "latitude": 22.5726,
   "longitude": 88.3639
@@ -2838,5 +2839,477 @@
   ],
   "latitude": 34.0837,
   "longitude": 74.7973
+ },
+ "Kargil": {
+  "zone": "cold",
+  "zone_name": "COLD",
+  "n_hours": 8784,
+  "t_mean_c": -0.53,
+  "t_hottest_month_c": 11.87,
+  "t_coldest_month_c": -15.04,
+  "diurnal_range_c": 11.89,
+  "hdd18": 6798.5,
+  "cdd18": 16.5,
+  "rh_mean_pct": 59.3,
+  "ghi_mean_w_m2": 223.0,
+  "wind_mean_ms": 2.08,
+  "wet_hours_pct": 30.8,
+  "monsoon_share_pct": 52.0,
+  "wind_rose": [
+   {
+    "sector": 0,
+    "center_deg": 0.0,
+    "label": "N",
+    "freq_pct": 0.72,
+    "mean_ws_ms": 0.96
+   },
+   {
+    "sector": 1,
+    "center_deg": 22.5,
+    "label": "NNE",
+    "freq_pct": 0.58,
+    "mean_ws_ms": 1.06
+   },
+   {
+    "sector": 2,
+    "center_deg": 45.0,
+    "label": "NE",
+    "freq_pct": 0.51,
+    "mean_ws_ms": 0.92
+   },
+   {
+    "sector": 3,
+    "center_deg": 67.5,
+    "label": "ENE",
+    "freq_pct": 0.49,
+    "mean_ws_ms": 1.26
+   },
+   {
+    "sector": 4,
+    "center_deg": 90.0,
+    "label": "E",
+    "freq_pct": 0.84,
+    "mean_ws_ms": 1.05
+   },
+   {
+    "sector": 5,
+    "center_deg": 112.5,
+    "label": "ESE",
+    "freq_pct": 1.81,
+    "mean_ws_ms": 1.63
+   },
+   {
+    "sector": 6,
+    "center_deg": 135.0,
+    "label": "SE",
+    "freq_pct": 7.43,
+    "mean_ws_ms": 1.87
+   },
+   {
+    "sector": 7,
+    "center_deg": 157.5,
+    "label": "SSE",
+    "freq_pct": 9.35,
+    "mean_ws_ms": 1.59
+   },
+   {
+    "sector": 8,
+    "center_deg": 180.0,
+    "label": "S",
+    "freq_pct": 11.17,
+    "mean_ws_ms": 1.59
+   },
+   {
+    "sector": 9,
+    "center_deg": 202.5,
+    "label": "SSW",
+    "freq_pct": 12.18,
+    "mean_ws_ms": 2.03
+   },
+   {
+    "sector": 10,
+    "center_deg": 225.0,
+    "label": "SW",
+    "freq_pct": 15.26,
+    "mean_ws_ms": 2.21
+   },
+   {
+    "sector": 11,
+    "center_deg": 247.5,
+    "label": "WSW",
+    "freq_pct": 17.45,
+    "mean_ws_ms": 2.67
+   },
+   {
+    "sector": 12,
+    "center_deg": 270.0,
+    "label": "W",
+    "freq_pct": 11.33,
+    "mean_ws_ms": 2.52
+   },
+   {
+    "sector": 13,
+    "center_deg": 292.5,
+    "label": "WNW",
+    "freq_pct": 5.87,
+    "mean_ws_ms": 2.19
+   },
+   {
+    "sector": 14,
+    "center_deg": 315.0,
+    "label": "NW",
+    "freq_pct": 3.53,
+    "mean_ws_ms": 2.01
+   },
+   {
+    "sector": 15,
+    "center_deg": 337.5,
+    "label": "NNW",
+    "freq_pct": 1.48,
+    "mean_ws_ms": 1.37
+   }
+  ],
+  "diurnal": [
+   {
+    "hour": 0,
+    "mean_c": -3.9
+   },
+   {
+    "hour": 1,
+    "mean_c": -4.42
+   },
+   {
+    "hour": 2,
+    "mean_c": -4.86
+   },
+   {
+    "hour": 3,
+    "mean_c": -5.25
+   },
+   {
+    "hour": 4,
+    "mean_c": -5.62
+   },
+   {
+    "hour": 5,
+    "mean_c": -5.73
+   },
+   {
+    "hour": 6,
+    "mean_c": -4.96
+   },
+   {
+    "hour": 7,
+    "mean_c": -3.09
+   },
+   {
+    "hour": 8,
+    "mean_c": -0.57
+   },
+   {
+    "hour": 9,
+    "mean_c": 1.76
+   },
+   {
+    "hour": 10,
+    "mean_c": 3.55
+   },
+   {
+    "hour": 11,
+    "mean_c": 4.73
+   },
+   {
+    "hour": 12,
+    "mean_c": 5.39
+   },
+   {
+    "hour": 13,
+    "mean_c": 5.54
+   },
+   {
+    "hour": 14,
+    "mean_c": 5.26
+   },
+   {
+    "hour": 15,
+    "mean_c": 4.59
+   },
+   {
+    "hour": 16,
+    "mean_c": 3.37
+   },
+   {
+    "hour": 17,
+    "mean_c": 1.75
+   },
+   {
+    "hour": 18,
+    "mean_c": 0.28
+   },
+   {
+    "hour": 19,
+    "mean_c": -0.75
+   },
+   {
+    "hour": 20,
+    "mean_c": -1.46
+   },
+   {
+    "hour": 21,
+    "mean_c": -2.14
+   },
+   {
+    "hour": 22,
+    "mean_c": -2.79
+   },
+   {
+    "hour": 23,
+    "mean_c": -3.38
+   }
+  ],
+  "guidance": [
+   "Insulate the whole envelope heavily (walls + roof + floor edge)",
+   "South-facing glazing for passive solar gain; limit north apertures",
+   "Low air-change rate \u2014 minimise infiltration and heat loss",
+   "Use a better glazing if available (lower U-value)"
+  ],
+  "latitude": 34.5584,
+  "longitude": 76.1334
+ },
+ "Dras": {
+  "zone": "cold",
+  "zone_name": "COLD",
+  "n_hours": 8784,
+  "t_mean_c": -0.88,
+  "t_hottest_month_c": 10.89,
+  "t_coldest_month_c": -14.7,
+  "diurnal_range_c": 10.8,
+  "hdd18": 6918.0,
+  "cdd18": 7.1,
+  "rh_mean_pct": 69.8,
+  "ghi_mean_w_m2": 206.6,
+  "wind_mean_ms": 2.36,
+  "wet_hours_pct": 30.4,
+  "monsoon_share_pct": 48.4,
+  "wind_rose": [
+   {
+    "sector": 0,
+    "center_deg": 0.0,
+    "label": "N",
+    "freq_pct": 1.2,
+    "mean_ws_ms": 0.98
+   },
+   {
+    "sector": 1,
+    "center_deg": 22.5,
+    "label": "NNE",
+    "freq_pct": 1.76,
+    "mean_ws_ms": 1.04
+   },
+   {
+    "sector": 2,
+    "center_deg": 45.0,
+    "label": "NE",
+    "freq_pct": 2.28,
+    "mean_ws_ms": 1.27
+   },
+   {
+    "sector": 3,
+    "center_deg": 67.5,
+    "label": "ENE",
+    "freq_pct": 3.86,
+    "mean_ws_ms": 1.82
+   },
+   {
+    "sector": 4,
+    "center_deg": 90.0,
+    "label": "E",
+    "freq_pct": 4.9,
+    "mean_ws_ms": 1.53
+   },
+   {
+    "sector": 5,
+    "center_deg": 112.5,
+    "label": "ESE",
+    "freq_pct": 3.69,
+    "mean_ws_ms": 1.09
+   },
+   {
+    "sector": 6,
+    "center_deg": 135.0,
+    "label": "SE",
+    "freq_pct": 3.31,
+    "mean_ws_ms": 1.01
+   },
+   {
+    "sector": 7,
+    "center_deg": 157.5,
+    "label": "SSE",
+    "freq_pct": 3.64,
+    "mean_ws_ms": 1.09
+   },
+   {
+    "sector": 8,
+    "center_deg": 180.0,
+    "label": "S",
+    "freq_pct": 5.93,
+    "mean_ws_ms": 1.6
+   },
+   {
+    "sector": 9,
+    "center_deg": 202.5,
+    "label": "SSW",
+    "freq_pct": 14.45,
+    "mean_ws_ms": 2.52
+   },
+   {
+    "sector": 10,
+    "center_deg": 225.0,
+    "label": "SW",
+    "freq_pct": 23.02,
+    "mean_ws_ms": 3.26
+   },
+   {
+    "sector": 11,
+    "center_deg": 247.5,
+    "label": "WSW",
+    "freq_pct": 20.53,
+    "mean_ws_ms": 3.06
+   },
+   {
+    "sector": 12,
+    "center_deg": 270.0,
+    "label": "W",
+    "freq_pct": 6.83,
+    "mean_ws_ms": 2.1
+   },
+   {
+    "sector": 13,
+    "center_deg": 292.5,
+    "label": "WNW",
+    "freq_pct": 1.97,
+    "mean_ws_ms": 1.53
+   },
+   {
+    "sector": 14,
+    "center_deg": 315.0,
+    "label": "NW",
+    "freq_pct": 1.56,
+    "mean_ws_ms": 1.15
+   },
+   {
+    "sector": 15,
+    "center_deg": 337.5,
+    "label": "NNW",
+    "freq_pct": 1.08,
+    "mean_ws_ms": 0.95
+   }
+  ],
+  "diurnal": [
+   {
+    "hour": 0,
+    "mean_c": -4.13
+   },
+   {
+    "hour": 1,
+    "mean_c": -4.49
+   },
+   {
+    "hour": 2,
+    "mean_c": -4.77
+   },
+   {
+    "hour": 3,
+    "mean_c": -5.02
+   },
+   {
+    "hour": 4,
+    "mean_c": -5.28
+   },
+   {
+    "hour": 5,
+    "mean_c": -5.35
+   },
+   {
+    "hour": 6,
+    "mean_c": -4.63
+   },
+   {
+    "hour": 7,
+    "mean_c": -2.84
+   },
+   {
+    "hour": 8,
+    "mean_c": -0.39
+   },
+   {
+    "hour": 9,
+    "mean_c": 1.78
+   },
+   {
+    "hour": 10,
+    "mean_c": 3.36
+   },
+   {
+    "hour": 11,
+    "mean_c": 4.3
+   },
+   {
+    "hour": 12,
+    "mean_c": 4.69
+   },
+   {
+    "hour": 13,
+    "mean_c": 4.64
+   },
+   {
+    "hour": 14,
+    "mean_c": 4.25
+   },
+   {
+    "hour": 15,
+    "mean_c": 3.56
+   },
+   {
+    "hour": 16,
+    "mean_c": 2.37
+   },
+   {
+    "hour": 17,
+    "mean_c": 0.8
+   },
+   {
+    "hour": 18,
+    "mean_c": -0.58
+   },
+   {
+    "hour": 19,
+    "mean_c": -1.52
+   },
+   {
+    "hour": 20,
+    "mean_c": -2.16
+   },
+   {
+    "hour": 21,
+    "mean_c": -2.75
+   },
+   {
+    "hour": 22,
+    "mean_c": -3.28
+   },
+   {
+    "hour": 23,
+    "mean_c": -3.74
+   }
+  ],
+  "guidance": [
+   "Insulate the whole envelope heavily (walls + roof + floor edge)",
+   "South-facing glazing for passive solar gain; limit north apertures",
+   "Low air-change rate \u2014 minimise infiltration and heat loss",
+   "Use a better glazing if available (lower U-value)"
+  ],
+  "latitude": 34.4306,
+  "longitude": 75.7499
  }
 }

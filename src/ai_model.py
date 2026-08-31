@@ -57,6 +57,10 @@ WALL_CHOICES = {
     "gi_sheet": [0.002],
     "plywood": [0.012, 0.019, 0.03, 0.05],
     "puf_sandwich_panel": [0.05, 0.075, 0.1, 0.15],
+    "stone": [0.15, 0.3, 0.45],          # high-altitude masonry (Ladakh)
+    "mud_brick": [0.15, 0.3, 0.45],      # vernacular adobe
+    "timber": [0.1, 0.15, 0.2],          # lightweight frame
+    "aerated_concrete": [0.1, 0.2, 0.3], # AAC block
 }
 ROOF_CHOICES = {
     "rcc_slab": [0.1, 0.15, 0.2, 0.25],
@@ -64,17 +68,25 @@ ROOF_CHOICES = {
     "gi_sheet": [0.002],
     "puf_sandwich_panel": [0.05, 0.075, 0.1, 0.15],
     "brick": [0.115, 0.23],
+    "stone": [0.15, 0.3],               # heavy cold-climate slab
+    "mud_brick": [0.15, 0.25],          # flat mud roof (Ladakh tradition)
+    "timber": [0.1, 0.15],              # pitched/beam deck
+    "aerated_concrete": [0.1, 0.2],
 }
 INSULATION_CHOICES = [
     ("none", 0.0),
-    ("eps", 0.025), ("eps", 0.05), ("eps", 0.1),
-    ("mineral_wool", 0.025), ("mineral_wool", 0.05), ("mineral_wool", 0.1),
+    ("eps", 0.025), ("eps", 0.05), ("eps", 0.1), ("eps", 0.15), ("eps", 0.2),
+    ("xps", 0.05), ("xps", 0.1), ("xps", 0.15),
+    ("mineral_wool", 0.05), ("mineral_wool", 0.1), ("mineral_wool", 0.15),
+    ("sheep_wool", 0.05), ("sheep_wool", 0.1), ("sheep_wool", 0.15),
 ]
 WINDOW_WALLS = ["north", "east", "south", "west"]
 WINDOW_WIDTHS = [0.6, 0.9, 1.2, 1.5, 1.8]
 WINDOW_HEIGHTS = [0.6, 0.9, 1.2, 1.5]
 WINDOW_SHGC = [0.35, 0.45, 0.55, 0.65, 0.75, 0.85]
-WINDOW_U = [2.6, 3.5, 5.8]
+# triple low-e (1.2), low-e double (1.6), clear double (2.0/2.6),
+# single clear (3.5/5.8) — ASHRAE HOF 2021 Ch.15 typical assembled U-values
+WINDOW_U = [1.2, 1.6, 2.0, 2.6, 3.5, 5.8]
 ORIENTATIONS = [0, 45, 90, 135, 180]
 LENGTHS = [3.0]
 WIDTHS = [3.0]
@@ -274,10 +286,12 @@ def model_metrics() -> dict:
 
 def model_meta() -> dict:
     m = load_model()
+    meta = m.get("metadata", {})
     return {
-        "name": m.get("metadata", {}).get("name", "rc-surrogate"),
-        "n_samples": m.get("metadata", {}).get("n_samples", 0),
-        "n_sites": m.get("metadata", {}).get("n_sites", 0),
-        "n_trees": m.get("metadata", {}).get("n_trees", 0),
-        "trained_on": m.get("metadata", {}).get("trained_on", ""),
+        "name": meta.get("name", "rc-surrogate"),
+        "n_samples": meta.get("n_samples", 0),
+        "n_sites": meta.get("n_sites", 0),
+        "sites": meta.get("sites", []),
+        "n_trees": meta.get("n_trees", 0),
+        "trained_on": meta.get("trained_on", ""),
     }
