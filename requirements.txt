@@ -1,0 +1,25 @@
+# SIH26051_Shelter — core Python stack (all free / open source)
+# Install:  python -m pip install -r requirements.txt
+
+# --- Phase 1/2 core ---
+numpy>=1.24
+pandas>=2.0
+scipy>=1.10
+requests>=2.31
+PyYAML>=6.0
+pvlib>=0.10          # solar position + irradiance on shelter surfaces
+plotly>=5.18         # interactive plots (dashboard graphs)
+matplotlib>=3.7      # static PNG exports for presentations
+
+# --- Phase 6 (optimization) ---
+optuna>=3.5
+
+# --- Phase 7 (dashboard) ---
+streamlit>=1.30
+
+# --- development ---
+pytest>=7.0
+
+# --- weather-file tooling (Ladybug ecosystem) ---
+# ladybug-core>=0.21
+# honeybee-energy>=1.66

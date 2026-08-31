@@ -1,0 +1,223 @@
+{
+  "location": "Prayagraj",
+  "year": 2024,
+  "hot_week": [
+    "2024-05-27 00:30:00+05:30",
+    "2024-06-02 22:30:00+05:30"
+  ],
+  "orientation_sweep": [
+    {
+      "orientation_deg": 0,
+      "mean_indoor_c": 43.398510641090034,
+      "min_indoor_c": 33.75074760189659,
+      "max_indoor_c": 49.39707397371066,
+      "comfort_hours": 0,
+      "comfort_fraction": 0.0,
+      "solar_gain_kwh": 98.28251419212282,
+      "night_heat_loss_kwh": -115.08052201488744,
+      "total_heat_loss_kwh": -128.804718049994
+    },
+    {
+      "orientation_deg": 45,
+      "mean_indoor_c": 43.60492205069162,
+      "min_indoor_c": 33.75191049641621,
+      "max_indoor_c": 49.74297191707927,
+      "comfort_hours": 0,
+      "comfort_fraction": 0.0,
+      "solar_gain_kwh": 102.74228954292163,
+      "night_heat_loss_kwh": -117.651905289133,
+      "total_heat_loss_kwh": -132.2081021328299
+    },
+    {
+      "orientation_deg": 90,
+      "mean_indoor_c": 43.513896744679606,
+      "min_indoor_c": 33.75074760189659,
+      "max_indoor_c": 49.593606682519,
+      "comfort_hours": 0,
+      "comfort_fraction": 0.0,
+      "solar_gain_kwh": 102.07916837807724,
+      "night_heat_loss_kwh": -116.82137993248931,
+      "total_heat_loss_kwh": -131.34113621362982
+    },
+    {
+      "orientation_deg": 135,
+      "mean_indoor_c": 43.5991088556419,
+      "min_indoor_c": 33.75191049641621,
+      "max_indoor_c": 49.72271605135355,
+      "comfort_hours": 0,
+      "comfort_fraction": 0.0,
+      "solar_gain_kwh": 102.55558403217702,
+      "night_heat_loss_kwh": -117.61498461326572,
+      "total_heat_loss_kwh": -132.15526569515467
+    },
+    {
+      "orientation_deg": 180,
+      "mean_indoor_c": 43.4768561099014,
+      "min_indoor_c": 33.75384811620032,
+      "max_indoor_c": 49.50677860881518,
+      "comfort_hours": 0,
+      "comfort_fraction": 0.0,
+      "solar_gain_kwh": 100.8120461575005,
+      "night_heat_loss_kwh": -115.70811527409933,
+      "total_heat_loss_kwh": -129.99887126487926
+    },
+    {
+      "orientation_deg": 225,
+      "mean_indoor_c": 43.90729722731639,
+      "min_indoor_c": 33.754252335782105,
+      "max_indoor_c": 50.33650693921613,
+      "comfort_hours": 0,
+      "comfort_fraction": 0.0,
+      "solar_gain_kwh": 112.42717815649505,
+      "night_heat_loss_kwh": -119.75796355483958,
+      "total_heat_loss_kwh": -136.01914225000627
+    },
+    {
+      "orientation_deg": 270,
+      "mean_indoor_c": 43.86317435157594,
+      "min_indoor_c": 33.754252335782105,
+      "max_indoor_c": 50.25055339464805,
+      "comfort_hours": 0,
+      "comfort_fraction": 0.0,
+      "solar_gain_kwh": 113.24613724008786,
+      "night_heat_loss_kwh": -119.17220283578743,
+      "total_heat_loss_kwh": -135.52955194091942
+    },
+    {
+      "orientation_deg": 315,
+      "mean_indoor_c": 43.79068680772314,
+      "min_indoor_c": 33.754252335782105,
+      "max_indoor_c": 50.080551720506456,
+      "comfort_hours": 0,
+      "comfort_fraction": 0.0,
+      "solar_gain_kwh": 108.66317423385708,
+      "night_heat_loss_kwh": -118.83349198014065,
+      "total_heat_loss_kwh": -134.267539904368
+    }
+  ],
+  "material_sweep": [
+    {
+      "wall_material": "brick",
+      "mean_indoor_c": 43.398510641090034,
+      "min_indoor_c": 33.75074760189659,
+      "max_indoor_c": 49.39707397371066,
+      "comfort_hours": 0,
+      "comfort_fraction": 0.0,
+      "solar_gain_kwh": 98.28251419212282,
+      "night_heat_loss_kwh": -115.08052201488744,
+      "total_heat_loss_kwh": -128.804718049994
+    },
+    {
+      "wall_material": "concrete",
+      "mean_indoor_c": 43.74087945722262,
+      "min_indoor_c": 33.77395016010135,
+      "max_indoor_c": 49.98381547270241,
+      "comfort_hours": 0,
+      "comfort_fraction": 0.0,
+      "solar_gain_kwh": 114.78859830970032,
+      "night_heat_loss_kwh": -138.97430543727393,
+      "total_heat_loss_kwh": -153.83193793792174
+    },
+    {
+      "wall_material": "stone",
+      "mean_indoor_c": 43.67252004521846,
+      "min_indoor_c": 33.80826717146639,
+      "max_indoor_c": 49.75595121304827,
+      "comfort_hours": 0,
+      "comfort_fraction": 0.0,
+      "solar_gain_kwh": 120.13295284886678,
+      "night_heat_loss_kwh": -149.32639720770158,
+      "total_heat_loss_kwh": -164.27313992585385
+    },
+    {
+      "wall_material": "rammed_earth",
+      "mean_indoor_c": 43.11047159494893,
+      "min_indoor_c": 33.711211542305755,
+      "max_indoor_c": 49.11185569711253,
+      "comfort_hours": 0,
+      "comfort_fraction": 0.0,
+      "solar_gain_kwh": 93.79763680626891,
+      "night_heat_loss_kwh": -112.34500977145674,
+      "total_heat_loss_kwh": -125.93123193388769
+    },
+    {
+      "wall_material": "timber",
+      "mean_indoor_c": 42.298886798081085,
+      "min_indoor_c": 33.33585518974527,
+      "max_indoor_c": 49.24980899335794,
+      "comfort_hours": 0,
+      "comfort_fraction": 0.0,
+      "solar_gain_kwh": 70.1274806927406,
+      "night_heat_loss_kwh": -78.4902472938618,
+      "total_heat_loss_kwh": -93.72027154898734
+    },
+    {
+      "wall_material": "puf_sandwich_panel",
+      "mean_indoor_c": 41.951044354734876,
+      "min_indoor_c": 32.825888560589334,
+      "max_indoor_c": 51.135363338927505,
+      "comfort_hours": 0,
+      "comfort_fraction": 0.0,
+      "solar_gain_kwh": 62.56842974147987,
+      "night_heat_loss_kwh": -63.52225516707257,
+      "total_heat_loss_kwh": -83.73664043740855
+    },
+    {
+      "wall_material": "gi_sheet",
+      "mean_indoor_c": 42.90390054762015,
+      "min_indoor_c": 34.15700676353598,
+      "max_indoor_c": 47.05352948944378,
+      "comfort_hours": 0,
+      "comfort_fraction": 0.0,
+      "solar_gain_kwh": 136.14782005739892,
+      "night_heat_loss_kwh": -164.61250682811786,
+      "total_heat_loss_kwh": -177.87099298183972
+    }
+  ],
+  "insulation_sweep": [
+    {
+      "insulation_mm": 0,
+      "mean_indoor_c": 43.398510641090034,
+      "min_indoor_c": 33.75074760189659,
+      "max_indoor_c": 49.39707397371066,
+      "comfort_hours": 0,
+      "comfort_fraction": 0.0,
+      "solar_gain_kwh": 98.28251419212282,
+      "night_heat_loss_kwh": -115.08052201488744,
+      "total_heat_loss_kwh": -128.804718049994
+    },
+    {
+      "insulation_mm": 25,
+      "mean_indoor_c": 39.393498260983364,
+      "min_indoor_c": 33.81668540690388,
+      "max_indoor_c": 42.49059502831526,
+      "comfort_hours": 0,
+      "comfort_fraction": 0.0,
+      "solar_gain_kwh": 44.473392294235026,
+      "night_heat_loss_kwh": -54.08949853980257,
+      "total_heat_loss_kwh": -62.307374420016586
+    },
+    {
+      "insulation_mm": 50,
+      "mean_indoor_c": 38.065034753561655,
+      "min_indoor_c": 33.833451348758366,
+      "max_indoor_c": 40.42671615934482,
+      "comfort_hours": 0,
+      "comfort_fraction": 0.0,
+      "solar_gain_kwh": 34.47993772546635,
+      "night_heat_loss_kwh": -43.433042003321034,
+      "total_heat_loss_kwh": -52.3315410996503
+    },
+    {
+      "insulation_mm": 100,
+      "mean_indoor_c": 36.96697905139414,
+      "min_indoor_c": 33.84650508729353,
+      "max_indoor_c": 38.806150416012535,
+      "comfort_hours": 0,
+      "comfort_fraction": 0.0,
+      "solar_gain_kwh": 27.827767103235058,
+      "night_heat_loss_kwh": -36.80218794942048,
+      "total_heat_loss_kwh": -48.207529230315785
+    }
+  ]
+}

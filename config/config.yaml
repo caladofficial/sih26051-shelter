@@ -1,0 +1,76 @@
+# =============================================================================
+# SIH26051 — Area-specific shelter thermal-comfort model (DRDO)
+# Global configuration. Edit THIS file, not the code.
+# =============================================================================
+
+location:
+  name: Prayagraj            # demo site (user's region) — change for target area
+  latitude: 25.4358
+  longitude: 81.8463
+  elevation_m: 98
+  timezone: Asia/Kolkata
+
+climate:
+  data_year: 2024            # full year of hourly data from NASA POWER + Open-Meteo
+  comfort_range_c: [18, 32]  # acceptable indoor band used for comfort-hour scoring
+
+nasa_power:
+  community: RE              # POWER user community (RE = renewable energy)
+  parameters:                # POWER code -> standardised column
+    - T2M                    #   t2m      air temperature @2m (degC)
+    - RH2M                   #   rh2m     relative humidity @2m (%)
+    - WS10M                  #   ws10m    wind speed @10m (m/s)
+    - WD10M                  #   wd10m    wind direction @10m (deg)
+    - PS                     #   ps       surface pressure (Pa)
+    - ALLSKY_SFC_SW_DWN      #   ghi      all-sky surface shortwave downward (W/m2)
+    - CLRSKY_SFC_SW_DWN      #   ghi_clear clear-sky GHI (W/m2)
+    - PRECTOTCORR            #   precip   precipitation (mm/h)
+    - T2MDEW                 #   t2mdew   dew-point temperature (degC)
+
+open_meteo:
+  variables:
+    - temperature_2m
+    - relative_humidity_2m
+    - dew_point_2m
+    - precipitation
+    - wind_speed_10m
+    - wind_direction_10m
+    - surface_pressure
+    - shortwave_radiation
+
+shelter:
+  length_m: 3.0              # shelter footprint
+  width_m: 3.0
+  height_m: 2.6
+  orientation_deg: 0         # rotation (deg clockwise) of the front wall from south
+  wall_material: brick
+  wall_thickness_m: 0.2
+  roof_material: rcc_slab    # dense concrete
+  roof_thickness_m: 0.12
+  floor_material: concrete
+  floor_thickness_m: 0.1
+  insulation:                # added to walls + roof; "none" = no insulation
+    material: none           # material name from data/external/materials.csv
+    thickness_m: 0.0
+  window:
+    width_m: 1.2
+    height_m: 1.2
+    wall: south              # which wall carries the window
+    sill_height_m: 0.9
+    u_w_m2k: 5.8             # single clear glazing, U-value (ASHRAE typical)
+    shgc: 0.82               # solar heat gain coefficient
+  door:
+    width_m: 0.9
+    height_m: 1.95
+    wall: west
+
+simulation:
+  dt_min: 10                 # integration step of the fast lumped model
+  ventilation_ach: 2.0       # air changes per hour (shelter leakiness)
+  internal_gains_w: 100      # occupant + equipment sensible load
+  ground_temperature_c: 26.0 # shallow-ground assumption used by floor coupling
+  albedo: 0.2                # surrounding ground albedo (solar reflections)
+
+energyplus:
+  executable: ""             # leave empty for auto-discovery
+  timesteps_per_hour: 4

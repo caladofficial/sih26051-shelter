@@ -1,0 +1,84 @@
+# SIH26051_Shelter — Area-Specific Shelter Thermal-Comfort Model
+
+Smart India Hackathon 2026 · PS **SIH26051** · DRDO (Department of Defence Production / iDEX)
+Software Based Model Development for Design of Area Specific Shelter for Thermal Comfort Maintenance.
+
+A **100% free/open-source** pipeline that, given a location, downloads real climate data,
+builds a shelter model, simulates its thermal response (fast RC model **and** EnergyPlus),
+and compares designs (orientation × material × insulation) to recommend a thermally
+comfortable passive shelter for the region.
+
+Verified problem statement: [`docs/problem_statement.md`](docs/problem_statement.md)
+
+---
+
+## Quick start (this repo was already run for Prayagraj 2024)
+
+```bash
+pip install -r requirements.txt
+
+# 1. Climate data: NASA POWER (primary) + Open-Meteo (cross-check) + EPW
+python scripts/fetch_climate.py
+
+# 2. First simulation: indoor vs outdoor temperature (RC model + plots)
+python scripts/run_first_simulation.py
+
+# 3. Same shelter, confirmed by the EnergyPlus engine
+python scripts/run_first_simulation.py --energyplus
+
+# 4. Parametric sweeps: orientation / wall material / insulation
+python scripts/run_parametric.py
+
+# 5. Tests
+python -m pytest tests/ -v
+```
+
+## What is already done (results in `results/`)
+
+| Milestone | Status | Outputs |
+|---|---|---|
+| Phase 1 — climate data (POWER + Open-Meteo cross-check, EPW) | ✅ | `data/raw/*.csv`, `data/processed/climate_clean.csv`, `validation_report.json`, `data/external/prayagraj_2024.epw` |
+| Phase 2/3 — first simulation | ✅ | `results/first_simulation_*.csv|html|png`, summary JSON |
+| Phase 3 — EnergyPlus run | ✅ | `results/energyplus_hourly.csv`, `energyplus_hot_week.*` |
+| Phase 5 — parametric sweeps | ✅ | `results/parametric/{orientation,material,insulation}_sweep.*` |
+| Phase 6 — optimisation (SciPy/Optuna) | ⏳ next | — |
+| Phase 7 — Streamlit dashboard | ⏳ next | — |
+
+### Headline numbers — Prayagraj (25.44 N, 81.85 E), 2024, brick shelter 3×3×2.6 m
+
+- Hottest week (27 May–2 Jun): outdoor max **49.0 °C**; indoor RC **49.4 °C** / E+ **54.0 °C**.
+- Cold week: indoor 16.0–27.1 °C → **93 % hours inside 18–32 °C** (no heating needed).
+- 100 mm EPS on walls+roof cuts hottest-week mean indoor from **43.4 → 37.0 °C** (−6.4 °C)
+  and night heat loss from −115 → −37 kWh.
+- South-facing (0°) beats 225°/270° by ≈1 °C in the hottest week.
+- Full-year E+ vs RC: 31.7 vs 32.1 °C mean indoor — good agreement for a fast model.
+
+## Project layout
+
+```
+SIH26051_Shelter/
+├── app/                  # Streamlit dashboard (Phase 7)
+├── config/config.yaml    # EVERYTHING is configured here (location, shelter, simulation)
+├── data/
+│   ├── raw/              # untouched downloads
+│   ├── processed/        # clean datasets + validation reports
+│   └── external/         # materials.csv (sourced), EPW weather files
+├── simulation/energyplus/# IDF generator + runner
+├── src/
+│   ├── data/             # NASA POWER, Open-Meteo, dataset builder
+│   ├── geometry/         # shelter surfaces (areas, azimuths, tilts, openings)
+│   ├── thermal/          # fast RC model + comfort metrics
+│   ├── visualization/    # plotly HTML + matplotlib PNG
+│   └── optimization/     # (Phase 6)
+├── scripts/              # CLI entry points (fetch → simulate → sweep)
+├── tests/                # pytest suite
+├── docs/                 # problem statement, data/model notes, Windows setup
+└── results/              # every run lands here
+```
+
+## Stack (all free/open source — ₹0)
+
+NASA POWER · Open-Meteo · EnergyPlus 26.1 · pvlib · pandas/NumPy/SciPy · Plotly ·
+matplotlib · pytest · SQLite · (later: Optuna, Streamlit, ERA5/CDS, QGIS, OpenFOAM)
+
+Windows setup instructions: [`docs/windows_setup.md`](docs/windows_setup.md)

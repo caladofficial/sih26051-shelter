@@ -1,0 +1,58 @@
+{
+  "t2m": {
+    "n_hours": 8779,
+    "power_mean": 26.56127918897369,
+    "openmeteo_mean": 25.991206287732087,
+    "bias_om_minus_power": -0.5700729012415993,
+    "rmse": 2.3985242050061175,
+    "correlation": 0.9645920700292586
+  },
+  "rh2m": {
+    "n_hours": 8779,
+    "power_mean": 54.74927896115731,
+    "openmeteo_mean": 65.1699510194783,
+    "bias_om_minus_power": 10.420672058320992,
+    "rmse": 19.648883195847535,
+    "correlation": 0.8025429990426628
+  },
+  "ws10m": {
+    "n_hours": 8779,
+    "power_mean": 2.8084349014694157,
+    "openmeteo_mean": 8.128534001594716,
+    "bias_om_minus_power": 5.320099100125298,
+    "rmse": 6.605324457268111,
+    "correlation": 0.7036536011569262
+  },
+  "ghi": {
+    "n_hours": 8779,
+    "power_mean": 187.28293769222006,
+    "openmeteo_mean": 206.52283859209479,
+    "bias_om_minus_power": 19.239900899874698,
+    "rmse": 111.11655753092622,
+    "correlation": 0.9190504181858773
+  },
+  "precip": {
+    "n_hours": 8779,
+    "power_mean": 2.4831871511561685,
+    "openmeteo_mean": 0.1281581045677184,
+    "bias_om_minus_power": -2.3550290465884496,
+    "rmse": 9.700581696418489,
+    "correlation": 0.22781588894198246
+  },
+  "ps": {
+    "n_hours": 8779,
+    "power_mean": 997.0699738011161,
+    "openmeteo_mean": 996.9760678892811,
+    "bias_om_minus_power": -0.09390591183506065,
+    "rmse": 0.659422232586414,
+    "correlation": 0.9959507191578494
+  },
+  "t2mdew": {
+    "n_hours": 8779,
+    "power_mean": 14.15091012643809,
+    "openmeteo_mean": 17.287686524661122,
+    "bias_om_minus_power": 3.1367763982230317,
+    "rmse": 5.119250513794639,
+    "correlation": 0.923850647717397
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "full_year": {
+    "mean_indoor_c": 32.092460392726224,
+    "min_indoor_c": 14.232060765929482,
+    "max_indoor_c": 49.40651666370507,
+    "comfort_hours": 3985,
+    "comfort_fraction": 0.45361411496869664,
+    "solar_gain_kwh": 4290.861704203613,
+    "night_heat_loss_kwh": -5046.162278988431,
+    "total_heat_loss_kwh": -6014.188323935828
+  },
+  "hot_week": {
+    "mean_indoor_c": 43.398510641090034,
+    "min_indoor_c": 33.75074760189659,
+    "max_indoor_c": 49.39707397371066,
+    "comfort_hours": 0,
+    "comfort_fraction": 0.0,
+    "solar_gain_kwh": 98.28251419212282,
+    "night_heat_loss_kwh": -115.08052201488744,
+    "total_heat_loss_kwh": -128.804718049994
+  },
+  "cold_week": {
+    "mean_indoor_c": 22.101817637173717,
+    "min_indoor_c": 15.966961597419674,
+    "max_indoor_c": 27.078379051733986,
+    "comfort_hours": 156,
+    "comfort_fraction": 0.9285714285714286,
+    "solar_gain_kwh": 89.04671223879896,
+    "night_heat_loss_kwh": -92.18694404204902,
+    "total_heat_loss_kwh": -113.41058133197221
+  },
+  "location": {
+    "name": "Prayagraj",
+    "latitude": 25.4358,
+    "longitude": 81.8463,
+    "elevation_m": 98,
+    "timezone": "Asia/Kolkata"
+  },
+  "shelter": {
+    "length_m": 3.0,
+    "width_m": 3.0,
+    "height_m": 2.6,
+    "orientation_deg": 0,
+    "wall_material": "brick",
+    "wall_thickness_m": 0.2,
+    "roof_material": "rcc_slab",
+    "roof_thickness_m": 0.12,
+    "floor_material": "concrete",
+    "floor_thickness_m": 0.1,
+    "insulation": {
+      "material": "none",
+      "thickness_m": 0.0
+    },
+    "window": {
+      "width_m": 1.2,
+      "height_m": 1.2,
+      "wall": "south",
+      "sill_height_m": 0.9,
+      "u_w_m2k": 5.8,
+      "shgc": 0.82
+    },
+    "door": {
+      "width_m": 0.9,
+      "height_m": 1.95,
+      "wall": "west"
+    }
+  },
+  "energyplus": null
+}

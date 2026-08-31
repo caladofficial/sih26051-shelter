@@ -1,0 +1,24 @@
+material,category,k_W_mK,density_kg_m3,cp_J_kgK,solar_absorptance,emissivity,thickness_m,source,notes
+brick,masonry,0.72,1920,840,0.7,0.9,0.2,"ASHRAE Handbook-Fundamentals 2021 Ch.26 (common brick, ~119 lb/ft3); absorptance/emissivity: ASHRAE 2021 Ch.26 Table 24 (red brick, aged)",default wall material
+concrete,masonry,1.7,2300,880,0.65,0.91,0.12,"ASHRAE Handbook-Fundamentals 2021 Ch.26 (dense concrete ~144 lb/ft3); emissivity: ASHRAE Ch.26 (concrete 0.85-0.95)",used for floor + rcc_slab roof
+rcc_slab,masonry,1.7,2300,880,0.65,0.91,0.12,"same dense-concrete row; reinforced concrete approx. as dense concrete (ASHRAE HOF 2021 Ch.26)",roof alias for concrete
+stone,masonry,2.8,2650,790,0.6,0.9,0.15,"ASHRAE Handbook-Fundamentals 2021 Ch.26 (granite k ~2.7-3.5 W/mK, 165 lb/ft3)",local stone alternative
+rammed_earth,masonry,0.75,1800,1000,0.6,0.9,0.3,"Rammed earth: k 0.6-1.0 W/mK, rho ~1700-2000 kg/m3 (e.g. Hall & Allinson 2009; CIBSE Guide A); absorptance: earth 0.6",verify with local soil test for final submission
+timber,wood,0.14,640,1630,0.6,0.9,0.05,"ASHRAE Handbook-Fundamentals 2021 Ch.26 (yellow pine); cp ~1.63 kJ/kgK",lightweight frame option
+plywood,wood,0.12,550,1210,0.6,0.9,0.02,"ASHRAE Handbook-Fundamentals 2021 Ch.26 (plywood); cp ~1.21 kJ/kgK",sheathing layer
+mineral_wool,insulation,0.036,70,840,0.3,0.9,0.05,"ISO 10456 / EN 13162 typical: k 0.035-0.045 W/mK, rho 25-200 kg/m3; absorptance typical for insulation behind cladding",rockwool batt
+eps,insulation,0.036,25,1450,0.3,0.9,0.05,"ISO 10456 / EN 13163 typical: EPS k 0.030-0.040 W/mK, rho 15-30 kg/m3; cp ~1.2-1.5 kJ/kgK (manufacturer datasheets)",expanded polystyrene board
+xps,insulation,0.033,32,1450,0.3,0.9,0.05,"ISO 10456 / EN 13164 typical: XPS k 0.029-0.036 W/mK; cp ~1.4-1.5 kJ/kgK",extruded polystyrene board
+puf_sandwich_panel,panel,0.023,40,1400,0.5,0.9,0.05,"PUR/PIR panel cores k 0.022-0.028 W/mK (EN 14509, manufacturer datasheets); outer steel skin absorptance 0.5 typical (galvanised, painted)",prefab shelter option
+gi_sheet,metal,50,7850,480,0.55,0.28,0.0006,"ASHRAE Handbook-Fundamentals 2021 Ch.26 (steel k ~45-50 W/mK, 490 lb/ft3, cp 0.12 Btu/lbF = 502 J/kgK); galvanised steel solar absorptance 0.5-0.65, emissivity 0.28 (ASHRAE Ch.26 Table 24)",corrugated sheet roof/walls
+
+# ---------------------------------------------------------------------------
+# SOURCING POLICY (docs/materials.md)
+# - k, density, cp: ASHRAE Handbook-Fundamentals 2021 Ch.26; ISO 10456 / EN
+#   13162-13164 typical ranges; manufacturer datasheets; peer-reviewed papers.
+# - solar absorptance / emissivity: ASHRAE HOF 2021 Ch.26 Table 24 ranges.
+# - thickness_m is the NOMINAL default used when config doesn't override it.
+# - BEFORE the final SIH submission: re-verify every row against the cited
+#   source (or a standard you can quote) and add lot/manufacturer IDs where
+#   a specific product is used. Do not copy values from blogs.
+# ---------------------------------------------------------------------------

@@ -1,0 +1,74 @@
+==== Base does not Surround subsurface details ====
+Surface=SOUTH_WALL Partial-Overlap
+Surface#=    1 NSides=    4
+Vertex     1=(           0.00,           0.00,           2.60)
+Vertex     2=(           0.00,           0.00,           0.00)
+Vertex     3=(           3.00,           0.00,           0.00)
+Vertex     4=(           3.00,           0.00,           2.60)
+SubSurface=WINDOW
+Surface#=    8 NSides=    4
+Vertex     1=(           0.90,           0.00,           5.46)
+Vertex     2=(           0.90,           0.00,           2.34)
+Vertex     3=(           2.10,           0.00,           2.34)
+Vertex     4=(           2.10,           0.00,           5.46)
+================================
+==== Base does not Surround subsurface details ====
+Surface=WEST_WALL Partial-Overlap
+Surface#=    4 NSides=    4
+Vertex     1=(           0.00,           3.00,           2.60)
+Vertex     2=(           0.00,           3.00,           0.00)
+Vertex     3=(           0.00,           0.00,           0.00)
+Vertex     4=(           0.00,           0.00,           2.60)
+SubSurface=DOOR
+Surface#=    7 NSides=    4
+Vertex     1=(           0.00,           1.95,           5.07)
+Vertex     2=(           0.00,           1.95,           0.00)
+Vertex     3=(           0.00,           1.05,           0.00)
+Vertex     4=(           0.00,           1.05,           5.07)
+================================
+Shadowing Combinations
+..Solar Distribution=FullExterior
+..In the following, only the first 10 reference surfaces will be shown.
+..But all surfaces are used in the calculations.
+==================================
+Surface=SOUTH_WALL is used as Receiving Surface in calculations and is convex.
+Number of general casting surfaces=0
+Number of back surfaces=0
+Number of receiving sub surfaces=1
+....Surface=WINDOW
+==================================
+Surface=WINDOW is not used as Receiving Surface in calculations.
+Number of general casting surfaces=0
+Number of back surfaces=0
+Number of receiving sub surfaces=0
+==================================
+Surface=NORTH_WALL is used as Receiving Surface in calculations and is convex.
+Number of general casting surfaces=0
+Number of back surfaces=0
+Number of receiving sub surfaces=0
+==================================
+Surface=EAST_WALL is used as Receiving Surface in calculations and is convex.
+Number of general casting surfaces=0
+Number of back surfaces=0
+Number of receiving sub surfaces=0
+==================================
+Surface=WEST_WALL is used as Receiving Surface in calculations and is convex.
+Number of general casting surfaces=0
+Number of back surfaces=0
+Number of receiving sub surfaces=1
+....Surface=DOOR
+==================================
+Surface=DOOR is not used as Receiving Surface in calculations.
+Number of general casting surfaces=0
+Number of back surfaces=0
+Number of receiving sub surfaces=0
+==================================
+Surface=FLOOR is used as Receiving Surface in calculations and is convex.
+Number of general casting surfaces=0
+Number of back surfaces=0
+Number of receiving sub surfaces=0
+==================================
+Surface=ROOF is used as Receiving Surface in calculations and is convex.
+Number of general casting surfaces=0
+Number of back surfaces=0
+Number of receiving sub surfaces=0
