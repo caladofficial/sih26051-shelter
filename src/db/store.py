@@ -84,6 +84,17 @@ CREATE TABLE IF NOT EXISTS optimization_runs (
   best_tpi REAL,
   best_design TEXT
 );
+CREATE TABLE IF NOT EXISTS cad_imports (
+  import_id TEXT PRIMARY KEY,
+  created_at TEXT NOT NULL,
+  filename TEXT NOT NULL,
+  format TEXT NOT NULL,
+  source TEXT NOT NULL DEFAULT 'upload',
+  bbox TEXT,
+  dimensions TEXT,
+  entity_counts TEXT
+);
+
 CREATE TABLE IF NOT EXISTS optimization_trials (
   run_id TEXT NOT NULL,
   trial_no INTEGER NOT NULL,
@@ -443,6 +454,60 @@ class Store:
             (limit,)).fetchall()
         cols = [c[0] for c in self._conn.execute("SELECT * FROM optimization_runs").description]
         return [dict(zip(cols, r)) for r in rows]
+
+
+    # ------------------------------------------------------------ cad imports
+    def save_cad_import(self, record: dict) -> None:
+        row = {"import_id": record.get("import_id") or new_id("cad"),
+               "created_at": _now(), "filename": record.get("filename", ""),
+               "format": record.get("format", ""),
+               "source": record.get("source", "upload"),
+               "bbox": _j(record.get("bbox") or {}),
+               "dimensions": _j(record.get("dimensions_m") or {}),
+               "entity_counts": _j(record.get("entity_counts") or {})}
+        if self._rest:
+            self._pg("POST", "cad_imports",
+                     params={"on_conflict": "import_id"},
+                     body=row, prefer="resolution=merge-duplicates")
+        else:
+            try:
+                self._conn.execute(
+                    """INSERT OR REPLACE INTO cad_imports
+                       (import_id, created_at, filename, format, source,
+                        bbox, dimensions, entity_counts)
+                       VALUES (?,?,?,?,?,?,?,?)""",
+                    (row["import_id"], row["created_at"], row["filename"],
+                     row["format"], row["source"], row["bbox"],
+                     row["dimensions"], row["entity_counts"]))
+                self._conn.commit()
+            except sqlite3.OperationalError:
+                pass
+
+    def list_cad_imports(self, limit: int = 8) -> list[dict]:
+        if self._rest:
+            rows = self._pg("GET", "cad_imports",
+                            params={"select": "*", "order": "created_at.desc",
+                                    "limit": max(1, min(limit, 50))}) or []
+            return rows
+        try:
+            cur = self._conn.execute(
+                "SELECT import_id, created_at, filename, format, source, "
+                "bbox, dimensions, entity_counts FROM cad_imports "
+                "ORDER BY created_at DESC LIMIT ?", (max(1, min(limit, 50)),))
+            cols = [c[0] for c in cur.description]
+            out = []
+            for row in cur.fetchall():
+                d = dict(zip(cols, row))
+                for k in ("bbox", "dimensions", "entity_counts"):
+                    if isinstance(d.get(k), str):
+                        try:
+                            d[k] = json.loads(d[k])
+                        except Exception:
+                            d[k] = None
+                out.append(d)
+            return out
+        except sqlite3.OperationalError:
+            return []
 
 
 def _f(v) -> float | None:

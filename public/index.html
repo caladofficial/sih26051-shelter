@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" media="(prefers-color-scheme: light)" content="#e9e7e2" />
   <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#101215" />
   <title>SIH26051 · Shelter-Studio — Tactical Thermal Design Deck</title>
@@ -20,6 +20,8 @@
   </script>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
 
@@ -70,6 +72,7 @@
       <span><b>WEATHER</b> NASA POWER × OPEN-METEO CROSS-CHECK</span>
       <span><b>STORAGE</b> SUPABASE · POSTGRESQL</span>
       <span><b>STACK</b> 100% FREE &amp; OPEN-SOURCE — ₹0</span>
+      <span><b>CAD</b> DXF · OBJ · STL — INGEST ANY CHANNEL · EXPORT / AUTO-GEN</span>
       <span><b>SITE</b> PRAYAGRAJ · 25.4358°N 81.8463°E · 98 M ASL</span>
       <span><b>PHASE</b> 09 / 09 — DEPLOYED</span>
     </div>
@@ -144,31 +147,81 @@
       <div class="mod-head">
         <span class="sec">SEC/03</span>
         <h2>Shelter Design Matrix</h2>
-        <span class="code">MODULE: CONFIG-3D</span>
+        <span class="code">MODULE: CONFIG-3D + DIGITAL STRUCTURE</span>
       </div>
-      <div class="grid4">
-        <label class="ctl">Length <em>m · X axis</em><input id="length" type="number" step="0.5" value="3.0" /></label>
-        <label class="ctl">Width <em>m · Y axis</em><input id="width" type="number" step="0.5" value="3.0" /></label>
-        <label class="ctl">Height <em>m · Z axis</em><input id="height" type="number" step="0.1" value="2.6" /></label>
-        <label class="ctl">Orientation <em>deg · azimuth</em><input id="orientation" type="number" step="15" value="0" /></label>
-        <label class="ctl">Wall material <em>sourced table</em><select id="wallMat"></select></label>
-        <label class="ctl">Wall thickness <em>m</em><input id="wallThick" type="number" step="0.01" value="0.2" /></label>
-        <label class="ctl">Roof material <em>sourced table</em><select id="roofMat"></select></label>
-        <label class="ctl">Roof thickness <em>m</em><input id="roofThick" type="number" step="0.01" value="0.12" /></label>
-        <label class="ctl">Insulation <em>class</em><select id="insMat"><option value="none">none</option></select></label>
-        <label class="ctl">Insulation <em>mm</em><input id="insThick" type="number" step="5" value="0" /></label>
-        <label class="ctl">Window wall <em>facing</em><select id="winWall"><option>south</option><option>east</option><option>west</option><option>north</option></select></label>
-        <label class="ctl">Window W × H <em>m</em><input id="winSize" type="text" value="1.2 × 1.2" /></label>
-        <label class="ctl">Period <em>analysis window</em>
-          <select id="period">
-            <option value="hot_week">Hottest week</option>
-            <option value="cold_week">Coldest week</option>
-            <option value="full_year">Full year</option>
-          </select>
-        </label>
-        <button id="simulate" class="primary">▶ Run Simulation</button>
+      <div class="design-split">
+        <div class="design-inputs">
+          <div class="grid4">
+            <label class="ctl">Length <em>m · X axis</em><input id="length" type="number" step="0.5" value="3.0" /></label>
+            <label class="ctl">Width <em>m · Y axis</em><input id="width" type="number" step="0.5" value="3.0" /></label>
+            <label class="ctl">Height <em>m · Z axis</em><input id="height" type="number" step="0.1" value="2.6" /></label>
+            <label class="ctl">Orientation <em>deg · azimuth</em><input id="orientation" type="number" step="15" value="0" /></label>
+            <label class="ctl">Wall material <em>sourced table</em><select id="wallMat"></select></label>
+            <label class="ctl">Wall thickness <em>m</em><input id="wallThick" type="number" step="0.01" value="0.2" /></label>
+            <label class="ctl">Roof material <em>sourced table</em><select id="roofMat"></select></label>
+            <label class="ctl">Roof thickness <em>m</em><input id="roofThick" type="number" step="0.01" value="0.12" /></label>
+            <label class="ctl">Insulation <em>class</em><select id="insMat"><option value="none">none</option></select></label>
+            <label class="ctl">Insulation <em>mm</em><input id="insThick" type="number" step="5" value="0" /></label>
+            <label class="ctl">Window wall <em>facing</em><select id="winWall"><option>south</option><option>east</option><option>west</option><option>north</option></select></label>
+            <label class="ctl">Window W × H <em>m</em><input id="winSize" type="text" value="1.2 × 1.2" /></label>
+            <label class="ctl">Period <em>analysis window</em>
+              <select id="period">
+                <option value="hot_week">Hottest week</option>
+                <option value="cold_week">Coldest week</option>
+                <option value="full_year">Full year</option>
+              </select>
+            </label>
+            <button id="simulate" class="primary">▶ Run Simulation</button>
+          </div>
+          <div id="simMetrics" class="metrics"></div>
+        </div>
+
+        <!-- ===== digital structure ===== -->
+        <div class="design-3d">
+          <div class="mod">
+            <div class="mod-hd"><i></i>MOD·03D — DIGITAL STRUCTURE
+              <span class="grow" style="flex:1"></span>
+              <span id="structSource" class="tag">AUTO-GEN · PARAMS</span>
+            </div>
+            <div id="view3d" class="view3d"></div>
+            <div class="view3d-tools">
+              <label class="chk"><input type="checkbox" id="explode" /> EXPLODE LAYERS</label>
+              <label class="chk"><input type="checkbox" id="wire" /> WIREFRAME</label>
+              <span class="tag" id="structDims">—</span>
+              <span class="tag" id="structVol">—</span>
+            </div>
+          </div>
+
+          <div class="mod">
+            <div class="mod-hd"><i></i>MOD·03E — STRUCTURE MATERIAL DATA</div>
+            <div class="tblwrap">
+              <table class="struct-sheet">
+                <thead><tr>
+                  <th>Element</th><th>Material</th><th>t·m</th><th>k·W/mK</th>
+                  <th>ρ·kg/m³</th><th>cp·J/kgK</th><th>R·m²K/W</th><th>U·W/m²K</th>
+                </tr></thead>
+                <tbody id="structSheet"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="mod">
+            <div class="mod-hd"><i></i>MOD·03F — CAD DATA CHANNELS · DXF / OBJ / STL</div>
+            <div class="cad-row">
+              <input type="file" id="cadFile" accept=".dxf,.obj,.stl" hidden />
+              <button id="cadPick" type="button">⬆ Ingest CAD</button>
+              <button id="cadImport" type="button" class="primary" disabled>Import</button>
+              <span id="cadFileLabel" class="cad-file">no file selected</span>
+              <span class="cad-sep"></span>
+              <button id="exportDxf" type="button" title="AutoCAD/LibreCAD DXF">DXF</button>
+              <button id="exportObj" type="button" title="Wavefront mesh">OBJ</button>
+              <button id="exportStl" type="button" title="3D-print mesh">STL</button>
+              <span id="cadStatus" class="status"></span>
+            </div>
+            <div id="cadRecent" class="cad-recent"></div>
+          </div>
+        </div>
       </div>
-      <div id="simMetrics" class="metrics"></div>
     </section>
 
     <!-- ============ 4 · SIMULATION ============ -->

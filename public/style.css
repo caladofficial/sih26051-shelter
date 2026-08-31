@@ -417,16 +417,179 @@ footer .fbody .warn { color: var(--amber); }
 #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 #toast.err { border-color: var(--red); border-left-color: var(--red); color: var(--toast-err-txt); }
 
+/* ---------------- design split (inputs + digital structure) ---------------- */
+.design-split {
+  display: grid; grid-template-columns: minmax(0, 1.02fr) minmax(0, 0.98fr);
+  gap: 20px; align-items: start;
+}
+.design-inputs { min-width: 0; }
+.design-3d { min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+.design-3d .mod { margin: 0; }
+
+/* ---------------- 3D viewport ---------------- */
+.view3d {
+  position: relative; height: 400px; background: var(--chart-bg);
+  cursor: grab; overflow: hidden;
+}
+.view3d:active { cursor: grabbing; }
+.view3d canvas { display: block; width: 100%; height: 100%; }
+.view3d::after {
+  content: "◈ RENDERING STRUCTURE…"; position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 0.7rem; letter-spacing: 4px;
+  color: var(--dim); pointer-events: none;
+}
+.view3d.ready::after { display: none; }
+.view3d-tools {
+  display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
+  padding: 9px 12px; border-top: 1px solid var(--line-soft);
+}
+.view3d-tools .tag { margin: 0; }
+.chk {
+  display: flex; align-items: center; gap: 7px; cursor: pointer;
+  font-family: var(--mono); font-size: 0.62rem; letter-spacing: 1.5px;
+  color: var(--mut); text-transform: uppercase; user-select: none;
+}
+.chk input[type="checkbox"] {
+  width: 15px; height: 15px; margin: 0; cursor: pointer;
+  accent-color: var(--saff); border-radius: 0; clip-path: none; padding: 0;
+}
+
+/* ---------------- structure data sheet ---------------- */
+.struct-sheet td, .struct-sheet th { font-size: 0.72rem; padding: 7px 9px; }
+.struct-sheet tbody tr[data-id] { cursor: default; }
+.struct-sheet tbody tr:hover { background: var(--hover-row); }
+.struct-sheet .hl { background: var(--hover-row); }
+.struct-sheet .total td { font-weight: 700; border-top: 2px solid var(--line); background: var(--m2); }
+
+/* ---------------- CAD channels ---------------- */
+.cad-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.cad-row button { padding: 8px 14px; font-size: 0.68rem; }
+.cad-sep { width: 1px; height: 26px; background: var(--line); margin: 0 4px; }
+.cad-file {
+  font-family: var(--mono); font-size: 0.66rem; letter-spacing: 1px;
+  color: var(--dim); max-width: 220px; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+.cad-recent { margin-top: 12px; display: flex; flex-direction: column; gap: 5px; }
+.cad-item {
+  display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap;
+  font-family: var(--mono); font-size: 0.64rem; letter-spacing: 1px;
+  color: var(--mut); padding: 5px 10px;
+  border-left: 2px solid var(--saff); background: var(--m2);
+}
+.cad-item b { color: var(--txt); font-weight: 600; }
+.cad-item .dims { color: var(--green); }
+.cad-item .when { color: var(--dim); margin-left: auto; }
+
 /* ---------------- misc ---------------- */
 [hidden] { display: none !important; }
 a { color: var(--saff); }
 
+/* ============================================================
+   RESPONSIVE — mobile · tablet · PC · TV
+   ============================================================ */
+
+/* --- TV / large desktop (≥1600 px) --- */
+@media (min-width: 1600px) {
+  main { max-width: 1560px; }
+  body { font-size: 16.5px; }
+  .topbar { padding: 12px 40px; }
+  .hero { padding: 40px 40px 20px; }
+  .navbar { padding: 0 40px 16px; }
+  .metric { max-width: 280px; }
+  .metric b { font-size: 1.5rem; }
+  .view3d { height: 440px; }
+  .grid4 { gap: 14px; }
+}
+
+/* --- 4K TV / ultra-wide (≥2560 px) --- */
+@media (min-width: 2560px) {
+  main { max-width: 1960px; }
+  body { font-size: 18px; }
+  .brand .b1 { font-size: 1.25rem; }
+  .hero h1 { font-size: clamp(2.2rem, 3.4vw, 4rem); }
+  .grid4 { grid-template-columns: repeat(5, 1fr); }
+  .grid2 { grid-template-columns: 1fr 1fr; }
+  .module { padding: 30px 36px 34px; }
+  .view3d { height: 500px; }
+}
+
+/* --- tablet / small laptop (≤1200 px): design split stacks --- */
+@media (max-width: 1200px) {
+  .design-split { grid-template-columns: 1fr; }
+  .view3d { height: 380px; }
+}
+
+/* --- tablet portrait (≤980 px) --- */
+@media (max-width: 980px) {
+  .grid2, .grid4 { grid-template-columns: 1fr; }
+  .grid3 { grid-template-columns: 1fr; }
+  .topbar { flex-wrap: wrap; }
+  .brand { flex: 1 1 100%; order: 2; }
+  .top-right { order: 3; width: 100%; justify-content: flex-end; }
+}
+
+/* --- phone landscape / large phone (≤760 px) --- */
 @media (max-width: 760px) {
-  .topbar { padding: 8px 14px; flex-wrap: wrap; }
-  .top-right { order: 3; width: 100%; justify-content: space-between; }
+  .topbar { padding: 8px 14px; }
+  .top-right { justify-content: space-between; }
   .navbar { top: 0; padding: 10px 14px; background: var(--navbar-mobile-bg); }
   main { padding: 0 14px 30px; }
   .hero { padding: 22px 14px 10px; }
   .module { padding: 18px 14px 20px; }
   .metric { max-width: none; flex: 1 1 130px; }
+  .view3d { height: 320px; }
+  .cad-recent { max-height: 150px; overflow-y: auto; }
 }
+
+/* --- small phone (≤480 px) --- */
+@media (max-width: 480px) {
+  .topbar { gap: 10px; }
+  .brand .b2 { display: none; }
+  .clock { display: none; }
+  .theme-toggle { padding: 8px 10px; }
+  .theme-toggle span { display: none; }
+  .hero h1 { font-size: 1.45rem; letter-spacing: 1px; }
+  .hero .kicker { letter-spacing: 3px; font-size: 0.6rem; }
+  .navbar { overflow-x: auto; flex-wrap: nowrap; justify-content: flex-start;
+    scrollbar-width: none; }
+  .navbar::-webkit-scrollbar { display: none; }
+  .navbar a { flex: 0 0 auto; }
+  .grid4 { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .mod-head h2 { font-size: 1rem; letter-spacing: 2px; }
+  .mod-head .code { display: none; }
+  .metric { flex: 1 1 100%; }
+  .view3d { height: 280px; }
+  .cad-sep { display: none; }
+  .cad-row button { flex: 1 1 auto; text-align: center; }
+  footer .fbody { flex-direction: column; align-items: flex-start; gap: 8px; }
+}
+
+/* --- notch / safe-area padding --- */
+@supports (padding: max(0px)) {
+  .topbar { padding-left: max(28px, env(safe-area-inset-left));
+            padding-right: max(28px, env(safe-area-inset-right)); }
+  .hero { padding-left: max(32px, env(safe-area-inset-left));
+          padding-right: max(32px, env(safe-area-inset-right)); }
+  .navbar { padding-left: max(32px, env(safe-area-inset-left));
+            padding-right: max(32px, env(safe-area-inset-right)); }
+  main { padding-left: max(32px, env(safe-area-inset-left));
+         padding-right: max(32px, env(safe-area-inset-right)); }
+  footer .fbody { padding-left: max(32px, env(safe-area-inset-left));
+                  padding-right: max(32px, env(safe-area-inset-right)); }
+  @media (max-width: 760px) {
+    .topbar { padding-left: max(14px, env(safe-area-inset-left));
+              padding-right: max(14px, env(safe-area-inset-right)); }
+    .hero, .navbar, main { padding-left: max(14px, env(safe-area-inset-left));
+                           padding-right: max(14px, env(safe-area-inset-right)); }
+  }
+}
+
+/* ---------------- 3D fallback / error states ---------------- */
+.view3d-msg {
+  position: absolute; inset: 0; display: flex; align-items: center;
+  justify-content: center; font-family: var(--mono); font-size: 0.68rem;
+  letter-spacing: 2px; color: var(--red); padding: 10px; text-align: center;
+}
+.view3d.ready .view3d-msg { display: none; }

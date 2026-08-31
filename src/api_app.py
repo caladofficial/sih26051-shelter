@@ -33,7 +33,8 @@ import os
 import sys
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, UploadFile, File
+from fastapi.responses import Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -46,6 +47,10 @@ from src.data.climate import (design_weeks, load_config,  # noqa: E402
                               cross_check)
 from src.data import nasa_power, openmeteo  # noqa: E402
 from src.db.store import Store, new_id  # noqa: E402
+from src.cad import model as cad_model  # noqa: E402
+from src.cad import dxf as cad_dxf  # noqa: E402
+from src.cad import mesh as cad_mesh  # noqa: E402
+from src.cad import ingest as cad_ingest  # noqa: E402
 from src.thermal.rc_model import (comfort_stats, load_materials,  # noqa: E402
                                   simulate)
 
@@ -184,6 +189,43 @@ def _apply_design(cfg: dict, design: dict) -> dict:
         else:
             cfg["shelter"][k] = v
     return cfg
+
+
+def _flat_design(cfg: dict) -> dict:
+    """Resolved config -> flat design dict (single source for CAD/UI)."""
+    s = cfg["shelter"]
+    return {
+        "length_m": s["length_m"], "width_m": s["width_m"],
+        "height_m": s["height_m"], "orientation_deg": s["orientation_deg"],
+        "wall_material": s["wall_material"],
+        "wall_thickness_m": s["wall_thickness_m"],
+        "roof_material": s["roof_material"],
+        "roof_thickness_m": s["roof_thickness_m"],
+        "floor_material": s.get("floor_material", "concrete"),
+        "floor_thickness_m": s.get("floor_thickness_m", 0.1),
+        "insulation_material": s["insulation"]["material"],
+        "insulation_thickness_m": s["insulation"]["thickness_m"],
+        "window_wall": s["window"]["wall"],
+        "window_width_m": s["window"]["width_m"],
+        "window_height_m": s["window"]["height_m"],
+        "window_sill_m": s["window"].get("sill_height_m", 0.9),
+        "window_shgc": s["window"].get("shgc", 0.82),
+        "window_u_w_m2k": s["window"].get("u_w_m2k", 5.8),
+    }
+
+
+def _materials_map() -> dict:
+    return {m["material"]: m for m in _canon_materials(STORE.list_materials())}
+
+
+def _design_from_flat(flat: dict) -> dict:
+    """Flat design dict -> SimulateRequest-style overrides."""
+    return {k: v for k, v in flat.items()
+            if k in ("orientation_deg", "length_m", "width_m", "height_m",
+                     "wall_material", "wall_thickness_m", "roof_material",
+                     "roof_thickness_m", "insulation_material",
+                     "insulation_thickness_m", "window_wall",
+                     "window_width_m", "window_height_m", "window_shgc")}
 
 
 def _series_payload(res: pd.DataFrame, period: str) -> dict:
@@ -385,6 +427,84 @@ def optimize_endpoint(req: OptimizeRequest):
         "best": {"tpi": round(1.0 - best.value, 4), "design": best_design},
         "top10": top10, "history": history,
     }
+
+
+# --------------------------------------------------------------------------
+# CAD / digital structure
+# --------------------------------------------------------------------------
+@app.post("/api/cad/structure")
+def cad_structure(req: SimulateRequest):
+    """Digital structure of the shelter — generated from the design
+    parameters (this is the 'create yourself' path: no CAD file needed)."""
+    flat = _flat_design(_apply_design(CFG, _design_from_request(req)))
+    mat = _materials_map()
+    comps = cad_model.build_components(flat, mat)
+    return {
+        "design": {k: (round(v, 4) if isinstance(v, float) else v)
+                   for k, v in flat.items()},
+        "generated": True,
+        "coordinate_frame": "x east, y north, z up; origin at footprint centre; "
+                            "orientation rotates clockwise viewed from above",
+        "components": comps,
+        "assembly": cad_model.assembly(flat, mat),
+        "bounding": cad_model.bounding_box(comps),
+        "surfaces": cad_model.surfaces(flat, comps),
+    }
+
+
+@app.get("/api/cad/export")
+def cad_export(format: str = "dxf", request: Request = None):
+    """Export the digital structure as DXF / OBJ / STL (auto-generated
+    from the current design parameters; optional query overrides)."""
+    fmt = (format or "dxf").lower().lstrip(".")
+    if fmt not in ("dxf", "obj", "stl"):
+        raise HTTPException(400, "format must be dxf | obj | stl")
+    flat = _flat_design(CFG)
+    if request is not None:
+        for k, v in request.query_params.items():
+            if k in flat and k != "format":
+                try:
+                    flat[k] = float(v) if isinstance(flat[k], float) else (
+                        int(v) if isinstance(flat[k], int) else v)
+                except ValueError:
+                    pass
+    mat = _materials_map()
+    comps = cad_model.build_components(flat, mat)
+    L, W, H = flat["length_m"], flat["width_m"], flat["height_m"]
+    fname = f"shelter-{L}x{W}x{H}m-o{flat['orientation_deg']}.{fmt}"
+    if fmt == "dxf":
+        content, media = cad_dxf.write_dxf(flat, comps), "application/dxf"
+    elif fmt == "obj":
+        content, media = cad_mesh.write_obj(flat, comps), "model/obj"
+    else:
+        content, media = cad_mesh.write_stl(flat, comps), "model/stl"
+    return Response(content=content, media_type=media, headers={
+        "Content-Disposition": f'attachment; filename="{fname}"'})
+
+
+@app.post("/api/cad/import")
+def cad_import(file: UploadFile = File(...)):
+    """Ingest a CAD file (DXF / OBJ / STL) from any source channel and
+    extract the shelter dimensions. Recorded in cad_imports."""
+    try:
+        data = file.file.read()
+        summary = cad_ingest.ingest(file.filename or "upload", data)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from None
+    summary["filename"] = file.filename or "upload"
+    summary["suggested_design"] = cad_ingest.suggest_design(summary)
+    summary["import_id"] = new_id("cad")
+    try:
+        STORE.save_cad_import(summary)
+    except Exception:
+        pass  # ingestion logging must never break the import flow
+    return summary
+
+
+@app.get("/api/cad/imports")
+def cad_imports(limit: int = 8):
+    """Recent CAD ingestion log (all source channels)."""
+    return {"imports": STORE.list_cad_imports(limit=limit)}
 
 
 @app.get("/api/simulations")

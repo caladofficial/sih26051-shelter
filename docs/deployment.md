@@ -51,6 +51,25 @@ curl -X POST https://<your-app>.vercel.app/api/simulate \
 ```
 Then open the site in a browser — Location → Climate → Design → Simulate → Optimize.
 
+## Digital structure & CAD channels
+
+The API can generate the shelter's **digital structure** from the design
+parameters (no CAD file needed — "create yourself") and can ingest geometry
+from **any supported CAD channel**:
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /api/cad/structure` | digital structure: component boxes (floor/walls/insulation/roof/window), envelope assembly (R/U per layer), surfaces, bounding box |
+| `GET /api/cad/export?format=dxf\|obj\|stl&…` | export the current design as AutoCAD DXF (LINE+3DFACE, named layers), Wavefront OBJ or 3D-print STL |
+| `POST /api/cad/import` (multipart `file`) | ingest DXF / OBJ / STL from any source → bounding box + suggested length/width/height; every ingest is logged to `cad_imports` (Supabase) |
+| `GET /api/cad/imports?limit=n` | recent ingestion log |
+
+Formats are parsed in pure Python (`src/cad/`) — zero extra serverless
+dependencies. Units note: DXF/OBJ/STL carry no units; dimensions are read as
+**metres** and stated in the response. Sanity envelope 0.1–60 m per axis.
+The 3D viewer in the UI renders the same component boxes the exporters write
+(single source of truth: `src/cad/model.py` ↔ `public/app.js`).
+
 ## Step 4 — Preload data (optional but smart)
 
 From your machine, upload the real 2024 weather cache so the deployed API never
