@@ -84,9 +84,13 @@ def _export_trees(model) -> list[dict]:
     """sklearn HistGradientBoosting: _predictors TreePredictor nodes.
 
     Layout: explicit child indices per node (heap-like, but we simply
-    follow left/right); leaves are flagged with is_leaf. Thresholds and
-    leaf values are rounded to 5 decimals in the export (validation in
-    main() proves numpy inference matches sklearn to <=1e-4).
+    follow left/right); leaves are flagged with is_leaf. Thresholds are
+    exported UNROUNDED (json round-trips float64 exactly, so branch
+    decisions match sklearn's float64 inference bit-for-bit); leaf values
+    are rounded to 8 decimals (<=2e-6 accumulated error, far below the
+    1e-4 guard in main()). NOTE: round(x, 8) of thresholds would put
+    samples within 5e-9 of a split onto the wrong branch, so thresholds
+    must never be rounded.
     """
     trees = []
     # _predictors: one entry per boosting iteration; single-output models
@@ -97,8 +101,8 @@ def _export_trees(model) -> list[dict]:
             "left": n["left"].tolist(),
             "right": n["right"].tolist(),
             "feature": n["feature_idx"].tolist(),
-            "threshold": np.round(n["num_threshold"], 5).tolist(),
-            "value": np.round(n["value"], 5).tolist(),
+            "threshold": n["num_threshold"].tolist(),
+            "value": np.round(n["value"], 8).tolist(),
             "is_leaf": n["is_leaf"].tolist(),
         })
     return trees
@@ -127,7 +131,7 @@ def train_target(name, y, X, tr, te, site_folds):
         "learning_rate": GB_PARAMS["learning_rate"],
         # NOTE: sklearn >= 1.6 already applies the learning-rate shrinkage
         # to the stored leaf values; init is the model baseline (mean(y)).
-        "init": float(gb._baseline_prediction),
+        "init": float(np.asarray(gb._baseline_prediction).reshape(-1)[0]),
         "mae_c": (round(mae, 3) if not frac else None),
         "mae_fraction": (round(mae, 4) if frac else None),
         "r2": round(r2, 4),
@@ -179,23 +183,29 @@ def main():
         "disclaimer": "Estimates from a surrogate trained on the sourced "
                       "RC engine; the engine remains the source of truth.",
     }
-    os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
-    with open(MODEL_PATH, "w") as fh:
-        json.dump(model, fh)
-    print(f"[train] model -> {MODEL_PATH} "
-          f"({os.path.getsize(MODEL_PATH) / 1024:.0f} KB)")
 
-    # ---- post-training check: exported NumPy inference vs sklearn ----
+    # ---- pre-write guard: exported NumPy inference vs sklearn ----
+    # Runs BEFORE the model file is written so a drift can never leave a
+    # silently-bad model on disk.
     from src.ai_model import predict_batch
     chk = np.asarray([X[i] for i in rng.choice(te, size=400, replace=False)])
-    p_np = predict_batch(chk)
+    p_np = predict_batch(chk, model=model)
     worst = {}
     for t in TARGETS:
         gb = HistGradientBoostingRegressor(**GB_PARAMS).fit(X[tr], Y[t][tr])
         p_sk = gb.predict(chk)
         worst[t] = float(np.max(np.abs(p_np[t] - p_sk)))
+    # HARD GUARD: if the export or the NumPy inference ever drifts from
+    # sklearn beyond tolerance, refuse to produce a model file.
+    assert max(worst.values()) <= 1e-4, f"export drift: {worst}"
     print(f"[train] numpy-vs-sklearn max |diff|: {worst} "
           f"(<=1e-4 => export+inference verified)")
+
+    os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
+    with open(MODEL_PATH, "w") as fh:
+        json.dump(model, fh)
+    print(f"[train] model -> {MODEL_PATH} "
+          f"({os.path.getsize(MODEL_PATH) / 1024:.0f} KB)")
 
 
 if __name__ == "__main__":

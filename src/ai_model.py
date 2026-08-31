@@ -177,8 +177,10 @@ def build_features(design: dict, profile: dict, mats: pd.DataFrame) -> list[floa
 _MODEL = None
 
 
-def load_model() -> dict:
+def load_model(model: dict | None = None) -> dict:
     global _MODEL
+    if model is not None:
+        _MODEL = model
     if _MODEL is None:
         with open(MODEL_FILE, "r", encoding="utf-8") as fh:
             _MODEL = json.load(fh)
@@ -228,9 +230,14 @@ def _walk_tree(tree: dict, X: np.ndarray, idx: np.ndarray) -> np.ndarray:
     return val
 
 
-def predict_batch(X: np.ndarray) -> dict[str, np.ndarray]:
-    """Predict all targets for a (n_samples x n_features) float array."""
-    model = load_model()
+def predict_batch(X: np.ndarray, model: dict | None = None) -> dict[str, np.ndarray]:
+    """Predict all targets for a (n_samples x n_features) float array.
+
+    `model` may be passed explicitly (the trainer uses this to validate
+    an in-memory export BEFORE it is written to disk); defaults to the
+    on-disk model.
+    """
+    model = load_model(model)
     out = {}
     for target, spec in model["targets"].items():
         init = float(spec.get("init", 0.0))
