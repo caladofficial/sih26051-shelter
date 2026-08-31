@@ -3,7 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#e9e7e2" />
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#101215" />
   <title>SIH26051 · Shelter-Studio — Tactical Thermal Design Deck</title>
+  <script>
+    /* apply saved/system theme before first paint (no flash) */
+    (function () {
+      try {
+        var t = localStorage.getItem("shl-theme");
+        if (t !== "light" && t !== "dark") {
+          t = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+        }
+        document.documentElement.dataset.theme = t;
+      } catch (e) { document.documentElement.dataset.theme = "dark"; }
+    })();
+  </script>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
 </head>
@@ -18,24 +32,28 @@
         </linearGradient>
       </defs>
       <path d="M24 3 L42 13 V33 L24 45 L6 33 V13 Z"
-            fill="url(#crestFill)" stroke="#ff9933" stroke-width="1.6"/>
+            fill="var(--crest-fill1)" stroke="var(--saff)" stroke-width="1.6"/>
       <path d="M24 12 L35 20 V30 L24 38 L13 30 V20 Z" fill="none"
-            stroke="#e8eaed" stroke-width="1.1" opacity="0.85"/>
+            stroke="var(--txt)" stroke-width="1.1" opacity="0.85"/>
       <!-- shelter roof -->
-      <path d="M16.5 25.5 L24 18 L31.5 25.5" fill="none" stroke="#ff9933" stroke-width="1.6"/>
+      <path d="M16.5 25.5 L24 18 L31.5 25.5" fill="none" stroke="var(--saff)" stroke-width="1.6"/>
       <!-- walls -->
       <path d="M19 25.5 V33 M29 25.5 V33 M16.5 33 H31.5" fill="none"
-            stroke="#e8eaed" stroke-width="1.1"/>
+            stroke="var(--txt)" stroke-width="1.1"/>
       <!-- sun -->
-      <circle cx="24" cy="14.5" r="1.6" fill="#5eea8d"/>
+      <circle cx="24" cy="14.5" r="1.6" fill="var(--green)"/>
       <path d="M24 9.5 V11.5 M24 17.5 V19.5 M19 14.5 H21 M27 14.5 H29"
-            stroke="#5eea8d" stroke-width="1"/>
+            stroke="var(--green)" stroke-width="1"/>
     </svg>
     <div class="brand">
       <p class="b1">Shelter-Studio</p>
       <p class="b2">PS·SIH26051 &nbsp;|&nbsp; Area-Specific Passive Shelter Thermal Design &nbsp;|&nbsp; <b>DRDO INSPIRED INTERFACE</b></p>
     </div>
     <div class="top-right">
+      <button id="themeToggle" class="theme-toggle" type="button" title="Switch theme" aria-label="Switch theme">
+        <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"></svg>
+        <span id="themeLabel">LIGHT</span>
+      </button>
       <div class="clock">
         <div class="t" id="clockIST">--:--:--</div>
         <div class="z">IST · UTC+05:30</div>

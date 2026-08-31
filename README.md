@@ -75,7 +75,9 @@ The repo is deployment-ready:
 - **`api/index.py`** — thin Vercel entrypoint (one-line re-export; the FastAPI
   app itself lives in `src/api_app.py` — see `docs/deployment.md` "Serverless
   entrypoint rules" for why the shim must stay minimal)
-- **`public/`** — zero-build web frontend (Location → Climate → Design → Simulate → Optimize)
+- **`public/`** — zero-build web frontend (Location → Climate → Design → Simulate →
+  Optimize) — bold matte DRDO-inspired "Command Deck" UI with dark/light
+  themes, HUD modules, live clock zero-build web frontend (Location → Climate → Design → Simulate → Optimize) data-link LED
 - **`supabase/`** — Postgres schema + seed (materials, locations, weather cache, results)
 - **`src/db/store.py`** — storage facade: Supabase (PostgREST over requests) when keys are set, else local SQLite
 - **`src/data/solar.py`** — pure-NumPy NREL SPA + Erbs/isotropic-sky solar math,

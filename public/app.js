@@ -30,7 +30,51 @@ function toast(msg, isErr = false) {
   t._h = setTimeout(() => { t.className = ""; }, 4200);
 }
 
+/* ---------- theme ---------- */
+const THEME_COLORS = {
+  dark:  { font: "#c3cad2", grid: "#2b3036", zero: "#333940" },
+  light: { font: "#4a4f57", grid: "#e0ddd5", zero: "#c9c5bc" },
+};
+
+function currentTheme() {
+  return document.documentElement.dataset.theme || "dark";
+}
+
+function applyTheme(t) {
+  document.documentElement.dataset.theme = t;
+  try { localStorage.setItem("shl-theme", t); } catch (e) {}
+  updateThemeToggle();
+  lastPlots.forEach((p) => renderPlot(p.el, p.data, p.layout, p.config));
+}
+
+function updateThemeToggle() {
+  const dark = currentTheme() === "dark";
+  const icon = $("themeIcon"), label = $("themeLabel");
+  if (!icon || !label) return;
+  label.textContent = dark ? "LIGHT" : "DARK";
+  icon.innerHTML = dark
+    ? '<circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6"/>'
+    : '<path d="M20.4 14.2A8.2 8.2 0 0 1 9.8 3.6a8.2 8.2 0 1 0 10.6 10.6Z"/>';
+}
+
 /* ---------- plot (matte command-deck theme) ---------- */
+const lastPlots = []; // registry so charts re-theme on toggle
+
+function renderPlot(el, data, layout, config = {}) {
+  const c = THEME_COLORS[currentTheme()] || THEME_COLORS.dark;
+  Plotly.react(el, data, Object.assign({
+    template: { layout: {
+      paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)",
+      font: { color: c.font, family: "'Cascadia Mono','Consolas',monospace" },
+      xaxis: { gridcolor: c.grid, zerolinecolor: c.zero, linecolor: c.zero },
+      yaxis: { gridcolor: c.grid, zerolinecolor: c.zero, linecolor: c.zero },
+    } },
+    margin: { l: 54, r: 16, t: 40, b: 46 }, height: 320,
+    paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)",
+    font: { color: c.font, family: "'Cascadia Mono','Consolas',monospace" },
+  }, layout), { responsive: true, displayModeBar: false, ...config });
+}
+
 function plot(el, data, layout, config = {}) {
   if (typeof Plotly === "undefined") {
     el.classList.add("has-data");
@@ -38,17 +82,9 @@ function plot(el, data, layout, config = {}) {
     return;
   }
   el.classList.add("has-data");
-  Plotly.react(el, data, Object.assign({
-    template: { layout: {
-      paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)",
-      font: { color: "#c3cad2", family: "'Cascadia Mono','Consolas',monospace" },
-      xaxis: { gridcolor: "#2b3036", zerolinecolor: "#333940", linecolor: "#333940" },
-      yaxis: { gridcolor: "#2b3036", zerolinecolor: "#333940", linecolor: "#333940" },
-    } },
-    margin: { l: 54, r: 16, t: 40, b: 46 }, height: 320,
-    paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)",
-    font: { color: "#c3cad2", family: "'Cascadia Mono','Consolas',monospace" },
-  }, layout), { responsive: true, displayModeBar: false, ...config });
+  lastPlots.push({ el, data, layout, config });
+  if (lastPlots.length > 8) lastPlots.shift();
+  renderPlot(el, data, layout, config);
 }
 
 function metric(value, label) {
@@ -290,6 +326,9 @@ function setupNavSpy() {
 
 /* ---------- init ---------- */
 document.addEventListener("DOMContentLoaded", async () => {
+  updateThemeToggle();
+  const tt = $("themeToggle");
+  if (tt) tt.addEventListener("click", () => applyTheme(currentTheme() === "dark" ? "light" : "dark"));
   tickClock();
   setupTicker();
   setupNavSpy();
