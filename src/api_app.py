@@ -430,20 +430,50 @@ def health():
             "python": sys.version.split()[0]}
 
 
+def _pick_locations(rows: list[dict]) -> list[dict]:
+    """One dropdown entry per city (or per custom coordinate).
+
+    Real cities are deduped by name — the offline-bundle pipeline keeps a
+    second Leh row (34.164, 77.585) alongside the engine-canonical one
+    (34.1526, 77.5771); showing both would put two "Leh" options in the
+    select. The row whose coordinates match the canonical site wins.
+    """
+    try:
+        data = json.loads(PRESETS_FILE.read_text(encoding="utf-8"))
+        canon = {nm: (float(sd["latitude"]), float(sd["longitude"]))
+                 for nm, sd in data.get("sites", {}).items()}
+    except Exception:
+        canon = {}
+    by_key: dict = {}
+    for r in rows:
+        name = r.get("name", "")
+        lat, lon = float(r.get("latitude", 0)), float(r.get("longitude", 0))
+        if name in canon:
+            key = name
+        else:
+            key = (round(lat, 4), round(lon, 4))
+        prev = by_key.get(key)
+        if prev is None:
+            by_key[key] = r
+            continue
+        c = canon.get(name)
+        if c is None:
+            continue
+        d_cur = abs(lat - c[0]) + abs(lon - c[1])
+        p_lat, p_lon = float(prev.get("latitude", 0)), float(prev.get("longitude", 0))
+        d_prev = abs(p_lat - c[0]) + abs(p_lon - c[1])
+        if d_cur < d_prev:
+            by_key[key] = r
+    return list(by_key.values())
+
+
 @app.get("/api/locations")
 def locations():
     try:
         rows = STORE.list_locations()
     except Exception:
         rows = []
-    seen, out = set(), []
-    for r in rows:
-        key = (round(float(r.get("latitude", 0)), 4),
-               round(float(r.get("longitude", 0)), 4))
-        if key in seen:
-            continue
-        seen.add(key)
-        out.append(r)
+    out = _pick_locations(rows)
     if out:
         return {"locations": out, "source": STORE.backend}
     return {"locations": [DEFAULT_LOCATION], "source": "config"}
