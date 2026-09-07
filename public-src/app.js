@@ -61,7 +61,7 @@ function updateThemeToggle() {
     : '<path d="M20.4 14.2A8.2 8.2 0 0 1 9.8 3.6a8.2 8.2 0 1 0 10.6 10.6Z"/>';
 }
 
-/* ---------- plot (matte command-deck theme) ---------- */
+/* ---------- plot (console palette) ---------- */
 const lastPlots = []; // registry so charts re-theme on toggle
 
 function renderPlot(el, data, layout, config = {}, _retry = 0) {
@@ -342,7 +342,7 @@ async function checkHealth() {
 
 function setupTicker() {
   const t = $("tickerTrack");
-  if (t) t.innerHTML += t.innerHTML; // duplicate for seamless loop
+  if (t) t.innerHTML += t.innerHTML; // duplicate ticker content for a continuous loop
 }
 
 function setupNavSpy() {
@@ -2374,4 +2374,26 @@ function initCadExtras() {
 document.addEventListener("DOMContentLoaded", () => {
   initPresets();
   initCadExtras();
+  // First view: once the site + material lists are populated, run the
+  // default design through the engine so the console opens with live output
+  // instead of placeholders. Best effort — skipped when Plotly is missing
+  // (no network) or when the user already ran something. Once per session.
+  if (typeof Plotly !== "undefined" && $("simulate")) {
+    let ran = false;
+    try { ran = !!sessionStorage.getItem("shl-warm"); } catch (e) {}
+    if (!ran) {
+      try { sessionStorage.setItem("shl-warm", "1"); } catch (e) {}
+      (async () => {
+        const t0 = Date.now();
+        while (Date.now() - t0 < 15000) {
+          const loc = $("location"), mat = $("wallMat"), sim = $("simulate");
+          if (loc && mat && sim && !sim.disabled &&
+              loc.options.length > 1 && loc.selectedOptions[0] &&
+              loc.selectedOptions[0].dataset.lat && mat.options.length > 0) break;
+          await new Promise((r) => setTimeout(r, 250));
+        }
+        try { await runSimulate(); } catch (e) { /* preview is best effort */ }
+      })();
+    }
+  }
 });

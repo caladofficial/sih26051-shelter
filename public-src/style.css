@@ -1,8 +1,8 @@
 /* ============================================================
-   SIH26051 · SHELTER-STUDIO — "COMMAND DECK" UI
-   Bold matte defence-R&D theme (DRDO design language inspired).
-   Dual theme: DARK (default) + LIGHT ("field manual").
-   All colors are CSS variables — switch via <html data-theme>.
+   SIH26051 · SHELTER-STUDIO — UI stylesheet
+   Matte console palette with saffron accents; dual theme:
+   DARK (default) + LIGHT. Colors are CSS variables, switched
+   via <html data-theme>.
    ============================================================ */
 
 /* ---------- typeface: self-hosted Poppins (latin subset, no CDN) ---------- */

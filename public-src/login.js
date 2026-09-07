@@ -32,7 +32,7 @@
       $("pwToggle").textContent = show ? "🙈" : "👁";
     });
 
-    // already signed in? straight to the deck
+    // already signed in? go straight to the workspace
     if (window.SHI && SHI.isAuthed()) { location.href = "dashboard.html"; return; }
 
     $("authForm").addEventListener("submit", async (e) => {
