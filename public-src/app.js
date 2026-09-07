@@ -105,7 +105,8 @@ function metric(value, label) {
 }
 
 /* ---------- state ---------- */
-const state = { locations: [], materials: [], climate: null };
+const state = { locations: [], materials: [], climate: null,
+                coverage: null, trends: null };
 
 /* ---------- 1 · locations ---------- */
 async function loadLocations() {
@@ -118,6 +119,7 @@ async function loadLocations() {
     opt.value = l.location_id || l.name;
     opt.textContent = `${l.name} (${l.latitude.toFixed(3)}, ${l.longitude.toFixed(3)})`;
     opt.dataset.lat = l.latitude; opt.dataset.lon = l.longitude;
+    opt.dataset.name = l.name;
     sel.appendChild(opt);
   });
   // remember the user's last choice; otherwise default to the project's
@@ -152,6 +154,226 @@ async function loadMaterials() {
     ins.map((n) => `<option>${n}</option>`).join("");
 }
 
+/* ---------- climate period (rolling "latest" vs a calendar year) ---------- */
+/* The platform is never pinned to a hardcoded year: the selector is built from
+   /api/climate/coverage, and the default option "latest" tracks a rolling
+   12-month window that the daily refresh job keeps moving forward. */
+
+function climatePeriod() {
+  const el = $("year");
+  return (el && el.value) ? el.value : "latest";
+}
+
+/* numeric year for legacy fields — the calendar year the period ends in */
+function climateYear() {
+  const v = climatePeriod();
+  if (/^\d{4}$/.test(v)) return parseInt(v, 10);
+  const latest = state.coverage && state.coverage.latest_hour_utc;
+  return latest ? parseInt(String(latest).slice(0, 4), 10)
+                : new Date().getFullYear();
+}
+
+async function loadCoverage() {
+  let cov;
+  try {
+    cov = await api("/api/climate/coverage");
+  } catch (err) {
+    return;                                  // keep whatever markup shipped
+  }
+  state.coverage = cov;
+
+  const sel = $("year");
+  if (sel && cov.options && cov.options.length) {
+    sel.innerHTML = cov.options.map((o) =>
+      `<option value="${o.value}"${o.default ? " selected" : ""}>${o.label}</option>`
+    ).join("");
+  }
+
+  const badge = $("dataFresh");
+  if (badge && cov.latest_hour_utc) {
+    const d = new Date(cov.latest_hour_utc.replace(" ", "T"));
+    const nice = isNaN(d) ? cov.latest_hour_utc
+      : d.toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" });
+    badge.textContent = `DATA CURRENT THROUGH ${nice.toUpperCase()}`;
+    badge.classList.toggle("stale", cov.is_fresh === false);
+    badge.title = `${cov.source}\nAuto-refreshed daily. `
+      + `${Object.keys(cov.sites || {}).length} sites · rolling window `
+      + `${cov.rolling_days} days.`;
+  }
+  return cov;
+}
+
+/* ---------- 10 · climate trends (year over year) ---------- */
+/* Answers the question the single-year view can't: is the design case itself
+   moving? Every year is truncated to the same day-of-year span server-side,
+   so an in-progress year is never unfairly compared with a full one. */
+
+const TREND_COLORS = ["#6b7d8f", "#e0a34a", "#e2564a", "#4ac2e0"];
+
+async function loadTrends() {
+  const sel = $("location").selectedOptions[0];
+  if (!sel) return;
+  const st = $("trendStatus");
+  const btn = $("trendBtn");
+  if (btn) { btn.disabled = true; btn.classList.add("busy"); }
+  if (st) { st.textContent = "Loading multi-year archive…"; st.classList.remove("err"); }
+
+  const site = sel.dataset.name || sel.textContent.trim();
+  try {
+    let data;
+    try {
+      data = await api(`/api/climate/trends?site=${encodeURIComponent(site)}`);
+    } catch (e) {
+      data = await api(`/api/climate/trends?lat=${sel.dataset.lat}&lon=${sel.dataset.lon}`);
+    }
+    state.trends = data;
+    renderTrends(data);
+    if (st) st.textContent = `${data.years.length} YEARS · ${data.site}`;
+  } catch (err) {
+    if (st) { st.textContent = `No multi-year archive for this site: ${err.message}`;
+              st.classList.add("err"); }
+    const w = $("trendWrap"); if (w) w.hidden = true;
+  } finally {
+    if (btn) { btn.disabled = false; btn.classList.remove("busy"); }
+  }
+}
+
+function renderTrends(d) {
+  const wrap = $("trendWrap");
+  if (wrap) wrap.hidden = false;
+
+  /* --- headline deltas --- */
+  const box = $("trendMetrics");
+  if (box) {
+    const dl = d.delta || {};
+    box.innerHTML = "";
+    box.append(
+      metric(signed(dl.t2m_mean_c, 2, "°C"), `mean temp ${dl.span || ""}`),
+      metric(signed(dl.hours_above_35c, 0, " h"), "hours above 35 °C"),
+      metric(signed(dl.cdd18, 0), "cooling degree-days"),
+      metric(signed(dl.precip_total_mm, 0, " mm"), "rainfall"),
+      metric(d.latest && d.latest.summary ? fmt(d.latest.summary.t2m_max_c, 1) : "—",
+             "peak °C · rolling year"));
+  }
+
+  /* --- note --- */
+  const note = $("trendNote");
+  if (note) note.textContent = d.note || "";
+
+  /* --- annual mean + extremes --- */
+  const yrs = d.series.years.map(String);
+  /* Peak / mean / min share one axis — a second y-axis for a 0.7 C spread
+     just produced unreadable repeated ticks. The band between min and peak
+     IS the envelope the shelter has to ride out. */
+  plot($("chartTrendTemp"), [
+    { x: yrs, y: d.series.t2m_max_c, type: "scatter", mode: "lines+markers",
+      name: "peak °C", line: { color: "#e2564a", width: 3 },
+      marker: { size: 9 } },
+    { x: yrs, y: d.series.t2m_mean_c, type: "scatter", mode: "lines+markers",
+      name: "mean °C", line: { color: "#e0a34a", width: 3 },
+      marker: { size: 9 } },
+    { x: yrs, y: d.series.t2m_min_c, type: "scatter", mode: "lines+markers",
+      name: "min °C", line: { color: "#4ac2e0", width: 3 },
+      marker: { size: 9 } },
+  ], {
+    title: { text: "TEMPERATURE ENVELOPE — PEAK / MEAN / MIN", font: { size: 11 } },
+    // years are labels, not a continuous axis — otherwise Plotly invents
+    // half-year ticks like "2,024.5"
+    xaxis: { type: "category" },
+    yaxis: { title: "°C" },
+    legend: { orientation: "h", y: -0.18 }, height: 300,
+  });
+
+  /* --- thermal stress load --- */
+  plot($("chartTrendStress"), [
+    { x: yrs, y: d.series.hours_above_35c, type: "bar", name: "hours > 35 °C",
+      marker: { color: "#e2564a" } },
+    { x: yrs, y: d.series.hours_below_0c, type: "bar", name: "hours < 0 °C",
+      marker: { color: "#4ac2e0" } },
+  ], {
+    title: { text: "THERMAL STRESS HOURS — COOLING vs HEATING DEMAND",
+             font: { size: 11 } },
+    barmode: "group", xaxis: { type: "category" },
+    yaxis: { title: "hours" },
+    legend: { orientation: "h", y: -0.18 }, height: 300,
+  });
+
+  /* --- monthly profile, one trace per year --- */
+  const traces = [];
+  const mby = d.monthly_by_year || {};
+  Object.keys(mby).sort().forEach((y, i) => {
+    const m = mby[y];
+    if (!m || !m.t2m) return;
+    traces.push({
+      x: m.ts.map((t) => parseInt(t.slice(5, 7), 10)),
+      y: m.t2m, type: "scatter", mode: "lines+markers", name: y,
+      line: { color: TREND_COLORS[i % TREND_COLORS.length], width: 2 },
+    });
+  });
+  plot($("chartTrendMonthly"), traces, {
+    title: { text: "MONTHLY MEAN TEMPERATURE BY YEAR", font: { size: 11 } },
+    xaxis: { tickmode: "array",
+             tickvals: [1,2,3,4,5,6,7,8,9,10,11,12],
+             ticktext: ["J","F","M","A","M","J","J","A","S","O","N","D"] },
+    yaxis: { title: "°C" }, legend: { orientation: "h", y: -0.18 },
+    margin: { l: 54, r: 16, t: 40, b: 56 }, height: 300,
+  });
+
+  /* --- rainfall / monsoon load --- */
+  plot($("chartTrendRain"), [
+    { x: yrs, y: d.series.precip_total_mm, type: "bar", name: "rainfall mm",
+      marker: { color: "#4ac2e0" } },
+  ], {
+    title: { text: "RAINFALL — DRIVES ROOF, DRAINAGE & DAMP-PROOFING SPEC",
+             font: { size: 11 } },
+    xaxis: { type: "category" }, yaxis: { title: "mm" }, height: 300,
+  });
+
+  /* --- design-week shift table: the engineering consequence --- */
+  const body = $("trendShiftBody");
+  if (body) {
+    body.innerHTML = "";
+    const ds = d.design_shift || {};
+    [["hot", "Hottest week"], ["cold", "Coldest week"]].forEach(([k, lbl]) => {
+      const r = ds[k];
+      if (!r) return;
+      const tr = document.createElement("tr");
+      tr.innerHTML =
+        `<td><b>${lbl}</b></td>` +
+        `<td>${r.from_year}: ${r.from_week}<br><span class="tag">peak ${fmt(r.from_peak_c,1)} °C · mean ${fmt(r.from_mean_c,1)} °C</span></td>` +
+        `<td>${r.to_year}: ${r.to_week}<br><span class="tag">peak ${fmt(r.to_peak_c,1)} °C · mean ${fmt(r.to_mean_c,1)} °C</span></td>` +
+        `<td class="${r.peak_delta_c > 0 ? "up" : "down"}"><b>${signed(r.peak_delta_c,1,' °C')}</b></td>` +
+        `<td class="${r.mean_delta_c > 0 ? "up" : "down"}"><b>${signed(r.mean_delta_c,1,' °C')}</b></td>`;
+      body.appendChild(tr);
+    });
+  }
+
+  /* --- per-year table --- */
+  const tb = $("trendYearBody");
+  if (tb) {
+    tb.innerHTML = "";
+    d.years.forEach((r) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td><b>${r.year}</b></td><td>${fmt(r.t2m_mean_c,2)}</td>` +
+        `<td>${fmt(r.t2m_max_c,1)}</td><td>${fmt(r.t2m_min_c,1)}</td>` +
+        `<td>${r.hours_above_35c}</td><td>${r.hours_below_0c}</td>` +
+        `<td>${fmt(r.cdd18,0)}</td><td>${fmt(r.hdd18,0)}</td>` +
+        `<td>${fmt(r.precip_total_mm,0)}</td>`;
+      tb.appendChild(tr);
+    });
+  }
+
+  const src = $("trendSource");
+  if (src) src.textContent = d.source || "—";
+}
+
+/* signed delta with a +/- prefix, for at-a-glance direction */
+function signed(v, dp = 1, unit = "") {
+  if (v === null || v === undefined || isNaN(v)) return "—";
+  const n = Number(v);
+  return `${n > 0 ? "+" : ""}${n.toFixed(dp)}${unit}`;
+}
+
 /* ---------- 2 · climate ---------- */
 async function loadClimate() {
   const sel = $("location").selectedOptions[0];
@@ -160,7 +382,7 @@ async function loadClimate() {
   btn.textContent = "◈ Fetching…";
   try {
     const data = await api(`/api/climate?lat=${sel.dataset.lat}&lon=${sel.dataset.lon}` +
-      `&year=${$("year").value}`);
+      `&year=${encodeURIComponent(climatePeriod())}`);
     state.climate = data;
     $("climateSource").textContent = data.source;
     const s = data.summary;
@@ -212,7 +434,8 @@ function designPayload() {
 async function runSimulate() {
   const sel = $("location").selectedOptions[0];
   const body = { lat: parseFloat(sel.dataset.lat), lon: parseFloat(sel.dataset.lon),
-                 year: parseInt($("year").value, 10), ...designPayload() };
+                 year: climateYear(), climate_period: climatePeriod(),
+                 ...designPayload() };
   const btn = $("simulate");
   btn.disabled = true; btn.classList.add("busy");
   try {
@@ -278,7 +501,8 @@ async function runOptimize() {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ lat: parseFloat(sel.dataset.lat),
                              lon: parseFloat(sel.dataset.lon),
-                             year: parseInt($("year").value, 10), n_trials: n }),
+                             year: climateYear(),
+                             climate_period: climatePeriod(), n_trials: n }),
     });
     st.textContent = `BEST TPI ${data.best.tpi.toFixed(3)} — ${data.best.design.wall_material} / ${data.best.design.roof_material}`;
     const b = data.best.design;
@@ -865,10 +1089,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   try {
     await loadLocations();
     await loadMaterials();
+    await loadCoverage();          // builds the period selector from real data
   } catch (err) {
     $("loadClimate").textContent = `API unavailable: ${err.message}`;
   }
   $("loadClimate").addEventListener("click", loadClimate);
+  const trendBtn = $("trendBtn");
+  if (trendBtn) trendBtn.addEventListener("click", loadTrends);
   $("simulate").addEventListener("click", runSimulate);
   $("optimize").addEventListener("click", runOptimize);
 
@@ -1662,7 +1889,7 @@ async function loadProfile() {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ lat: parseFloat(sel.dataset.lat),
                              lon: parseFloat(sel.dataset.lon),
-                             year: parseInt($("year").value, 10) }),
+                             year: climateYear(), climate_period: climatePeriod() }),
     });
     renderProfile(p);
   } catch (err) {
@@ -1689,7 +1916,7 @@ async function runAdapt() {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ lat: parseFloat(sel.dataset.lat),
                              lon: parseFloat(sel.dataset.lon),
-                             year: parseInt($("year").value, 10),
+                             year: climateYear(), climate_period: climatePeriod(),
                              design: structPayload() || undefined }),
     });
     adapt = j;
@@ -2214,7 +2441,7 @@ async function comparePresetWithStudio(id) {
   $("cmpBody").innerHTML = `<tr><td colspan="4" class="delta">running two design-week simulations…</td></tr>`;
   const base = {
     lat: parseFloat(sel.dataset.lat), lon: parseFloat(sel.dataset.lon),
-    year: parseInt($("year").value, 10),
+    year: climateYear(), climate_period: climatePeriod(),
   };
   const studio = structPayload() || {};
   const post = (body) => api("/api/simulate", {

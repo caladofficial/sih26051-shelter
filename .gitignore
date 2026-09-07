@@ -33,3 +33,12 @@ shelter.epJSON
 pyproject.toml
 uv.lock
 .python-version
+
+# Hourly climate archive — a local/CI cache, NOT source of truth.
+# Authoritative copy lives in Supabase; the committed derived artifacts are
+# data/climate/index.json (manifest) + public/data/climate_bundle.json.
+# Keeping ~26 MB of CSVs out of git stops the daily refresh job from adding
+# gigabytes of blobs over a year. Regenerate with:
+#   python scripts/refresh_climate.py
+data/climate/hourly/
+data/climate/refresh_log.json

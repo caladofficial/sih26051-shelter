@@ -104,8 +104,8 @@ function check(name, ok, extra) {
     sites: document.getElementById('offSites').textContent,
     mats: document.getElementById('offMats').textContent,
   }));
-  check('F9: offline modal facts = 14 sites / 15 mats / 18 presets',
-    f9.sites === '14' && f9.mats === '15' && f9.presets === '18', JSON.stringify(f9));
+  check('F9: offline modal facts = 15 sites / 15 mats / 18 presets',
+    f9.sites === '15' && f9.mats === '15' && f9.presets === '18', JSON.stringify(f9));
 
   check('no page JS errors', errors.length === 0, errors.join(' | ').slice(0, 200));
   await browser.close();

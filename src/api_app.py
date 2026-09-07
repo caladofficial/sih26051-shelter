@@ -60,6 +60,8 @@ if str(ROOT) not in sys.path:
 from src.data.climate import (design_weeks, load_config,  # noqa: E402
                               cross_check)
 from src.data import nasa_power, openmeteo  # noqa: E402
+from src.data import climate_archive  # noqa: E402
+import datetime as _dt  # noqa: E402
 from src.db.store import Store, new_id  # noqa: E402
 from src.cad import model as cad_model  # noqa: E402
 from src.cad import dxf as cad_dxf  # noqa: E402
@@ -117,6 +119,10 @@ class SimulateRequest(BaseModel):
     lon: float | None = None
     year: int | None = None
     timezone: str | None = None
+    # analysis window for the WEATHER: a calendar year or "latest" (rolling
+    # 12 months ending at the newest observed hour). Distinct from `period`
+    # below, which selects the simulated stress window inside that weather.
+    climate_period: str | None = None
     period: str = "hot_week"          # hot_week | cold_week | full_year
     # design overrides (optional; config defaults otherwise)
     orientation_deg: int | None = None
@@ -142,6 +148,7 @@ class OptimizeRequest(BaseModel):
     lon: float | None = None
     year: int | None = None
     timezone: str | None = None
+    climate_period: str | None = None
     n_trials: int = Field(30, ge=5, le=60)
 
 
@@ -149,38 +156,110 @@ class OptimizeRequest(BaseModel):
 # helpers
 # --------------------------------------------------------------------------
 def _loc(req: BaseModel) -> dict:
+    period = resolve_period(getattr(req, "year", None),
+                            getattr(req, "climate_period", None))
     return {
         "latitude": req.lat if req.lat is not None else DEFAULT_LOCATION["latitude"],
         "longitude": req.lon if req.lon is not None else DEFAULT_LOCATION["longitude"],
         "timezone": req.timezone or DEFAULT_LOCATION["timezone"],
-        "year": req.year or int(CFG["climate"]["data_year"]),
+        "year": _period_year(period),
+        "period": period,
     }
 
 
-def get_weather_cached(lat: float, lon: float, year: int, timezone: str,
-                       force_refresh: bool = False):
-    """Weather from Supabase cache if present, else live POWER + Open-Meteo.
+def resolve_period(year=None, period: str | None = None):
+    """Normalise the analysis-period token used across the API.
 
-    Returns (df, source, validation_report).
+    Accepts a calendar year (int or numeric string) or the rolling token
+    ``"latest"``. ``"latest"`` is the default: it tracks the most recent
+    ROLLING_DAYS of real observations and moves forward on its own every time
+    the scheduled refresh job runs, so the platform is never pinned to a stale
+    calendar year.
     """
+    token = period if period is not None else year
+    if token is None or str(token).strip() == "":
+        return "latest"
+    s = str(token).strip().lower()
+    if s in ("latest", "rolling", "recent", "auto", "0"):
+        return "latest"
+    try:
+        y = int(float(s))
+    except (TypeError, ValueError):
+        return "latest"
+    return y if 1990 <= y <= 2100 else "latest"
+
+
+def _period_year(period) -> int:
+    """Calendar year a period token ends in — for legacy callers/labels."""
+    if period == "latest":
+        end = climate_archive.latest_hour()
+        return int(end[:4]) if end else _dt.date.today().year
+    return int(period)
+
+
+def get_weather_cached(lat: float, lon: float, year: int, timezone: str,
+                       force_refresh: bool = False, period=None):
+    """Hourly weather for a site and analysis period.
+
+    Tiers, in order:
+      1. **Supabase** — the live store, kept current by the daily refresh job.
+      2. **Local CSV archive** (``data/climate/hourly``) — present in dev and
+         in the refresh job; not shipped to the serverless bundle.
+      3. **Live fetch** — NASA POWER + Open-Meteo for arbitrary coordinates
+         that aren't one of the canonical sites.
+
+    Returns (df, source, validation_report) with a site-local tz index.
+    """
+    period = resolve_period(year, period)
     location_id = f"loc_{abs(lat):.4f}_{abs(lon):.4f}"
+    site = climate_archive.site_for(lat, lon)
+    start_utc, end_utc, _label = climate_archive.window_bounds(period, site)
+    rolling = period == "latest"
+
     if not force_refresh:
+        # -- tier 1: Supabase -------------------------------------------
         try:
-            cached = STORE.load_weather(location_id)
+            cached = STORE.load_weather(
+                location_id,
+                start_utc=start_utc if rolling else None,
+                end_utc=end_utc if rolling else None)
             if cached is not None:
                 cached.index = cached.index.tz_convert(timezone)
-                # hourly rows may straddle the UTC year boundary — filter on
-                # the LOCAL year (POWER LST hours => :30-offset local stamps)
-                cached = cached[cached.index.year == year]
+                if not rolling:
+                    # hourly rows may straddle the UTC year boundary — filter
+                    # on the LOCAL year (POWER LST => :30-offset local stamps)
+                    cached = cached[cached.index.year == period]
                 if len(cached) > 8000:
                     return cached, "supabase-cache", None
         except Exception:
             pass
 
+        # -- tier 2: local multi-year archive ---------------------------
+        if site:
+            try:
+                local = climate_archive.read_local(site)
+                if local is not None and not local.empty:
+                    sub = climate_archive.slice_period(local, period, site, timezone)
+                    if len(sub) > 8000:
+                        sub = sub.copy()
+                        sub.index = sub.index.tz_convert(timezone)
+                        return sub, "archive-open-meteo", None
+            except Exception:
+                pass
+
+    # -- tier 3: live fetch ---------------------------------------------
+    y = _period_year(period)
+    if rolling:
+        end_d = pd.Timestamp(end_utc).date()
+        start_d = pd.Timestamp(start_utc).date()
+    else:
+        start_d = _dt.date(y, 1, 1)
+        end_d = min(_dt.date(y, 12, 31), _dt.date.today())
+
     power = nasa_power.hourly_to_dataframe(nasa_power.fetch_hourly(
-        lat, lon, f"{year}0101", f"{year}1231"))
-    om = openmeteo.fetch_hourly(lat, lon, f"{year}-01-01", f"{year}-12-31",
-                                timezone="UTC")
+        lat, lon, start_d.strftime("%Y%m%d"), end_d.strftime("%Y%m%d")))
+    om = openmeteo.fetch_hourly(lat, lon, start_d.isoformat(),
+                                end_d.isoformat(), timezone="UTC")
     report = cross_check(power, om)
     df = power.copy()
     df.index = df.index.tz_convert(timezone)
@@ -469,13 +548,40 @@ def _pick_locations(rows: list[dict]) -> list[dict]:
 
 @app.get("/api/locations")
 def locations():
+    """Site dropdown: everything the database knows, plus every site in the
+    multi-year climate archive.
+
+    The archive is merged in so the selector is populated from real coverage
+    even on a cold database — previously the list depended on which sites
+    happened to have been fetched before, which left a fresh deployment (or a
+    fresh local SQLite) showing a single hardcoded location.
+    """
     try:
         rows = STORE.list_locations()
     except Exception:
         rows = []
+
+    known = {(round(float(r.get("latitude", 0)), 3),
+              round(float(r.get("longitude", 0)), 3)) for r in rows}
+    for name, meta in climate_archive.load_index().get("sites", {}).items():
+        key = (round(float(meta["latitude"]), 3), round(float(meta["longitude"]), 3))
+        if key in known:
+            continue
+        rows.append({
+            "location_id": f"loc_{abs(meta['latitude']):.4f}_{abs(meta['longitude']):.4f}",
+            "name": name,
+            "latitude": meta["latitude"],
+            "longitude": meta["longitude"],
+            "elevation_m": meta.get("elevation_m", 0),
+            "timezone": meta.get("timezone", "Asia/Kolkata"),
+        })
+        known.add(key)
+
     out = _pick_locations(rows)
+    out.sort(key=lambda r: r.get("name", ""))
     if out:
-        return {"locations": out, "source": STORE.backend}
+        source = STORE.backend if len(out) <= len(known) else f"{STORE.backend}+archive"
+        return {"locations": out, "source": source}
     return {"locations": [DEFAULT_LOCATION], "source": "config"}
 
 
@@ -503,16 +609,28 @@ def _canon_materials(rows: list[dict]) -> list[dict]:
 
 @app.get("/api/climate")
 def climate(lat: float | None = None, lon: float | None = None,
-            year: int | None = None, timezone: str | None = None,
+            year: str | None = None, timezone: str | None = None,
             force_refresh: bool = False):
+    """Climate recon for a site.
+
+    `year` accepts a calendar year ("2025") or "latest" (default) — the
+    rolling 12-month window ending at the newest observed hour, which the
+    scheduled refresh job keeps moving forward.
+    """
+    period = resolve_period(year)
     loc = {"latitude": lat if lat is not None else DEFAULT_LOCATION["latitude"],
            "longitude": lon if lon is not None else DEFAULT_LOCATION["longitude"],
            "timezone": timezone or DEFAULT_LOCATION["timezone"],
-           "year": year or int(CFG["climate"]["data_year"])}
+           "year": _period_year(period),
+           "period": period}
+    site = climate_archive.site_for(loc["latitude"], loc["longitude"])
+    _s, _e, label = climate_archive.window_bounds(period, site)
+    loc["site"] = site
+    loc["period_label"] = label
     try:
         df, source, report = get_weather_cached(
             loc["latitude"], loc["longitude"], loc["year"], loc["timezone"],
-            force_refresh=force_refresh)
+            force_refresh=force_refresh, period=period)
     except Exception as exc:
         raise HTTPException(502, f"weather fetch failed: {exc}")
 
@@ -542,6 +660,129 @@ def climate(lat: float | None = None, lon: float | None = None,
     }
 
 
+# --------------------------------------------------------------------------
+# Multi-year climate: coverage + year-over-year trends  (SEC/10)
+# --------------------------------------------------------------------------
+@app.get("/api/climate/coverage")
+def climate_coverage():
+    """What climate data exists, and how fresh it is.
+
+    Drives the UI's period selector and the "data current through" badge, so
+    the frontend never hardcodes a year again.
+    """
+    cov = climate_archive.coverage()
+    cov["backend"] = STORE.backend
+    latest = cov.get("latest_hour_utc")
+    if latest:
+        try:
+            age = (pd.Timestamp.now(tz="UTC") - pd.Timestamp(latest))
+            cov["age_hours"] = round(age.total_seconds() / 3600, 1)
+            cov["is_fresh"] = age <= pd.Timedelta(days=14)
+        except Exception:
+            pass
+    years = sorted({int(y) for s in cov["sites"].values() for y in s["years"]})
+    cov["options"] = ([{"value": "latest", "label": "LATEST · rolling 12 months",
+                        "default": True}]
+                      + [{"value": str(y), "label": str(y),
+                          "default": False} for y in reversed(years)])
+    return cov
+
+
+@app.get("/api/climate/trends")
+def climate_trends(site: str | None = None, lat: float | None = None,
+                   lon: float | None = None):
+    """Year-over-year climate comparison for one site.
+
+    Every year is truncated to the same day-of-year span before the statistics
+    are computed, so an in-progress year is never compared against a full one
+    (otherwise "this year is hotter" would just mean "this year stops in
+    September, before winter").
+
+    Served from the precomputed bundle — no 350k-row scan per request.
+    """
+    if site is None and lat is not None and lon is not None:
+        site = climate_archive.site_for(lat, lon)
+    if not site:
+        raise HTTPException(400, "unknown site: pass ?site=Name or ?lat=&lon=")
+
+    bundle = climate_archive.load_bundle()
+    entry = bundle.get("sites", {}).get(site)
+    if not entry:
+        raise HTTPException(404, f"no multi-year archive for site '{site}'")
+
+    trend = entry.get("trend") or {}
+    if not trend:
+        raise HTTPException(404, f"not enough years archived for '{site}'")
+
+    rows = trend.get("years", [])
+    newest = rows[-1] if rows else {}
+    return {
+        "site": site,
+        "latitude": entry.get("latitude"),
+        "longitude": entry.get("longitude"),
+        "timezone": entry.get("timezone"),
+        "source": bundle.get("source"),
+        "generated_on": bundle.get("generated_on"),
+        "latest_hour_utc": bundle.get("latest_hour_utc"),
+        "comparable_through_doy": trend.get("comparable_through_doy"),
+        "note": trend.get("comparable_note"),
+        "years": rows,
+        "delta": trend.get("delta", {}),
+        "series": {
+            "years": [r["year"] for r in rows],
+            "t2m_mean_c": [r["t2m_mean_c"] for r in rows],
+            "t2m_max_c": [r["t2m_max_c"] for r in rows],
+            "hours_above_35c": [r["hours_above_35c"] for r in rows],
+            "hours_below_0c": [r["hours_below_0c"] for r in rows],
+            "cdd18": [r["cdd18"] for r in rows],
+            "hdd18": [r["hdd18"] for r in rows],
+            "precip_total_mm": [r["precip_total_mm"] for r in rows],
+        },
+        "monthly_by_year": {
+            y: entry["years"][y]["monthly"]
+            for y in sorted(entry.get("years", {}))
+        },
+        "latest": {
+            "label": entry.get("latest", {}).get("label"),
+            "summary": entry.get("latest", {}).get("summary", {}),
+        },
+        "design_shift": _design_shift(entry),
+        "newest_year": newest.get("year"),
+    }
+
+
+def _design_shift(entry: dict) -> dict:
+    """How the *design case* itself moved between the oldest and newest year.
+
+    Shelter sizing keys off the hottest/coldest week, not the annual mean — if
+    the hot week is 1.5 C warmer than it was, the envelope spec has to follow.
+    """
+    years = entry.get("years", {})
+    keys = sorted(years)
+    if len(keys) < 2:
+        return {}
+    out = {}
+    for kind in ("hot", "cold"):
+        a = years[keys[0]].get("design_weeks", {}).get(kind, {})
+        b = years[keys[-1]].get("design_weeks", {}).get(kind, {})
+        if not (a.get("t2m") and b.get("t2m")):
+            continue
+        pick = max if kind == "hot" else min
+        out[kind] = {
+            "from_year": int(keys[0]), "to_year": int(keys[-1]),
+            "from_week": f"{a.get('start')} → {a.get('end')}",
+            "to_week": f"{b.get('start')} → {b.get('end')}",
+            "from_peak_c": round(pick(a["t2m"]), 1),
+            "to_peak_c": round(pick(b["t2m"]), 1),
+            "peak_delta_c": round(pick(b["t2m"]) - pick(a["t2m"]), 1),
+            "from_mean_c": round(sum(a["t2m"]) / len(a["t2m"]), 1),
+            "to_mean_c": round(sum(b["t2m"]) / len(b["t2m"]), 1),
+            "mean_delta_c": round(sum(b["t2m"]) / len(b["t2m"])
+                                  - sum(a["t2m"]) / len(a["t2m"]), 1),
+        }
+    return out
+
+
 @app.post("/api/simulate")
 def simulate_endpoint(req: SimulateRequest):
     loc = _loc(req)
@@ -549,7 +790,8 @@ def simulate_endpoint(req: SimulateRequest):
         else "hot_week"
     try:
         weather, source, _ = get_weather_cached(
-            loc["latitude"], loc["longitude"], loc["year"], loc["timezone"])
+            loc["latitude"], loc["longitude"], loc["year"], loc["timezone"],
+            period=loc["period"])
     except Exception as exc:
         raise HTTPException(502, f"weather fetch failed: {exc}")
 
@@ -605,7 +847,8 @@ def optimize_endpoint(req: OptimizeRequest):
     loc = _loc(req)
     try:
         weather, source, _ = get_weather_cached(
-            loc["latitude"], loc["longitude"], loc["year"], loc["timezone"])
+            loc["latitude"], loc["longitude"], loc["year"], loc["timezone"],
+            period=loc["period"])
     except Exception as exc:
         raise HTTPException(502, f"weather fetch failed: {exc}")
 
@@ -783,8 +1026,8 @@ def _shelter_metrics(latitude: float, longitude: float,
     location (same sourced RC engine the simulator uses; never fabricated)."""
     try:
         weather, source, _ = get_weather_cached(
-            latitude, longitude, int(CFG["climate"]["data_year"]),
-            CFG["location"]["timezone"])
+            latitude, longitude, _period_year("latest"),
+            CFG["location"]["timezone"], period="latest")
         mats = load_materials()
         base = dict(design)
         for k in ("length_m", "width_m", "height_m", "orientation_deg",
@@ -815,7 +1058,7 @@ def _shelter_metrics(latitude: float, longitude: float,
               for k, v in st.items()}
         st["period"] = "hot_week"
         st["weather_source"] = source
-        st["zone"] = _location_profile(weather).get("zone")
+        st["zone"] = _location_profile(weather, latitude, longitude).get("zone")
         st["zone_name"] = _ZONE_NAMES.get(st["zone"], st["zone"])
         return st
     except Exception as exc:
@@ -934,27 +1177,48 @@ _ZONE_GUIDANCE = {
 }
 
 
-def _location_profile(weather: pd.DataFrame) -> dict:
-    """Characterize a site from its real hourly weather series.
-    Zone classification follows an NBC 2016 / ECBC 2017-style climatic-zones
-    approximation using monthly mean temperature + annual mean humidity;
-    every other indicator (degree-days, diurnal range, solar, wind, rain)
-    is computed directly from the same sourced hourly data — nothing is
-    fabricated or averaged across data sources.
-    """
-    df = weather
-    t = df["t2m"].dropna() if "t2m" in df else pd.Series(dtype=float)
-    rh = df["rh2m"].dropna() if "rh2m" in df else pd.Series(dtype=float)
-    ghi = df["ghi"].dropna() if "ghi" in df else pd.Series(dtype=float)
-    ws = df["ws10m"].dropna() if "ws10m" in df else pd.Series(dtype=float)
-    pr = df["precip"].dropna() if "precip" in df else pd.Series(dtype=float)
+def _monthly_means(df: pd.DataFrame, min_days: int = 20) -> pd.Series:
+    """Monthly mean temperature, ignoring part-months.
 
-    monthly = df.resample("ME").mean(numeric_only=True) if len(df) > 720 else df
-    t_hot = float(monthly["t2m"].max()) if "t2m" in monthly else float(t.max())
-    t_cold = float(monthly["t2m"].min()) if "t2m" in monthly else float(t.min())
+    A rolling window starts mid-month, so `resample("ME")` yields a stub bucket
+    at each end (e.g. 7 days of September). Those stubs are not months and must
+    not be allowed to become the hottest/coldest month of the year.
+    """
+    if "t2m" not in df or df.empty:
+        return pd.Series(dtype=float)
+    g = df["t2m"].resample("ME")
+    means = g.mean()
+    counts = g.count()
+    keep = counts >= min_days * 24
+    return means[keep] if keep.any() else means
+
+
+def _monthly_normals(df: pd.DataFrame, min_days: int = 20) -> pd.Series:
+    """Climatological monthly normals: mean of each calendar month across years.
+
+    Taking min/max over every individual month of a multi-year archive would
+    return the single most extreme month ever recorded, which gets colder the
+    more years you add — the opposite of a normal. Averaging January-with-
+    January first is what "coldest month" means in NBC/ECBC.
+    """
+    monthly = _monthly_means(df, min_days)
+    if monthly.empty:
+        return monthly
+    return monthly.groupby(monthly.index.month).mean()
+
+
+def _zone_from(df: pd.DataFrame) -> tuple[str, float, float, float]:
+    """NBC 2016 / ECBC 2017-style zone from a temperature+humidity series."""
+    normals = _monthly_normals(df)
+    if len(normals):
+        t_hot, t_cold = float(normals.max()), float(normals.min())
+    else:
+        t = df["t2m"].dropna()
+        t_hot = float(t.max()) if len(t) else 0.0
+        t_cold = float(t.min()) if len(t) else 0.0
+    rh = df["rh2m"].dropna() if "rh2m" in df else pd.Series(dtype=float)
     rh_ann = float(rh.mean()) if len(rh) else 0.0
 
-    # zone rules (documented approximation of NBC 2016 / ECBC 2017)
     if t_cold <= 14.0:
         zone = "cold"
     elif t_hot >= 30.0 and rh_ann < 50.0:
@@ -965,6 +1229,58 @@ def _location_profile(weather: pd.DataFrame) -> dict:
         zone = "temperate"
     else:
         zone = "composite"
+    return zone, t_hot, t_cold, rh_ann
+
+
+def _zone_reference(lat: float | None, lon: float | None,
+                    fallback: pd.DataFrame) -> tuple[pd.DataFrame, str]:
+    """Series to classify the climatic zone from.
+
+    Zones are a property of the *climate*, not of one year: NBC/ECBC zones are
+    defined on long-term normals. Classifying off a single rolling window makes
+    the label flip whenever a knife-edge year nudges a threshold (Jaisalmer's
+    coldest month at 13.8 C vs 15.6 C reads as "cold" vs "hot_dry"). So when the
+    site is in the multi-year archive, classify on every year we hold and let
+    the selected period drive the *design* numbers only.
+    """
+    if lat is None or lon is None:
+        return fallback, "selected-period"
+    site = climate_archive.site_for(lat, lon)
+    if not site:
+        return fallback, "selected-period"
+    try:
+        full = climate_archive.read_local(site)
+        if full is not None and len(full) > 17000:      # >= ~2 years
+            tz = climate_archive.load_index()["sites"][site].get(
+                "timezone", "Asia/Kolkata")
+            full = full.copy()
+            full.index = full.index.tz_convert(tz)
+            n_years = int(full.index.year.nunique())
+            return full, f"{n_years}-year normal"
+    except Exception:                                    # noqa: BLE001
+        pass
+    return fallback, "selected-period"
+
+
+def _location_profile(weather: pd.DataFrame, lat: float | None = None,
+                      lon: float | None = None) -> dict:
+    """Characterize a site from its real hourly weather series.
+    Zone classification follows an NBC 2016 / ECBC 2017-style climatic-zones
+    approximation using monthly mean temperature + annual mean humidity,
+    computed over every archived year (a climatological normal, not one
+    knife-edge year); every other indicator (degree-days, diurnal range,
+    solar, wind, rain) is computed directly from the selected period's
+    sourced hourly data — nothing is fabricated or averaged across sources.
+    """
+    df = weather
+    t = df["t2m"].dropna() if "t2m" in df else pd.Series(dtype=float)
+    rh = df["rh2m"].dropna() if "rh2m" in df else pd.Series(dtype=float)
+    ghi = df["ghi"].dropna() if "ghi" in df else pd.Series(dtype=float)
+    ws = df["ws10m"].dropna() if "ws10m" in df else pd.Series(dtype=float)
+    pr = df["precip"].dropna() if "precip" in df else pd.Series(dtype=float)
+
+    zone_df, zone_basis = _zone_reference(lat, lon, df)
+    zone, t_hot, t_cold, rh_ann = _zone_from(zone_df)
 
     daily = df.resample("D").agg(tmax=("t2m", "max"), tmin=("t2m", "min")) \
         if "t2m" in df else pd.DataFrame({"tmax": [], "tmin": []})
@@ -1020,6 +1336,7 @@ def _location_profile(weather: pd.DataFrame) -> dict:
     return {
         "zone": zone,
         "zone_name": _ZONE_NAMES[zone],
+        "zone_basis": zone_basis,
         "n_hours": int(len(df)),
         "t_mean_c": round(float(t.mean()), 2) if len(t) else None,
         "t_hottest_month_c": round(t_hot, 2),
@@ -1113,10 +1430,11 @@ def location_profile(req: AdaptRequest):
     loc = _loc(req)
     try:
         weather, source, _ = get_weather_cached(
-            loc["latitude"], loc["longitude"], loc["year"], loc["timezone"])
+            loc["latitude"], loc["longitude"], loc["year"], loc["timezone"],
+            period=loc["period"])
     except Exception as exc:
         raise HTTPException(502, f"weather fetch failed: {exc}")
-    prof = _location_profile(weather)
+    prof = _location_profile(weather, loc["latitude"], loc["longitude"])
     prof["location"] = loc
     prof["weather_source"] = source
     return prof
@@ -1130,11 +1448,12 @@ def location_recommend(req: AdaptRequest):
     loc = _loc(req)
     try:
         weather, source, _ = get_weather_cached(
-            loc["latitude"], loc["longitude"], loc["year"], loc["timezone"])
+            loc["latitude"], loc["longitude"], loc["year"], loc["timezone"],
+            period=loc["period"])
     except Exception as exc:
         raise HTTPException(502, f"weather fetch failed: {exc}")
     mats = load_materials()
-    prof = _location_profile(weather)
+    prof = _location_profile(weather, loc["latitude"], loc["longitude"])
     current = req.design or _flat_design(CFG)
     rec = _recommend_design(prof, mats, current)
 
@@ -1257,11 +1576,12 @@ def location_compare(req: CompareRequest):
         try:
             weather, source, _ = get_weather_cached(
                 float(s["lat"]), float(s["lon"]),
-                int(CFG["climate"]["data_year"]), CFG["location"]["timezone"])
+                _period_year("latest"), CFG["location"]["timezone"],
+                period="latest")
         except Exception as exc:
             out.append({"site": name, "error": f"weather fetch failed: {exc}"})
             continue
-        prof = _location_profile(weather)
+        prof = _location_profile(weather, float(s["lat"]), float(s["lon"]))
         try:
             metrics = _design_metrics(weather, design, mats,
                                       float(s["lat"]), float(s["lon"]),
@@ -1367,8 +1687,9 @@ def ai_info():
 def _ai_weather_profile(req: SimulateRequest):
     loc = _loc(req)
     weather, source, _ = get_weather_cached(
-        loc["latitude"], loc["longitude"], loc["year"], loc["timezone"])
-    prof = _location_profile(weather)
+        loc["latitude"], loc["longitude"], loc["year"], loc["timezone"],
+        period=loc["period"])
+    prof = _location_profile(weather, loc["latitude"], loc["longitude"])
     prof["location"] = loc
     prof["weather_source"] = source
     return weather, prof
@@ -1541,7 +1862,8 @@ def sweep_endpoint(req: SweepRequest):
     loc = _loc(req)
     try:
         weather, source, _ = get_weather_cached(
-            loc["latitude"], loc["longitude"], loc["year"], loc["timezone"])
+            loc["latitude"], loc["longitude"], loc["year"], loc["timezone"],
+            period=loc["period"])
     except Exception as exc:
         raise HTTPException(502, f"weather fetch failed: {exc}")
     mats = load_materials()

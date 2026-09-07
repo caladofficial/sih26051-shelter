@@ -49,6 +49,7 @@ streamlit run app/dashboard.py
 | Phase 5 — parametric sweeps | ✅ | `results/parametric/{orientation,material,insulation}_sweep.*` |
 | Phase 6 — optimisation (Optuna, TPI objective) | ✅ | `results/optimization/` (best_design.json, all_trials.csv) |
 | Phase 7 — Streamlit dashboard (6 pages) | ✅ | `app/dashboard.py` — run: `streamlit run app/dashboard.py` |
+| Phase 8 — multi-year self-updating climate archive + SEC/10 Climate Trends | ✅ | `data/climate/`, `public/data/climate_bundle.json`, [`docs/climate_data.md`](docs/climate_data.md) |
 
 ### Headline numbers — Prayagraj (25.44 N, 81.85 E), 2024, brick shelter 3×3×2.6 m
 
@@ -62,6 +63,28 @@ east window, TPI 0.53** — see `results/optimization/`.
   and night heat loss from −115 → −37 kWh.
 - South-facing (0°) beats 225°/270° by ≈1 °C in the hottest week.
 - Full-year E+ vs RC: 31.7 vs 32.1 °C mean indoor — good agreement for a fast model.
+
+## Climate data — rolling, self-updating
+
+The platform is **not pinned to a calendar year**. It holds hourly reanalysis
+for **15 Indian sites × 2024 → present** (Open-Meteo / ERA5 family) and
+defaults to a **rolling 12-month window** ending at the newest observed hour.
+A daily GitHub Action (`.github/workflows/refresh-climate.yml`) pulls new hours,
+re-applies ERA5T revisions, rebuilds the derived bundle and pushes to Supabase —
+so the site always reflects recent conditions with no manual step.
+
+```bash
+python scripts/refresh_climate.py        # incremental refresh (idempotent)
+```
+
+`SEC/10 · Climate Trends` compares 2024 / 2025 / 2026-YTD for any site — with
+every year truncated to the same day-of-year span so a partial year is never
+compared against a full one — and reports how the **design week itself** has
+shifted, which is what actually drives the envelope spec.
+
+Future hours are never fabricated: partial years are labelled `year_to_date`.
+
+Full detail: [`docs/climate_data.md`](docs/climate_data.md)
 
 ## Deploy — Supabase + Vercel
 

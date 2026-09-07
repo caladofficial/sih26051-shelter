@@ -56,7 +56,7 @@ function check(name, ok, extra) {
   const uniq = [...new Set(opts)];
   const selVal = await page.evaluate(() => document.getElementById('location').value);
   const selText = await page.evaluate(() => document.getElementById('location').selectedOptions[0]?.textContent || '');
-  check('A0: dropdown clean + default Prayagraj', opts.length === 14 && uniq.length === 14 && uniq.some(t => /^Leh/.test(t)) && /^Prayagraj/.test(selText),
+  check('A0: dropdown clean + default Prayagraj', opts.length === 15 && uniq.length === 15 && uniq.some(t => /^Leh/.test(t)) && /^Prayagraj/.test(selText),
         'opts=' + opts.length + ' selected=' + selText + ' val=' + selVal);
   let st = await presetState();
   check('A1: default site Prayagraj · composite', /SITE PRAYAGRAJ/.test(st.siteTag), st.siteTag);

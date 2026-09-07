@@ -22,7 +22,7 @@ def test_offline_info_shape():
     assert r.status_code == 200
     d = r.json()
     assert d["available"] is True
-    assert d["sites"] == 14
+    assert d["sites"] == 15          # 14 original + Jaipur
     assert d["materials"] == 15
     assert d["presets"] == 18
     assert d["size_bytes"] > 1_000_000

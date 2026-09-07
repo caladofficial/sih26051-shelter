@@ -2,7 +2,7 @@
 
 Each preset from src/presets.py is simulated with the same sourced RC
 engine (design_weeks + simulate + comfort_stats) on the REAL hourly
-weather of each of the 14 dataset sites. The output
+weather of each of the 15 dataset sites. The output
 src/data/shelter_presets.json therefore contains ENGINE TRUTH numbers
 per (preset, site) — the UI shows these, never estimates.
 
@@ -20,13 +20,14 @@ sys.path.insert(0, REPO)
 
 from src.api_app import (_apply_design, _apply_ground_temp,  # noqa: E402
                          _apply_site_location, CFG, _location_profile,
-                         get_weather_cached)
+                         get_weather_cached, _period_year)
 from src.data.climate import design_weeks  # noqa: E402
 from src.presets import PRESETS  # noqa: E402
 from src.thermal.rc_model import comfort_stats, load_materials, simulate  # noqa: E402
 
 SITES = [
     ("Prayagraj", 25.4358, 81.8463), ("Delhi", 28.6139, 77.2090),
+    ("Jaipur", 26.9124, 75.7873),
     ("Jaisalmer", 26.9157, 70.9083), ("Ahmedabad", 23.0225, 72.5714),
     ("Chennai", 13.0827, 80.2707), ("Mumbai", 19.0760, 72.8777),
     ("Kolkata", 22.5726, 88.3639), ("Bengaluru", 12.9716, 77.5946),
@@ -34,7 +35,9 @@ SITES = [
     ("Leh", 34.1526, 77.5771), ("Srinagar", 34.0837, 74.7973),
     ("Kargil", 34.5584, 76.1334), ("Dras", 34.4306, 75.7499),
 ]
-YEAR = int(CFG["climate"]["data_year"])
+# Presets are verified on the SAME period the studio defaults to (the rolling
+# 12-month window), so the preset card numbers and a live run agree.
+PERIOD = "latest"
 OUT = os.path.join(REPO, "src", "data", "shelter_presets.json")
 
 WEEK_KEYS = {
@@ -49,7 +52,7 @@ def _sim(preset, weather, mats, cfg_base, lat, lon):
     cfg = _apply_ground_temp(_apply_site_location(
         _apply_design(cfg_base, preset["design"]), lat, lon,
         CFG["location"]["timezone"]), weather)
-    weeks = design_weeks(weather, YEAR)
+    weeks = design_weeks(weather, _period_year(PERIOD))
     out = {}
     for wk_name, keys in WEEK_KEYS.items():
         res = simulate(cfg, weeks[f"{wk_name}_week"], mats)
@@ -64,10 +67,11 @@ def main():
     sites_out = {}
     t0 = time.time()
     for name, lat, lon in SITES:
-        weather, source, _ = get_weather_cached(lat, lon, YEAR,
-                                                CFG["location"]["timezone"])
+        weather, source, _ = get_weather_cached(
+            lat, lon, _period_year(PERIOD), CFG["location"]["timezone"],
+            period=PERIOD)
         cfg_base = CFG
-        prof = _location_profile(weather)
+        prof = _location_profile(weather, lat, lon)
         site = {"latitude": lat, "longitude": lon, "weather_source": source,
                 "zone": prof.get("zone"), "zone_name": prof.get("zone_name")}
         for p in PRESETS:
@@ -79,6 +83,7 @@ def main():
     payload = {
         "schema_version": 1,
         "generated_on": time.strftime("%Y-%m-%dT%H:%MZ", time.gmtime()),
+        "period": PERIOD,
         "engine": "src/thermal/rc_model.simulate (design weeks on real "
                   "hourly weather)",
         "sites": sites_out,

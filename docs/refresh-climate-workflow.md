@@ -1,0 +1,86 @@
+> **Reference copy.** GitHub blocks pushing workflow files unless the token
+> carries the `workflow` scope. If your token doesn't have it, copy this file
+> to `.github/workflows/refresh-climate.yml` in the GitHub web UI
+> (Add file → Create new file) and paste the YAML below.
+
+```yaml
+# ============================================================================
+# Keep the climate archive pinned to recent conditions — automatically.
+#
+# Runs daily. Pulls whatever new hours Open-Meteo's archive has published,
+# rewrites the ERA5T revision tail, rebuilds the derived bundle, pushes the
+# rows to Supabase, and commits the result. The commit triggers Vercel's
+# normal deploy, so the live site picks up the fresh manifest too.
+#
+# Required repository secrets (Settings → Secrets → Actions):
+#   SUPABASE_URL                 https://<project>.supabase.co
+#   SUPABASE_SERVICE_ROLE_KEY    service_role key (server-side only)
+# Without them the job still runs and commits the local archive; only the
+# Supabase push is skipped.
+# ============================================================================
+name: Refresh climate archive
+
+on:
+  schedule:
+    # 02:15 UTC = 07:45 IST — after the archive's nightly publish
+    - cron: "15 2 * * *"
+  workflow_dispatch:
+    inputs:
+      full:
+        description: "Re-download every year from scratch"
+        type: boolean
+        default: false
+
+concurrency:
+  group: refresh-climate
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # Hourly CSVs are gitignored, so the runner starts with an empty cache
+      # and re-downloads every site-year (~2 min). That also re-applies any
+      # ERA5T revisions the archive published for earlier dates.
+      - name: Refresh archive + bundle + Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          python scripts/refresh_climate.py --supabase-days 45
+
+      - name: Verify nothing fabricated
+        run: python -m pytest tests/test_climate_multiyear.py -q
+
+      - name: Commit refreshed data
+        run: |
+          git config user.name  "shelter-climate-bot"
+          git config user.email "actions@users.noreply.github.com"
+          # only the small derived artifacts are versioned (~770 KB);
+          # the hourly CSVs stay out of git by design
+          git add -f data/climate/index.json \
+                     public/data/climate_bundle.json \
+                     public-src/data/climate_bundle.json
+          if git diff --cached --quiet; then
+            echo "No new hours published — nothing to commit."
+            exit 0
+          fi
+          LATEST=$(python -c "from src.data import climate_archive as c; print(c.latest_hour())")
+          git commit -m "chore(climate): refresh archive through ${LATEST}"
+          git push
+```

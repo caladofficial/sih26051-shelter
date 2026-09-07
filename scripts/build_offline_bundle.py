@@ -5,7 +5,7 @@ with:
 
   * materials        — the full sourced materials table (materials.csv)
   * model            — the AI surrogate (ai_model.json, trees as embedded)
-  * sites            — 14 reference sites, each with its climate profile
+  * sites            — 15 reference sites, each with its climate profile
                        AND its real hourly hot/cold design weeks, with
                        site-correct solar geometry (zenith/azimuth) and
                        ERBS dni/dhi — so the offline engine can simulate
@@ -30,7 +30,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from src.api_app import (CFG, _apply_ground_temp, _location_profile,  # noqa: E402
-                         get_weather_cached)
+                         get_weather_cached, _period_year)
 from src.data import solar  # noqa: E402
 from src.data.climate import design_weeks  # noqa: E402
 from src.presets import PRESETS  # noqa: E402
@@ -40,11 +40,14 @@ MODEL_JSON = ROOT / "src" / "data" / "ai_model.json"
 PRESETS_JSON = ROOT / "src" / "data" / "shelter_presets.json"
 OUT = ROOT / "src" / "data" / "offline_bundle.json"
 
-# 14 reference sites (same list as the training set / API)
+# 15 reference sites (same list as the training set / API)
+# Canonical coordinates match data/climate/index.json so the offline
+# bundle and the online archive describe the same places.
 SITES = [
-    ("Prayagraj", 25.4358, 81.8463), ("Leh", 34.164, 77.585),
-    ("Jaisalmer", 26.9137, 70.9127), ("Chennai", 13.0827, 80.2707),
-    ("Dras", 34.4296, 75.7497), ("Kargil", 34.5591, 76.1278),
+    ("Prayagraj", 25.4358, 81.8463), ("Leh", 34.1526, 77.5771),
+    ("Jaisalmer", 26.9157, 70.9083), ("Chennai", 13.0827, 80.2707),
+    ("Dras", 34.4306, 75.7499), ("Kargil", 34.5584, 76.1334),
+    ("Jaipur", 26.9124, 75.7873),
     ("Delhi", 28.6139, 77.2090), ("Ahmedabad", 23.0225, 72.5714),
     ("Mumbai", 19.0760, 72.8777), ("Kolkata", 22.5726, 88.3639),
     ("Bengaluru", 12.9716, 77.5946), ("Hyderabad", 17.3850, 78.4867),
@@ -52,7 +55,8 @@ SITES = [
 ]
 
 TIMEZONE = "Asia/Kolkata"
-YEAR = int(CFG["climate"]["data_year"])
+# built on the same rolling window the live studio defaults to
+PERIOD = "latest"
 
 
 def load_materials() -> list[dict]:
@@ -121,14 +125,16 @@ def main() -> None:
 
     sites = []
     for name, lat, lon in SITES:
-        weather, source, _ = get_weather_cached(lat, lon, YEAR, TIMEZONE)
-        prof = _location_profile(weather)
+        weather, source, _ = get_weather_cached(
+            lat, lon, _period_year(PERIOD), TIMEZONE, period=PERIOD)
+        prof = _location_profile(weather, lat, lon)
         ground = _apply_ground_temp(CFG, weather)["simulation"]["ground_temperature_c"]
-        weeks = design_weeks(weather, YEAR)
+        weeks = design_weeks(weather, _period_year(PERIOD))
         sites.append({
             "name": name,
             "latitude": lat, "longitude": lon,
-            "timezone": TIMEZONE, "year": YEAR,
+            "timezone": TIMEZONE, "year": _period_year(PERIOD),
+            "period": PERIOD,
             "weather_source": source,
             "profile": {
                 "t_hottest_month_c": prof["t_hottest_month_c"],

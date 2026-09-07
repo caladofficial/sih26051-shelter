@@ -22,6 +22,7 @@
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 </head>
 <body>
 
@@ -111,6 +112,7 @@
     <a href="#sec7"><b>07</b>Fleet</a>
     <a href="#sec8"><b>08</b>Presets</a>
     <a href="#sec9"><b>09</b>AI</a>
+    <a href="#sec10"><b>10</b>Trends</a>
     <a href="index.html">HOME</a>
   </nav>
 
@@ -123,15 +125,18 @@
         <h2>Site &amp; Climate Intake</h2>
         <span class="code">MODULE: ENV-INT</span>
         <span class="grow"></span>
+        <span class="fresh-badge" id="dataFresh" title="Climate archive freshness">DATA CURRENT THROUGH —</span>
       </div>
       <div class="row">
         <label class="ctl">Site
           <em>operation area</em>
           <select id="location"></select>
         </label>
-        <label class="ctl">Climate year
-          <em>analysis period</em>
-          <select id="year"><option>2024</option><option>2023</option></select>
+        <label class="ctl">Climate period
+          <em>rolling window or calendar year</em>
+          <select id="year">
+            <option value="latest" selected>LATEST · rolling 12 months</option>
+          </select>
         </label>
         <button id="loadClimate" class="primary">◈ Load Climate</button>
         <button id="geoBtn" type="button" class="btn-sm" title="Use your browser location as the site">◎ DETECT MY LOCATION</button>
@@ -569,6 +574,87 @@
                 </div>
                 <div id="aiCompare" hidden></div>
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 10 · CLIMATE TRENDS ============ -->
+    <section class="module" id="sec10">
+      <div class="mod-head">
+        <span class="sec">SEC/10</span>
+        <h2>Climate Trends</h2>
+        <span class="code">SOURCE: <span id="trendSource" class="tag">—</span></span>
+      </div>
+      <div class="loc-profile">
+        <p class="hint">
+          A shelter is sized against the <b>design case</b> — the hottest and coldest
+          weeks — not the annual average. This module asks whether that design case is
+          itself moving. Every year is truncated to the same day-of-year span before
+          any statistic is computed, so an in-progress year is never compared against a
+          full one. Hourly reanalysis, refreshed daily; future hours are never fabricated.
+        </p>
+        <div class="adapt-actions">
+          <button id="trendBtn" class="primary">◷ ANALYSE MULTI-YEAR ARCHIVE</button>
+          <span id="trendStatus" class="tag"></span>
+        </div>
+
+        <div id="trendWrap" hidden>
+          <div class="metrics" id="trendMetrics"></div>
+          <p class="hint" id="trendNote"></p>
+
+          <div class="grid2">
+            <div class="mod">
+              <div class="mod-hd"><i></i>MOD·10A — TEMPERATURE ENVELOPE</div>
+              <div id="chartTrendTemp" class="chart"></div>
+            </div>
+            <div class="mod">
+              <div class="mod-hd"><i></i>MOD·10B — THERMAL STRESS HOURS</div>
+              <div id="chartTrendStress" class="chart"></div>
+            </div>
+          </div>
+
+          <div class="grid2">
+            <div class="mod">
+              <div class="mod-hd"><i></i>MOD·10C — MONTHLY PROFILE BY YEAR</div>
+              <div id="chartTrendMonthly" class="chart"></div>
+            </div>
+            <div class="mod">
+              <div class="mod-hd"><i></i>MOD·10D — RAINFALL LOAD</div>
+              <div id="chartTrendRain" class="chart"></div>
+            </div>
+          </div>
+
+          <div class="mod">
+            <div class="mod-hd"><i></i>MOD·10E — DESIGN-WEEK SHIFT · THE ENGINEERING CONSEQUENCE</div>
+            <div class="tblwrap">
+              <table class="rec-table">
+                <thead><tr>
+                  <th>Design case</th><th>Earliest year</th><th>Latest year</th>
+                  <th>Δ peak</th><th>Δ mean</th>
+                </tr></thead>
+                <tbody id="trendShiftBody"></tbody>
+              </table>
+            </div>
+            <p class="hint">
+              If the hot week has warmed, the envelope specification has to follow —
+              re-run SEC/05 Optimize on the <b>LATEST</b> period to size against
+              today's climate rather than an archived one.
+            </p>
+          </div>
+
+          <div class="mod">
+            <div class="mod-hd"><i></i>MOD·10F — YEAR-BY-YEAR STATISTICS</div>
+            <div class="tblwrap">
+              <table class="rec-table">
+                <thead><tr>
+                  <th>Year</th><th>Mean °C</th><th>Max °C</th><th>Min °C</th>
+                  <th>h &gt; 35 °C</th><th>h &lt; 0 °C</th>
+                  <th>CDD18</th><th>HDD18</th><th>Rain mm</th>
+                </tr></thead>
+                <tbody id="trendYearBody"></tbody>
+              </table>
             </div>
           </div>
         </div>
