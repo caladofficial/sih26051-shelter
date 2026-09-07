@@ -9,6 +9,8 @@ Guards the properties that make the upgrade trustworthy:
 from __future__ import annotations
 
 import datetime as dt
+import json
+import sys
 
 import pandas as pd
 import pytest
@@ -206,3 +208,52 @@ def test_static_bundle_matches_the_archive():
             b = entry["years"][year]["summary"]["t2m_mean_c"]
             a = idx["sites"][site]["years"][year]["t2m_mean_c"]
             assert abs(a - b) < 0.5, f"{site} {year}: bundle {b} vs archive {a}"
+
+
+# ------------------------------------------------- refresh-job safety rails
+# These guard the failure mode the first CI run actually hit: data/climate/
+# hourly is gitignored, so on a fresh checkout every site errored — yet the
+# job reported success and wrote a 0-site bundle, which would have been
+# committed straight over the good one and killed SEC/10 in production.
+
+def test_refresh_creates_its_own_cache_directory():
+    """The hourly cache is gitignored, so CI starts without it."""
+    import inspect
+    from scripts import refresh_climate
+    src = inspect.getsource(refresh_climate.refresh_site)
+    assert "mkdir" in src, "refresh_site must create the (gitignored) cache dir"
+
+
+def test_refresh_exits_nonzero_when_sites_fail(monkeypatch, tmp_path):
+    """A silent exit 0 on total failure is what let a bad run reach commit."""
+    from scripts import refresh_climate as rc
+
+    monkeypatch.setattr(rc, "refresh_site",
+                        lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")))
+    monkeypatch.setattr(rc, "rebuild_index", lambda cap: {"sites": {}})
+    monkeypatch.setattr(rc, "push_supabase", lambda *a, **k: {"pushed": False})
+    monkeypatch.setattr(rc, "ROOT", tmp_path)
+    (tmp_path / "data" / "climate").mkdir(parents=True)
+    monkeypatch.setattr(sys, "argv",
+                        ["refresh_climate.py", "--no-supabase", "--no-bundle",
+                         "--sites", "Prayagraj"])
+    assert rc.main() == 1, "must exit non-zero when every site fails"
+
+
+@needs_archive
+def test_bundle_builder_refuses_to_clobber_with_empty(monkeypatch, tmp_path):
+    """An empty bundle must never overwrite a good one."""
+    import scripts.build_climate_bundle as bcb
+
+    good = tmp_path / "climate_bundle.json"
+    good.write_text('{"sites": {"Prayagraj": {}}}', encoding="utf-8")
+    monkeypatch.setattr(bcb, "OUT", good)
+    monkeypatch.setattr(bcb, "OUT_CDN", tmp_path / "cdn.json")
+    monkeypatch.setattr(bcb.ca, "load_index",
+                        lambda refresh=False: {"sites": {"Prayagraj": {
+                            "latitude": 25.4358, "longitude": 81.8463,
+                            "timezone": "Asia/Kolkata", "years": {}}}})
+    monkeypatch.setattr(bcb.ca, "read_local", lambda *a, **k: None)
+
+    assert bcb.main() == 1
+    assert json.loads(good.read_text())["sites"], "good bundle was clobbered"

@@ -57,6 +57,10 @@ def site_last_hour(site: str) -> pd.Timestamp | None:
 
 
 def refresh_site(site: str, full: bool, cap: date) -> dict:
+    # data/climate/hourly is a gitignored cache, so it does not exist on a
+    # fresh CI checkout — every site failed with "non-existent directory"
+    # until this line existed.
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
     meta = SITES[site]
     last = None if full else site_last_hour(site)
     if last is None:
@@ -266,6 +270,14 @@ def main() -> int:
     })
     log.write_text(json.dumps(history, indent=1), encoding="utf-8")
     print(f"\nLatest hour now: {ca.latest_hour()}")
+
+    # Fail loudly. Previously every site could error and this still returned 0,
+    # so CI reported success while writing an EMPTY bundle over a good one.
+    errored = [r["site"] for r in report if r["status"] == "error"]
+    if errored:
+        print(f"\n!! {len(errored)}/{len(report)} sites failed: "
+              f"{', '.join(errored)}", file=sys.stderr)
+        return 1
     return 0
 
 

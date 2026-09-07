@@ -114,6 +114,13 @@ def main() -> int:
         bundle["sites"][site] = entry
         print(f"[bundle] {site}: {len(entry['years'])} years")
 
+    # Refuse to overwrite a good bundle with an empty one. A failed ingest
+    # used to leave "0 KB, 0 sites" here, which would have shipped a dead
+    # Climate Trends module to production.
+    if not bundle["sites"]:
+        print("!! refusing to write an empty bundle — keeping the existing "
+              "file (ingest produced no sites)")
+        return 1
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT_CDN.parent.mkdir(parents=True, exist_ok=True)
     text = json.dumps(bundle, separators=(",", ":"))

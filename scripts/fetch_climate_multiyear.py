@@ -96,7 +96,7 @@ def fetch(site: str, meta: dict, start: date, end: date,
     last = None
     for attempt in range(retries):
         try:
-            r = requests.get(ARCHIVE, params=params, timeout=(15, 90))
+            r = requests.get(ARCHIVE, params=params, timeout=(15, 180))
             if r.status_code == 429:
                 time.sleep(15 * (attempt + 1))
                 continue

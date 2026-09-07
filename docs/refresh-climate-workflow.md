@@ -52,7 +52,11 @@ jobs:
           cache: pip
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        # pytest lives in requirements-dev.txt; install it explicitly rather
+        # than pulling the whole dev set (which drags in streamlit)
+        run: |
+          pip install -r requirements.txt
+          pip install pytest
 
       # Hourly CSVs are gitignored, so the runner starts with an empty cache
       # and re-downloads every site-year (~2 min). That also re-applies any
@@ -64,8 +68,22 @@ jobs:
         run: |
           python scripts/refresh_climate.py --supabase-days 45
 
+      # Gate the commit on the data actually being sane. refresh_climate.py
+      # exits non-zero if any site failed, and build_climate_bundle.py refuses
+      # to write an empty bundle — this is the last line of defence before a
+      # bad refresh reaches production.
       - name: Verify nothing fabricated
         run: python -m pytest tests/test_climate_multiyear.py -q
+
+      - name: Sanity-check the bundle is non-empty
+        run: |
+          python - <<'EOF'
+          import json, sys, pathlib
+          b = json.loads(pathlib.Path("src/data/climate_bundle.json").read_text())
+          n = len(b.get("sites", {}))
+          print(f"bundle carries {n} sites, latest {b.get('latest_hour_utc')}")
+          sys.exit(0 if n >= 15 else 1)
+          EOF
 
       - name: Commit refreshed data
         run: |
