@@ -497,12 +497,31 @@
         engine on this location's hourly weather (scripts/build_presets.py), not estimated.
         Presets for other climate zones are listed below with reference metrics only.
         <b>LOAD</b> pulls the full design into the studio for simulation, comparison and iteration.</p>
+      <div class="preset-tools">
+        <input id="presetFilter" type="text" placeholder="Filter presets — name, zone, material…" autocomplete="off" />
+        <label class="chk" title="Only designs recommended for this location's climate zone"><input type="checkbox" id="presetZoneOnly" /> ONLY THIS ZONE</label>
+        <span class="tag" id="presetCount">—</span>
+      </div>
       <div class="preset-head">
         <span class="tag" id="presetSiteTag">site —</span>
         <span class="grow" style="flex:1"></span>
         <span class="tag" id="presetSource">engine —</span>
       </div>
       <div class="preset-grid" id="presetGrid"></div>
+      <div id="cmpWrap" class="cmp-wrap" hidden>
+        <div class="cmp-head">
+          <span class="sec">CMP</span>
+          <h3 id="cmpTitle">Design vs preset — design weeks</h3>
+          <span class="grow" style="flex:1"></span>
+          <button id="cmpClose" type="button" class="btn-sm ghost">✕ CLOSE</button>
+        </div>
+        <p class="hint" id="cmpNote"></p>
+        <div class="tblwrap"><table class="cmp-table">
+          <thead id="cmpHead"></thead>
+          <tbody id="cmpBody"></tbody>
+        </table></div>
+        <div class="cmp-actions" id="cmpActions"></div>
+      </div>
     </section>
 
     <section class="module" id="sec9">

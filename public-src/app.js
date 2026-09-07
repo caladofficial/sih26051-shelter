@@ -422,7 +422,7 @@ function ensureThree() {
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(45, w / h, 0.05, 200);
   camera.position.set(4.6, 3.8, 5.4);
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.setSize(w, h);
   el.innerHTML = "";
@@ -2079,6 +2079,8 @@ function zoneCovers(preset, zone) {
     || String(x).toLowerCase() === z);
 }
 
+const pFilter = { q: "", zoneOnly: false };
+
 function renderPresets() {
   const g = $("presetGrid");
   if (!g || !presets.data) return;
@@ -2089,8 +2091,20 @@ function renderPresets() {
   $("presetSource").textContent =
     `ENGINE ${(presets.data.engine || "").replace("src/thermal/", "").toUpperCase()}`;
   const zone = presets.data.zone || "";
-  const rec = presets.data.presets.filter((p) => zoneCovers(p, zone));
-  const ref = presets.data.presets.filter((p) => !zoneCovers(p, zone));
+  const q = (pFilter.q || "").toLowerCase();
+  const inQ = (p) => {
+    if (!q) return true;
+    const hay = [p.name, p.tagline, p.rationale, (p.zones || []).join(" "),
+                 p.design.wall_material, p.design.roof_material,
+                 p.design.insulation_material === "none" ? "" : p.design.insulation_material]
+      .join(" ").toLowerCase();
+    return hay.indexOf(q) !== -1;
+  };
+  let rec = presets.data.presets.filter((p) => zoneCovers(p, zone) && inQ(p));
+  let ref = presets.data.presets.filter((p) => !zoneCovers(p, zone) && inQ(p));
+  if (pFilter.zoneOnly) ref = [];
+  const cnt = $("presetCount");
+  if (cnt) cnt.textContent = `${rec.length + ref.length} / ${presets.data.presets.length} PRESETS`;
   const groups = [];
   if (rec.length) groups.push({
     label: `RECOMMENDED · ${(presets.data.zone_name || presets.data.zone || "THIS ZONE").toUpperCase()}`,
@@ -2128,6 +2142,7 @@ function renderPresets() {
       <details class="preset-why"><summary>WHY THIS DESIGN</summary><p>${escapeHtml(p.rationale)}</p></details>
       <div class="preset-actions">
         <button class="primary" data-preset="${p.id}">⬇ LOAD INTO STUDIO</button>
+        <button class="ghost" data-compare="${p.id}" title="Run the same engine on this design vs the studio's current design">⚖ VS STUDIO</button>
         <span class="tag">ENGINE-VERIFIED @ ${presets.data.site.toUpperCase()}</span>
       </div>`;
     return card;
@@ -2168,6 +2183,88 @@ function loadPresetIntoStudio(id) {
   if (aiBody && aiState.on) aiPredict();
 }
 
+/* ---- thermal compare: current studio vs an engine-verified preset ---- */
+const CMP_ROWS = [
+  // [label, liveKey(studio hot/cold), cachedKey(preset), period, betterIs]
+  ["Mean indoor °C", "mean_indoor_c", "mean_indoor_c", "hot", "low"],
+  ["Hot peak °C", "max_indoor_c", "max_indoor_c", "hot", "low"],
+  ["Hot comfort hours", "comfort_fraction", "comfort_fraction", "hot", "high"],
+  ["Hot solar gain kWh", "solar_gain_kwh", "solar_gain_kwh", "hot", ""],
+  ["Mean indoor °C", "mean_indoor_c", "mean_indoor_c", "cold", "low"],
+  ["Cold minimum °C", "min_indoor_c", "min_indoor_c", "cold", "high"],
+  ["Cold comfort hours", "comfort_fraction", "comfort_fraction", "cold", "high"],
+  ["Cold night heat loss kWh", "night_heat_loss_kwh", "night_heat_loss_kwh", "cold", "high"],
+];
+
+async function comparePresetWithStudio(id) {
+  if (!presets.data) return;
+  const p = presets.data.presets.find((x) => x.id === id);
+  const wrap = $("cmpWrap");
+  if (!p || !wrap) return;
+  const sel = $("location").selectedOptions[0];
+  wrap.hidden = false;
+  $("cmpTitle").textContent =
+    `THERMAL COMPARE · ${presets.data.site.toUpperCase()} · “${p.name.toUpperCase()}” VS STUDIO`;
+  $("cmpNote").innerHTML =
+    `Studio column = live engine run (design weeks on this site's weather). Preset column = ` +
+    `the same engine's verified cache for this site (scripts/build_presets.py). ` +
+    `Heat-loss kWh follow engine sign convention (negative = net loss); shaded cell = better value.`;
+  $("cmpHead").innerHTML =
+    `<tr><th>Design-week metric</th><th>STUDIO · LIVE RUN</th><th>${escapeHtml(p.name).toUpperCase()} · ENGINE-VERIFIED</th><th>Better</th></tr>`;
+  $("cmpBody").innerHTML = `<tr><td colspan="4" class="delta">running two design-week simulations…</td></tr>`;
+  const base = {
+    lat: parseFloat(sel.dataset.lat), lon: parseFloat(sel.dataset.lon),
+    year: parseInt($("year").value, 10),
+  };
+  const studio = structPayload() || {};
+  const post = (body) => api("/api/simulate", {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+  });
+  try {
+    const [hot, cold] = await Promise.all([
+      post({ ...base, ...studio, period: "hot_week" }),
+      post({ ...base, ...studio, period: "cold_week" }),
+    ]);
+    const pm = p.metrics || {};
+    const live = { hot: hot.metrics || {}, cold: cold.metrics || {} };
+    const cached = { hot: pm.hot_week || {}, cold: pm.cold_week || {} };
+    const tb = $("cmpBody");
+    tb.innerHTML = "";
+    let winsPreset = 0, winsStudio = 0, tied = 0;
+    const frac = (v) => (v === undefined || v === null || isNaN(v)) ? null : Math.round(v * 100);
+    const vfmt = (period, key, v) => {
+      if (v === undefined || v === null || isNaN(v)) return "—";
+      return key === "comfort_fraction" ? `${Math.round(v * 100)}%` : fmt(v, v < 100 ? 2 : 1);
+    };
+    CMP_ROWS.forEach(([label, keyA, keyB, period, betterIs]) => {
+      const va = live[period][keyA], vb = cached[period][keyB];
+      const tr = document.createElement("tr");
+      let clsA = "", clsB = "", betterTxt = "—";
+      if (va !== undefined && vb !== undefined && !isNaN(va) && !isNaN(vb) && betterIs) {
+        const cmpNum = (betterIs === "high") ? vb - va : va - vb;
+        if (Math.abs(cmpNum) < 1e-9) { tied++; betterTxt = "tie"; }
+        else if (cmpNum > 0) { winsPreset++; clsB = "hi"; betterTxt = "preset"; }
+        else { winsStudio++; clsA = "hi"; betterTxt = "studio"; }
+      }
+      tr.innerHTML = `<td>${label} <em class="mut">· ${period === "hot" ? "HOT WEEK" : "COLD WEEK"}</em></td>` +
+        `<td class="${clsA}">${vfmt(period, keyA, va)}</td>` +
+        `<td class="${clsB}">${vfmt(period, keyB, vb)}</td>` +
+        `<td class="delta">${betterTxt}</td>`;
+      tb.appendChild(tr);
+    });
+    const verdict = winsStudio === 0 && winsPreset === 0 && tied === 0 ? "" :
+      `Row wins — studio ${winsStudio} · preset ${winsPreset} · tied ${tied} (wins only count where a design is clearly better).`;
+    $("cmpNote").textContent = $("cmpNote").textContent + " " + verdict;
+    $("cmpActions").innerHTML =
+      `<button id="cmpLoadPreset" class="primary">⬇ LOAD “${escapeHtml(p.name)}” INTO STUDIO</button>` +
+      `<button id="cmpAgain" class="ghost">↻ RE-RUN COMPARE</button>`;
+    $("cmpLoadPreset").addEventListener("click", () => { loadPresetIntoStudio(p.id); });
+    $("cmpAgain").addEventListener("click", () => comparePresetWithStudio(p.id));
+  } catch (err) {
+    $("cmpBody").innerHTML = `<tr><td colspan="4" class="delta">Compare failed: ${escapeHtml(err.message)}</td></tr>`;
+  }
+}
+
 function initPresets() {
   const g = $("presetGrid");
   if (!g) return;
@@ -2179,8 +2276,15 @@ function initPresets() {
   });
   g.addEventListener("click", (e) => {
     const btn = e.target.closest("[data-preset]");
-    if (btn) loadPresetIntoStudio(btn.dataset.preset);
+    if (btn) { loadPresetIntoStudio(btn.dataset.preset); return; }
+    const cmp = e.target.closest("[data-compare]");
+    if (cmp) { comparePresetWithStudio(cmp.dataset.compare); return; }
   });
+  const filt = $("presetFilter"), zo = $("presetZoneOnly");
+  if (filt) filt.addEventListener("input", () => { pFilter.q = filt.value.trim(); renderPresets(); });
+  if (zo) zo.addEventListener("change", () => { pFilter.zoneOnly = zo.checked; renderPresets(); });
+  const cc = $("cmpClose");
+  if (cc) cc.addEventListener("click", () => { const w = $("cmpWrap"); if (w) w.hidden = true; });
 }
 
 /* ============================================================
@@ -2205,9 +2309,15 @@ function cadViewPreset(name) {
 
 function snap3d() {
   if (typeof THREE === "undefined" || !struct.renderer) return;
-  const url = struct.renderer.domElement.toDataURL("image/png");
+  const cv = struct.renderer.domElement;
+  const out = document.createElement("canvas");
+  out.width = cv.width; out.height = cv.height;
+  const ctx = out.getContext("2d");
+  ctx.fillStyle = "#101418";          // opaque backdrop (the WebGL canvas is alpha)
+  ctx.fillRect(0, 0, out.width, out.height);
+  ctx.drawImage(cv, 0, 0);
   const a = document.createElement("a");
-  a.href = url;
+  a.href = out.toDataURL("image/png");
   a.download = `shelter-cad-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.png`;
   a.click();
   toast("3D snapshot downloaded (PNG)");

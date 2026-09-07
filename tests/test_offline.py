@@ -24,7 +24,7 @@ def test_offline_info_shape():
     assert d["available"] is True
     assert d["sites"] == 14
     assert d["materials"] == 15
-    assert d["presets"] == 10
+    assert d["presets"] == 18
     assert d["size_bytes"] > 1_000_000
 
 

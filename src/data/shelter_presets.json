@@ -1,6 +1,6 @@
 {
  "schema_version": 1,
- "generated_on": "2026-08-31T16:17Z",
+ "generated_on": "2026-09-07T09:14Z",
  "engine": "src/thermal/rc_model.simulate (design weeks on real hourly weather)",
  "sites": {
   "Prayagraj": {
@@ -177,6 +177,142 @@
      "night_heat_loss_kwh": -7.252,
      "total_heat_loss_kwh": -8.849,
      "solar_gain_kwh": 27.698
+    }
+   },
+   "composite_coolroof": {
+    "hot_week": {
+     "mean_indoor_c": 37.454,
+     "max_indoor_c": 39.685,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -41.067,
+     "solar_gain_kwh": 19.525
+    },
+    "cold_week": {
+     "mean_indoor_c": 24.923,
+     "min_indoor_c": 16.007,
+     "comfort_fraction": 0.964,
+     "night_heat_loss_kwh": -10.647,
+     "total_heat_loss_kwh": -12.906,
+     "solar_gain_kwh": 26.772
+    }
+   },
+   "composite_monsoon_hybrid": {
+    "hot_week": {
+     "mean_indoor_c": 37.69,
+     "max_indoor_c": 39.533,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -39.081,
+     "solar_gain_kwh": 20.922
+    },
+    "cold_week": {
+     "mean_indoor_c": 23.684,
+     "min_indoor_c": 15.975,
+     "comfort_fraction": 0.946,
+     "night_heat_loss_kwh": -12.968,
+     "total_heat_loss_kwh": -15.402,
+     "solar_gain_kwh": 27.2
+    }
+   },
+   "cyclone_shell": {
+    "hot_week": {
+     "mean_indoor_c": 38.776,
+     "max_indoor_c": 41.567,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -43.426,
+     "solar_gain_kwh": 19.431
+    },
+    "cold_week": {
+     "mean_indoor_c": 21.402,
+     "min_indoor_c": 15.985,
+     "comfort_fraction": 0.946,
+     "night_heat_loss_kwh": -6.516,
+     "total_heat_loss_kwh": -7.097,
+     "solar_gain_kwh": 17.592
+    }
+   },
+   "breezeway_panel": {
+    "hot_week": {
+     "mean_indoor_c": 42.501,
+     "max_indoor_c": 56.521,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -65.971,
+     "solar_gain_kwh": 65.412
+    },
+    "cold_week": {
+     "mean_indoor_c": 20.721,
+     "min_indoor_c": 11.872,
+     "comfort_fraction": 0.494,
+     "night_heat_loss_kwh": -4.115,
+     "total_heat_loss_kwh": -18.45,
+     "solar_gain_kwh": 50.893
+    }
+   },
+   "passive_solar_temperate": {
+    "hot_week": {
+     "mean_indoor_c": 39.268,
+     "max_indoor_c": 41.81,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -49.587,
+     "solar_gain_kwh": 39.57
+    },
+    "cold_week": {
+     "mean_indoor_c": 25.258,
+     "min_indoor_c": 15.973,
+     "comfort_fraction": 0.946,
+     "night_heat_loss_kwh": -26.164,
+     "total_heat_loss_kwh": -33.937,
+     "solar_gain_kwh": 60.023
+    }
+   },
+   "desert_nightpurge": {
+    "hot_week": {
+     "mean_indoor_c": 38.052,
+     "max_indoor_c": 39.96,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -41.655,
+     "solar_gain_kwh": 16.971
+    },
+    "cold_week": {
+     "mean_indoor_c": 20.214,
+     "min_indoor_c": 15.958,
+     "comfort_fraction": 0.929,
+     "night_heat_loss_kwh": -0.02,
+     "total_heat_loss_kwh": -0.02,
+     "solar_gain_kwh": 11.29
+    }
+   },
+   "superinsulated_cold": {
+    "hot_week": {
+     "mean_indoor_c": 36.741,
+     "max_indoor_c": 38.304,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -40.903,
+     "solar_gain_kwh": 17.927
+    },
+    "cold_week": {
+     "mean_indoor_c": 25.815,
+     "min_indoor_c": 15.991,
+     "comfort_fraction": 0.958,
+     "night_heat_loss_kwh": -6.182,
+     "total_heat_loss_kwh": -7.732,
+     "solar_gain_kwh": 28.928
+    }
+   },
+   "insulated_relief_cell": {
+    "hot_week": {
+     "mean_indoor_c": 40.076,
+     "max_indoor_c": 47.276,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -25.553,
+     "solar_gain_kwh": 7.85
+    },
+    "cold_week": {
+     "mean_indoor_c": 24.273,
+     "min_indoor_c": 16.508,
+     "comfort_fraction": 0.869,
+     "night_heat_loss_kwh": -0.731,
+     "total_heat_loss_kwh": -4.845,
+     "solar_gain_kwh": 11.071
     }
    }
   },
@@ -355,6 +491,142 @@
      "total_heat_loss_kwh": -3.123,
      "solar_gain_kwh": 14.5
     }
+   },
+   "composite_coolroof": {
+    "hot_week": {
+     "mean_indoor_c": 36.992,
+     "max_indoor_c": 38.877,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -45.257,
+     "solar_gain_kwh": 19.897
+    },
+    "cold_week": {
+     "mean_indoor_c": 21.549,
+     "min_indoor_c": 7.136,
+     "comfort_fraction": 0.893,
+     "night_heat_loss_kwh": -5.685,
+     "total_heat_loss_kwh": -6.541,
+     "solar_gain_kwh": 14.259
+    }
+   },
+   "composite_monsoon_hybrid": {
+    "hot_week": {
+     "mean_indoor_c": 37.39,
+     "max_indoor_c": 38.889,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -44.086,
+     "solar_gain_kwh": 21.094
+    },
+    "cold_week": {
+     "mean_indoor_c": 19.925,
+     "min_indoor_c": 7.088,
+     "comfort_fraction": 0.786,
+     "night_heat_loss_kwh": -6.729,
+     "total_heat_loss_kwh": -7.974,
+     "solar_gain_kwh": 14.835
+    }
+   },
+   "cyclone_shell": {
+    "hot_week": {
+     "mean_indoor_c": 38.391,
+     "max_indoor_c": 40.778,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -46.404,
+     "solar_gain_kwh": 19.496
+    },
+    "cold_week": {
+     "mean_indoor_c": 18.459,
+     "min_indoor_c": 7.103,
+     "comfort_fraction": 0.72,
+     "night_heat_loss_kwh": -2.874,
+     "total_heat_loss_kwh": -3.12,
+     "solar_gain_kwh": 10.588
+    }
+   },
+   "breezeway_panel": {
+    "hot_week": {
+     "mean_indoor_c": 41.991,
+     "max_indoor_c": 55.38,
+     "comfort_fraction": 0.012,
+     "total_heat_loss_kwh": -67.037,
+     "solar_gain_kwh": 66.915
+    },
+    "cold_week": {
+     "mean_indoor_c": 17.858,
+     "min_indoor_c": 7.465,
+     "comfort_fraction": 0.423,
+     "night_heat_loss_kwh": -4.369,
+     "total_heat_loss_kwh": -12.433,
+     "solar_gain_kwh": 30.439
+    }
+   },
+   "passive_solar_temperate": {
+    "hot_week": {
+     "mean_indoor_c": 39.031,
+     "max_indoor_c": 41.247,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -55.095,
+     "solar_gain_kwh": 40.297
+    },
+    "cold_week": {
+     "mean_indoor_c": 20.502,
+     "min_indoor_c": 7.085,
+     "comfort_fraction": 0.786,
+     "night_heat_loss_kwh": -14.23,
+     "total_heat_loss_kwh": -17.631,
+     "solar_gain_kwh": 31.535
+    }
+   },
+   "desert_nightpurge": {
+    "hot_week": {
+     "mean_indoor_c": 37.907,
+     "max_indoor_c": 39.419,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -47.538,
+     "solar_gain_kwh": 16.862
+    },
+    "cold_week": {
+     "mean_indoor_c": 16.816,
+     "min_indoor_c": 7.062,
+     "comfort_fraction": 0.506,
+     "night_heat_loss_kwh": 0.0,
+     "total_heat_loss_kwh": 0.0,
+     "solar_gain_kwh": 7.631
+    }
+   },
+   "superinsulated_cold": {
+    "hot_week": {
+     "mean_indoor_c": 36.352,
+     "max_indoor_c": 37.577,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -45.536,
+     "solar_gain_kwh": 18.351
+    },
+    "cold_week": {
+     "mean_indoor_c": 21.993,
+     "min_indoor_c": 7.113,
+     "comfort_fraction": 0.857,
+     "night_heat_loss_kwh": -1.951,
+     "total_heat_loss_kwh": -2.176,
+     "solar_gain_kwh": 14.978
+    }
+   },
+   "insulated_relief_cell": {
+    "hot_week": {
+     "mean_indoor_c": 39.4,
+     "max_indoor_c": 46.231,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -26.415,
+     "solar_gain_kwh": 7.988
+    },
+    "cold_week": {
+     "mean_indoor_c": 21.673,
+     "min_indoor_c": 7.833,
+     "comfort_fraction": 0.798,
+     "night_heat_loss_kwh": -0.709,
+     "total_heat_loss_kwh": -2.743,
+     "solar_gain_kwh": 5.865
+    }
    }
   },
   "Jaisalmer": {
@@ -531,6 +803,142 @@
      "night_heat_loss_kwh": -4.846,
      "total_heat_loss_kwh": -5.758,
      "solar_gain_kwh": 25.948
+    }
+   },
+   "composite_coolroof": {
+    "hot_week": {
+     "mean_indoor_c": 37.802,
+     "max_indoor_c": 39.846,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -38.85,
+     "solar_gain_kwh": 20.401
+    },
+    "cold_week": {
+     "mean_indoor_c": 24.958,
+     "min_indoor_c": 12.411,
+     "comfort_fraction": 0.935,
+     "night_heat_loss_kwh": -8.14,
+     "total_heat_loss_kwh": -9.693,
+     "solar_gain_kwh": 25.073
+    }
+   },
+   "composite_monsoon_hybrid": {
+    "hot_week": {
+     "mean_indoor_c": 37.969,
+     "max_indoor_c": 39.708,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -37.952,
+     "solar_gain_kwh": 21.733
+    },
+    "cold_week": {
+     "mean_indoor_c": 23.457,
+     "min_indoor_c": 12.369,
+     "comfort_fraction": 0.923,
+     "night_heat_loss_kwh": -9.361,
+     "total_heat_loss_kwh": -11.515,
+     "solar_gain_kwh": 25.494
+    }
+   },
+   "cyclone_shell": {
+    "hot_week": {
+     "mean_indoor_c": 38.821,
+     "max_indoor_c": 41.329,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -42.038,
+     "solar_gain_kwh": 21.085
+    },
+    "cold_week": {
+     "mean_indoor_c": 21.299,
+     "min_indoor_c": 12.382,
+     "comfort_fraction": 0.923,
+     "night_heat_loss_kwh": -3.355,
+     "total_heat_loss_kwh": -3.789,
+     "solar_gain_kwh": 16.503
+    }
+   },
+   "breezeway_panel": {
+    "hot_week": {
+     "mean_indoor_c": 42.637,
+     "max_indoor_c": 57.371,
+     "comfort_fraction": 0.024,
+     "total_heat_loss_kwh": -65.857,
+     "solar_gain_kwh": 74.52
+    },
+    "cold_week": {
+     "mean_indoor_c": 20.707,
+     "min_indoor_c": 12.696,
+     "comfort_fraction": 0.458,
+     "night_heat_loss_kwh": -5.792,
+     "total_heat_loss_kwh": -16.259,
+     "solar_gain_kwh": 47.524
+    }
+   },
+   "passive_solar_temperate": {
+    "hot_week": {
+     "mean_indoor_c": 39.502,
+     "max_indoor_c": 41.939,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -48.435,
+     "solar_gain_kwh": 40.377
+    },
+    "cold_week": {
+     "mean_indoor_c": 25.0,
+     "min_indoor_c": 12.366,
+     "comfort_fraction": 0.929,
+     "night_heat_loss_kwh": -21.796,
+     "total_heat_loss_kwh": -28.372,
+     "solar_gain_kwh": 56.25
+    }
+   },
+   "desert_nightpurge": {
+    "hot_week": {
+     "mean_indoor_c": 38.138,
+     "max_indoor_c": 39.898,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -38.813,
+     "solar_gain_kwh": 18.567
+    },
+    "cold_week": {
+     "mean_indoor_c": 19.733,
+     "min_indoor_c": 12.346,
+     "comfort_fraction": 0.798,
+     "night_heat_loss_kwh": 0.0,
+     "total_heat_loss_kwh": 0.0,
+     "solar_gain_kwh": 10.626
+    }
+   },
+   "superinsulated_cold": {
+    "hot_week": {
+     "mean_indoor_c": 37.149,
+     "max_indoor_c": 38.639,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -37.989,
+     "solar_gain_kwh": 18.166
+    },
+    "cold_week": {
+     "mean_indoor_c": 25.768,
+     "min_indoor_c": 12.39,
+     "comfort_fraction": 0.929,
+     "night_heat_loss_kwh": -3.967,
+     "total_heat_loss_kwh": -4.698,
+     "solar_gain_kwh": 27.107
+    }
+   },
+   "insulated_relief_cell": {
+    "hot_week": {
+     "mean_indoor_c": 40.036,
+     "max_indoor_c": 47.595,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -23.471,
+     "solar_gain_kwh": 8.152
+    },
+    "cold_week": {
+     "mean_indoor_c": 24.497,
+     "min_indoor_c": 13.03,
+     "comfort_fraction": 0.899,
+     "night_heat_loss_kwh": -0.932,
+     "total_heat_loss_kwh": -4.101,
+     "solar_gain_kwh": 10.367
     }
    }
   },
@@ -709,6 +1117,142 @@
      "total_heat_loss_kwh": -15.02,
      "solar_gain_kwh": 38.434
     }
+   },
+   "composite_coolroof": {
+    "hot_week": {
+     "mean_indoor_c": 36.956,
+     "max_indoor_c": 38.915,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -36.367,
+     "solar_gain_kwh": 19.197
+    },
+    "cold_week": {
+     "mean_indoor_c": 27.523,
+     "min_indoor_c": 17.165,
+     "comfort_fraction": 0.982,
+     "night_heat_loss_kwh": -15.862,
+     "total_heat_loss_kwh": -19.363,
+     "solar_gain_kwh": 36.991
+    }
+   },
+   "composite_monsoon_hybrid": {
+    "hot_week": {
+     "mean_indoor_c": 37.097,
+     "max_indoor_c": 38.739,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -35.991,
+     "solar_gain_kwh": 20.581
+    },
+    "cold_week": {
+     "mean_indoor_c": 26.284,
+     "min_indoor_c": 17.134,
+     "comfort_fraction": 0.97,
+     "night_heat_loss_kwh": -17.768,
+     "total_heat_loss_kwh": -21.033,
+     "solar_gain_kwh": 37.513
+    }
+   },
+   "cyclone_shell": {
+    "hot_week": {
+     "mean_indoor_c": 37.867,
+     "max_indoor_c": 40.302,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -40.092,
+     "solar_gain_kwh": 20.287
+    },
+    "cold_week": {
+     "mean_indoor_c": 23.947,
+     "min_indoor_c": 17.144,
+     "comfort_fraction": 0.976,
+     "night_heat_loss_kwh": -11.027,
+     "total_heat_loss_kwh": -12.116,
+     "solar_gain_kwh": 23.634
+    }
+   },
+   "breezeway_panel": {
+    "hot_week": {
+     "mean_indoor_c": 41.509,
+     "max_indoor_c": 55.611,
+     "comfort_fraction": 0.083,
+     "total_heat_loss_kwh": -62.981,
+     "solar_gain_kwh": 71.496
+    },
+    "cold_week": {
+     "mean_indoor_c": 23.993,
+     "min_indoor_c": 13.134,
+     "comfort_fraction": 0.536,
+     "night_heat_loss_kwh": -9.516,
+     "total_heat_loss_kwh": -26.294,
+     "solar_gain_kwh": 67.39
+    }
+   },
+   "passive_solar_temperate": {
+    "hot_week": {
+     "mean_indoor_c": 38.512,
+     "max_indoor_c": 40.779,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -45.621,
+     "solar_gain_kwh": 37.791
+    },
+    "cold_week": {
+     "mean_indoor_c": 28.728,
+     "min_indoor_c": 17.132,
+     "comfort_fraction": 0.863,
+     "night_heat_loss_kwh": -35.459,
+     "total_heat_loss_kwh": -47.992,
+     "solar_gain_kwh": 83.328
+    }
+   },
+   "desert_nightpurge": {
+    "hot_week": {
+     "mean_indoor_c": 37.199,
+     "max_indoor_c": 38.814,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -36.547,
+     "solar_gain_kwh": 18.133
+    },
+    "cold_week": {
+     "mean_indoor_c": 22.489,
+     "min_indoor_c": 17.117,
+     "comfort_fraction": 0.952,
+     "night_heat_loss_kwh": -1.77,
+     "total_heat_loss_kwh": -2.059,
+     "solar_gain_kwh": 14.424
+    }
+   },
+   "superinsulated_cold": {
+    "hot_week": {
+     "mean_indoor_c": 36.348,
+     "max_indoor_c": 37.726,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -35.462,
+     "solar_gain_kwh": 16.906
+    },
+    "cold_week": {
+     "mean_indoor_c": 28.413,
+     "min_indoor_c": 17.15,
+     "comfort_fraction": 0.982,
+     "night_heat_loss_kwh": -10.835,
+     "total_heat_loss_kwh": -14.508,
+     "solar_gain_kwh": 40.252
+    }
+   },
+   "insulated_relief_cell": {
+    "hot_week": {
+     "mean_indoor_c": 39.13,
+     "max_indoor_c": 46.302,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -22.313,
+     "solar_gain_kwh": 7.662
+    },
+    "cold_week": {
+     "mean_indoor_c": 27.101,
+     "min_indoor_c": 17.657,
+     "comfort_fraction": 0.726,
+     "night_heat_loss_kwh": -1.953,
+     "total_heat_loss_kwh": -7.689,
+     "solar_gain_kwh": 15.329
+    }
    }
   },
   "Chennai": {
@@ -885,6 +1429,142 @@
      "night_heat_loss_kwh": -6.812,
      "total_heat_loss_kwh": -9.575,
      "solar_gain_kwh": 16.363
+    }
+   },
+   "composite_coolroof": {
+    "hot_week": {
+     "mean_indoor_c": 34.809,
+     "max_indoor_c": 37.076,
+     "comfort_fraction": 0.077,
+     "total_heat_loss_kwh": -25.566,
+     "solar_gain_kwh": 18.149
+    },
+    "cold_week": {
+     "mean_indoor_c": 29.944,
+     "min_indoor_c": 23.627,
+     "comfort_fraction": 0.964,
+     "night_heat_loss_kwh": -9.164,
+     "total_heat_loss_kwh": -12.331,
+     "solar_gain_kwh": 16.261
+    }
+   },
+   "composite_monsoon_hybrid": {
+    "hot_week": {
+     "mean_indoor_c": 34.531,
+     "max_indoor_c": 36.742,
+     "comfort_fraction": 0.095,
+     "total_heat_loss_kwh": -23.954,
+     "solar_gain_kwh": 19.688
+    },
+    "cold_week": {
+     "mean_indoor_c": 29.228,
+     "min_indoor_c": 23.608,
+     "comfort_fraction": 1.0,
+     "night_heat_loss_kwh": -9.483,
+     "total_heat_loss_kwh": -12.078,
+     "solar_gain_kwh": 16.973
+    }
+   },
+   "cyclone_shell": {
+    "hot_week": {
+     "mean_indoor_c": 34.83,
+     "max_indoor_c": 37.349,
+     "comfort_fraction": 0.077,
+     "total_heat_loss_kwh": -25.398,
+     "solar_gain_kwh": 17.764
+    },
+    "cold_week": {
+     "mean_indoor_c": 28.196,
+     "min_indoor_c": 23.614,
+     "comfort_fraction": 1.0,
+     "night_heat_loss_kwh": -6.4,
+     "total_heat_loss_kwh": -7.329,
+     "solar_gain_kwh": 12.581
+    }
+   },
+   "breezeway_panel": {
+    "hot_week": {
+     "mean_indoor_c": 37.253,
+     "max_indoor_c": 49.206,
+     "comfort_fraction": 0.226,
+     "total_heat_loss_kwh": -42.213,
+     "solar_gain_kwh": 56.906
+    },
+    "cold_week": {
+     "mean_indoor_c": 28.454,
+     "min_indoor_c": 23.322,
+     "comfort_fraction": 0.798,
+     "night_heat_loss_kwh": -3.999,
+     "total_heat_loss_kwh": -16.08,
+     "solar_gain_kwh": 37.399
+    }
+   },
+   "passive_solar_temperate": {
+    "hot_week": {
+     "mean_indoor_c": 35.789,
+     "max_indoor_c": 38.568,
+     "comfort_fraction": 0.083,
+     "total_heat_loss_kwh": -34.293,
+     "solar_gain_kwh": 37.349
+    },
+    "cold_week": {
+     "mean_indoor_c": 30.27,
+     "min_indoor_c": 23.607,
+     "comfort_fraction": 0.893,
+     "night_heat_loss_kwh": -17.473,
+     "total_heat_loss_kwh": -24.244,
+     "solar_gain_kwh": 35.532
+    }
+   },
+   "desert_nightpurge": {
+    "hot_week": {
+     "mean_indoor_c": 33.84,
+     "max_indoor_c": 35.983,
+     "comfort_fraction": 0.202,
+     "total_heat_loss_kwh": -18.752,
+     "solar_gain_kwh": 15.937
+    },
+    "cold_week": {
+     "mean_indoor_c": 27.271,
+     "min_indoor_c": 23.597,
+     "comfort_fraction": 1.0,
+     "night_heat_loss_kwh": -0.928,
+     "total_heat_loss_kwh": -0.967,
+     "solar_gain_kwh": 9.421
+    }
+   },
+   "superinsulated_cold": {
+    "hot_week": {
+     "mean_indoor_c": 34.428,
+     "max_indoor_c": 36.392,
+     "comfort_fraction": 0.089,
+     "total_heat_loss_kwh": -23.023,
+     "solar_gain_kwh": 16.921
+    },
+    "cold_week": {
+     "mean_indoor_c": 30.307,
+     "min_indoor_c": 23.618,
+     "comfort_fraction": 0.94,
+     "night_heat_loss_kwh": -6.205,
+     "total_heat_loss_kwh": -9.209,
+     "solar_gain_kwh": 16.78
+    }
+   },
+   "insulated_relief_cell": {
+    "hot_week": {
+     "mean_indoor_c": 36.631,
+     "max_indoor_c": 42.951,
+     "comfort_fraction": 0.042,
+     "total_heat_loss_kwh": -16.643,
+     "solar_gain_kwh": 7.341
+    },
+    "cold_week": {
+     "mean_indoor_c": 30.496,
+     "min_indoor_c": 23.982,
+     "comfort_fraction": 0.738,
+     "night_heat_loss_kwh": -2.322,
+     "total_heat_loss_kwh": -6.989,
+     "solar_gain_kwh": 6.672
     }
    }
   },
@@ -1063,6 +1743,142 @@
      "total_heat_loss_kwh": -19.731,
      "solar_gain_kwh": 32.285
     }
+   },
+   "composite_coolroof": {
+    "hot_week": {
+     "mean_indoor_c": 33.818,
+     "max_indoor_c": 37.42,
+     "comfort_fraction": 0.208,
+     "total_heat_loss_kwh": -27.998,
+     "solar_gain_kwh": 20.423
+    },
+    "cold_week": {
+     "mean_indoor_c": 29.985,
+     "min_indoor_c": 23.94,
+     "comfort_fraction": 0.911,
+     "night_heat_loss_kwh": -18.173,
+     "total_heat_loss_kwh": -23.011,
+     "solar_gain_kwh": 31.347
+    }
+   },
+   "composite_monsoon_hybrid": {
+    "hot_week": {
+     "mean_indoor_c": 33.326,
+     "max_indoor_c": 36.808,
+     "comfort_fraction": 0.274,
+     "total_heat_loss_kwh": -26.189,
+     "solar_gain_kwh": 21.417
+    },
+    "cold_week": {
+     "mean_indoor_c": 29.238,
+     "min_indoor_c": 23.923,
+     "comfort_fraction": 1.0,
+     "night_heat_loss_kwh": -20.151,
+     "total_heat_loss_kwh": -24.3,
+     "solar_gain_kwh": 31.895
+    }
+   },
+   "cyclone_shell": {
+    "hot_week": {
+     "mean_indoor_c": 33.83,
+     "max_indoor_c": 38.047,
+     "comfort_fraction": 0.244,
+     "total_heat_loss_kwh": -29.847,
+     "solar_gain_kwh": 19.321
+    },
+    "cold_week": {
+     "mean_indoor_c": 27.563,
+     "min_indoor_c": 23.929,
+     "comfort_fraction": 1.0,
+     "night_heat_loss_kwh": -15.443,
+     "total_heat_loss_kwh": -17.361,
+     "solar_gain_kwh": 21.069
+    }
+   },
+   "breezeway_panel": {
+    "hot_week": {
+     "mean_indoor_c": 37.013,
+     "max_indoor_c": 51.867,
+     "comfort_fraction": 0.381,
+     "total_heat_loss_kwh": -51.101,
+     "solar_gain_kwh": 66.712
+    },
+    "cold_week": {
+     "mean_indoor_c": 28.106,
+     "min_indoor_c": 17.799,
+     "comfort_fraction": 0.679,
+     "night_heat_loss_kwh": -11.714,
+     "total_heat_loss_kwh": -29.709,
+     "solar_gain_kwh": 61.977
+    }
+   },
+   "passive_solar_temperate": {
+    "hot_week": {
+     "mean_indoor_c": 34.777,
+     "max_indoor_c": 39.016,
+     "comfort_fraction": 0.214,
+     "total_heat_loss_kwh": -37.811,
+     "solar_gain_kwh": 41.674
+    },
+    "cold_week": {
+     "mean_indoor_c": 31.381,
+     "min_indoor_c": 23.922,
+     "comfort_fraction": 0.554,
+     "night_heat_loss_kwh": -35.246,
+     "total_heat_loss_kwh": -48.092,
+     "solar_gain_kwh": 69.916
+    }
+   },
+   "desert_nightpurge": {
+    "hot_week": {
+     "mean_indoor_c": 32.537,
+     "max_indoor_c": 36.013,
+     "comfort_fraction": 0.369,
+     "total_heat_loss_kwh": -20.919,
+     "solar_gain_kwh": 16.02
+    },
+    "cold_week": {
+     "mean_indoor_c": 26.546,
+     "min_indoor_c": 23.914,
+     "comfort_fraction": 1.0,
+     "night_heat_loss_kwh": -6.731,
+     "total_heat_loss_kwh": -7.523,
+     "solar_gain_kwh": 13.683
+    }
+   },
+   "superinsulated_cold": {
+    "hot_week": {
+     "mean_indoor_c": 33.305,
+     "max_indoor_c": 36.46,
+     "comfort_fraction": 0.244,
+     "total_heat_loss_kwh": -23.984,
+     "solar_gain_kwh": 19.139
+    },
+    "cold_week": {
+     "mean_indoor_c": 30.63,
+     "min_indoor_c": 23.932,
+     "comfort_fraction": 0.756,
+     "night_heat_loss_kwh": -13.541,
+     "total_heat_loss_kwh": -19.664,
+     "solar_gain_kwh": 33.618
+    }
+   },
+   "insulated_relief_cell": {
+    "hot_week": {
+     "mean_indoor_c": 35.859,
+     "max_indoor_c": 44.378,
+     "comfort_fraction": 0.238,
+     "total_heat_loss_kwh": -17.509,
+     "solar_gain_kwh": 8.206
+    },
+    "cold_week": {
+     "mean_indoor_c": 30.079,
+     "min_indoor_c": 22.419,
+     "comfort_fraction": 0.661,
+     "night_heat_loss_kwh": -3.383,
+     "total_heat_loss_kwh": -10.261,
+     "solar_gain_kwh": 12.944
+    }
    }
   },
   "Kolkata": {
@@ -1239,6 +2055,142 @@
      "night_heat_loss_kwh": -3.629,
      "total_heat_loss_kwh": -4.256,
      "solar_gain_kwh": 16.126
+    }
+   },
+   "composite_coolroof": {
+    "hot_week": {
+     "mean_indoor_c": 35.061,
+     "max_indoor_c": 37.62,
+     "comfort_fraction": 0.065,
+     "total_heat_loss_kwh": -34.25,
+     "solar_gain_kwh": 20.248
+    },
+    "cold_week": {
+     "mean_indoor_c": 24.303,
+     "min_indoor_c": 15.597,
+     "comfort_fraction": 0.958,
+     "night_heat_loss_kwh": -6.632,
+     "total_heat_loss_kwh": -7.887,
+     "solar_gain_kwh": 15.978
+    }
+   },
+   "composite_monsoon_hybrid": {
+    "hot_week": {
+     "mean_indoor_c": 34.969,
+     "max_indoor_c": 37.207,
+     "comfort_fraction": 0.077,
+     "total_heat_loss_kwh": -33.413,
+     "solar_gain_kwh": 21.605
+    },
+    "cold_week": {
+     "mean_indoor_c": 23.174,
+     "min_indoor_c": 15.565,
+     "comfort_fraction": 0.94,
+     "night_heat_loss_kwh": -8.209,
+     "total_heat_loss_kwh": -9.687,
+     "solar_gain_kwh": 16.667
+    }
+   },
+   "cyclone_shell": {
+    "hot_week": {
+     "mean_indoor_c": 35.715,
+     "max_indoor_c": 38.752,
+     "comfort_fraction": 0.065,
+     "total_heat_loss_kwh": -37.909,
+     "solar_gain_kwh": 19.719
+    },
+    "cold_week": {
+     "mean_indoor_c": 21.467,
+     "min_indoor_c": 15.575,
+     "comfort_fraction": 0.946,
+     "night_heat_loss_kwh": -3.816,
+     "total_heat_loss_kwh": -4.105,
+     "solar_gain_kwh": 12.243
+    }
+   },
+   "breezeway_panel": {
+    "hot_week": {
+     "mean_indoor_c": 39.131,
+     "max_indoor_c": 54.28,
+     "comfort_fraction": 0.286,
+     "total_heat_loss_kwh": -59.935,
+     "solar_gain_kwh": 66.613
+    },
+    "cold_week": {
+     "mean_indoor_c": 20.815,
+     "min_indoor_c": 13.318,
+     "comfort_fraction": 0.571,
+     "night_heat_loss_kwh": -2.61,
+     "total_heat_loss_kwh": -14.247,
+     "solar_gain_kwh": 36.02
+    }
+   },
+   "passive_solar_temperate": {
+    "hot_week": {
+     "mean_indoor_c": 36.497,
+     "max_indoor_c": 39.393,
+     "comfort_fraction": 0.071,
+     "total_heat_loss_kwh": -44.664,
+     "solar_gain_kwh": 41.165
+    },
+    "cold_week": {
+     "mean_indoor_c": 23.984,
+     "min_indoor_c": 15.563,
+     "comfort_fraction": 0.946,
+     "night_heat_loss_kwh": -16.762,
+     "total_heat_loss_kwh": -21.099,
+     "solar_gain_kwh": 35.038
+    }
+   },
+   "desert_nightpurge": {
+    "hot_week": {
+     "mean_indoor_c": 34.736,
+     "max_indoor_c": 36.942,
+     "comfort_fraction": 0.083,
+     "total_heat_loss_kwh": -31.781,
+     "solar_gain_kwh": 16.879
+    },
+    "cold_week": {
+     "mean_indoor_c": 20.372,
+     "min_indoor_c": 15.548,
+     "comfort_fraction": 0.923,
+     "night_heat_loss_kwh": 0.0,
+     "total_heat_loss_kwh": 0.0,
+     "solar_gain_kwh": 9.141
+    }
+   },
+   "superinsulated_cold": {
+    "hot_week": {
+     "mean_indoor_c": 34.454,
+     "max_indoor_c": 36.434,
+     "comfort_fraction": 0.077,
+     "total_heat_loss_kwh": -31.812,
+     "solar_gain_kwh": 18.713
+    },
+    "cold_week": {
+     "mean_indoor_c": 24.933,
+     "min_indoor_c": 15.582,
+     "comfort_fraction": 0.952,
+     "night_heat_loss_kwh": -2.694,
+     "total_heat_loss_kwh": -3.17,
+     "solar_gain_kwh": 16.573
+    }
+   },
+   "insulated_relief_cell": {
+    "hot_week": {
+     "mean_indoor_c": 37.357,
+     "max_indoor_c": 46.031,
+     "comfort_fraction": 0.137,
+     "total_heat_loss_kwh": -21.487,
+     "solar_gain_kwh": 8.159
+    },
+    "cold_week": {
+     "mean_indoor_c": 24.071,
+     "min_indoor_c": 16.101,
+     "comfort_fraction": 0.994,
+     "night_heat_loss_kwh": -0.535,
+     "total_heat_loss_kwh": -3.492,
+     "solar_gain_kwh": 6.558
     }
    }
   },
@@ -1417,6 +2369,142 @@
      "total_heat_loss_kwh": -14.19,
      "solar_gain_kwh": 23.877
     }
+   },
+   "composite_coolroof": {
+    "hot_week": {
+     "mean_indoor_c": 31.451,
+     "max_indoor_c": 34.037,
+     "comfort_fraction": 0.5,
+     "total_heat_loss_kwh": -27.106,
+     "solar_gain_kwh": 18.516
+    },
+    "cold_week": {
+     "mean_indoor_c": 26.619,
+     "min_indoor_c": 19.46,
+     "comfort_fraction": 1.0,
+     "night_heat_loss_kwh": -13.989,
+     "total_heat_loss_kwh": -17.31,
+     "solar_gain_kwh": 23.537
+    }
+   },
+   "composite_monsoon_hybrid": {
+    "hot_week": {
+     "mean_indoor_c": 31.085,
+     "max_indoor_c": 33.788,
+     "comfort_fraction": 0.488,
+     "total_heat_loss_kwh": -25.322,
+     "solar_gain_kwh": 20.041
+    },
+    "cold_week": {
+     "mean_indoor_c": 25.773,
+     "min_indoor_c": 19.439,
+     "comfort_fraction": 1.0,
+     "night_heat_loss_kwh": -15.238,
+     "total_heat_loss_kwh": -17.964,
+     "solar_gain_kwh": 24.247
+    }
+   },
+   "cyclone_shell": {
+    "hot_week": {
+     "mean_indoor_c": 31.656,
+     "max_indoor_c": 34.582,
+     "comfort_fraction": 0.452,
+     "total_heat_loss_kwh": -29.261,
+     "solar_gain_kwh": 19.005
+    },
+    "cold_week": {
+     "mean_indoor_c": 24.541,
+     "min_indoor_c": 19.446,
+     "comfort_fraction": 1.0,
+     "night_heat_loss_kwh": -11.926,
+     "total_heat_loss_kwh": -13.117,
+     "solar_gain_kwh": 17.271
+    }
+   },
+   "breezeway_panel": {
+    "hot_week": {
+     "mean_indoor_c": 34.817,
+     "max_indoor_c": 49.271,
+     "comfort_fraction": 0.452,
+     "total_heat_loss_kwh": -51.471,
+     "solar_gain_kwh": 64.274
+    },
+    "cold_week": {
+     "mean_indoor_c": 25.23,
+     "min_indoor_c": 16.23,
+     "comfort_fraction": 0.726,
+     "night_heat_loss_kwh": -8.999,
+     "total_heat_loss_kwh": -25.208,
+     "solar_gain_kwh": 51.953
+    }
+   },
+   "passive_solar_temperate": {
+    "hot_week": {
+     "mean_indoor_c": 32.355,
+     "max_indoor_c": 35.72,
+     "comfort_fraction": 0.31,
+     "total_heat_loss_kwh": -35.208,
+     "solar_gain_kwh": 37.1
+    },
+    "cold_week": {
+     "mean_indoor_c": 27.315,
+     "min_indoor_c": 19.438,
+     "comfort_fraction": 1.0,
+     "night_heat_loss_kwh": -26.363,
+     "total_heat_loss_kwh": -33.939,
+     "solar_gain_kwh": 51.722
+    }
+   },
+   "desert_nightpurge": {
+    "hot_week": {
+     "mean_indoor_c": 30.458,
+     "max_indoor_c": 33.243,
+     "comfort_fraction": 0.649,
+     "total_heat_loss_kwh": -21.183,
+     "solar_gain_kwh": 16.642
+    },
+    "cold_week": {
+     "mean_indoor_c": 23.411,
+     "min_indoor_c": 19.428,
+     "comfort_fraction": 1.0,
+     "night_heat_loss_kwh": -4.149,
+     "total_heat_loss_kwh": -4.456,
+     "solar_gain_kwh": 12.302
+    }
+   },
+   "superinsulated_cold": {
+    "hot_week": {
+     "mean_indoor_c": 30.868,
+     "max_indoor_c": 33.33,
+     "comfort_fraction": 0.613,
+     "total_heat_loss_kwh": -23.3,
+     "solar_gain_kwh": 16.638
+    },
+    "cold_week": {
+     "mean_indoor_c": 27.03,
+     "min_indoor_c": 19.45,
+     "comfort_fraction": 1.0,
+     "night_heat_loss_kwh": -10.044,
+     "total_heat_loss_kwh": -13.878,
+     "solar_gain_kwh": 24.615
+    }
+   },
+   "insulated_relief_cell": {
+    "hot_week": {
+     "mean_indoor_c": 33.582,
+     "max_indoor_c": 40.746,
+     "comfort_fraction": 0.411,
+     "total_heat_loss_kwh": -17.543,
+     "solar_gain_kwh": 7.447
+    },
+    "cold_week": {
+     "mean_indoor_c": 27.083,
+     "min_indoor_c": 19.826,
+     "comfort_fraction": 0.821,
+     "night_heat_loss_kwh": -2.873,
+     "total_heat_loss_kwh": -8.546,
+     "solar_gain_kwh": 9.673
+    }
    }
   },
   "Hyderabad": {
@@ -1593,6 +2681,142 @@
      "night_heat_loss_kwh": -10.849,
      "total_heat_loss_kwh": -13.783,
      "solar_gain_kwh": 30.749
+    }
+   },
+   "composite_coolroof": {
+    "hot_week": {
+     "mean_indoor_c": 34.661,
+     "max_indoor_c": 37.031,
+     "comfort_fraction": 0.071,
+     "total_heat_loss_kwh": -31.638,
+     "solar_gain_kwh": 18.794
+    },
+    "cold_week": {
+     "mean_indoor_c": 27.278,
+     "min_indoor_c": 17.15,
+     "comfort_fraction": 0.982,
+     "night_heat_loss_kwh": -14.445,
+     "total_heat_loss_kwh": -17.747,
+     "solar_gain_kwh": 29.94
+    }
+   },
+   "composite_monsoon_hybrid": {
+    "hot_week": {
+     "mean_indoor_c": 34.549,
+     "max_indoor_c": 36.695,
+     "comfort_fraction": 0.083,
+     "total_heat_loss_kwh": -30.689,
+     "solar_gain_kwh": 20.135
+    },
+    "cold_week": {
+     "mean_indoor_c": 26.103,
+     "min_indoor_c": 17.121,
+     "comfort_fraction": 0.97,
+     "night_heat_loss_kwh": -15.525,
+     "total_heat_loss_kwh": -18.272,
+     "solar_gain_kwh": 30.425
+    }
+   },
+   "cyclone_shell": {
+    "hot_week": {
+     "mean_indoor_c": 35.25,
+     "max_indoor_c": 38.063,
+     "comfort_fraction": 0.071,
+     "total_heat_loss_kwh": -35.199,
+     "solar_gain_kwh": 19.6
+    },
+    "cold_week": {
+     "mean_indoor_c": 24.488,
+     "min_indoor_c": 17.13,
+     "comfort_fraction": 0.976,
+     "night_heat_loss_kwh": -11.179,
+     "total_heat_loss_kwh": -12.29,
+     "solar_gain_kwh": 20.359
+    }
+   },
+   "breezeway_panel": {
+    "hot_week": {
+     "mean_indoor_c": 38.71,
+     "max_indoor_c": 53.08,
+     "comfort_fraction": 0.28,
+     "total_heat_loss_kwh": -58.51,
+     "solar_gain_kwh": 68.76
+    },
+    "cold_week": {
+     "mean_indoor_c": 25.177,
+     "min_indoor_c": 14.416,
+     "comfort_fraction": 0.649,
+     "night_heat_loss_kwh": -8.127,
+     "total_heat_loss_kwh": -26.378,
+     "solar_gain_kwh": 60.956
+    }
+   },
+   "passive_solar_temperate": {
+    "hot_week": {
+     "mean_indoor_c": 35.898,
+     "max_indoor_c": 38.664,
+     "comfort_fraction": 0.077,
+     "total_heat_loss_kwh": -40.411,
+     "solar_gain_kwh": 37.162
+    },
+    "cold_week": {
+     "mean_indoor_c": 28.079,
+     "min_indoor_c": 17.119,
+     "comfort_fraction": 0.905,
+     "night_heat_loss_kwh": -29.529,
+     "total_heat_loss_kwh": -38.227,
+     "solar_gain_kwh": 66.514
+    }
+   },
+   "desert_nightpurge": {
+    "hot_week": {
+     "mean_indoor_c": 34.33,
+     "max_indoor_c": 36.486,
+     "comfort_fraction": 0.095,
+     "total_heat_loss_kwh": -29.159,
+     "solar_gain_kwh": 17.3
+    },
+    "cold_week": {
+     "mean_indoor_c": 23.011,
+     "min_indoor_c": 17.105,
+     "comfort_fraction": 0.952,
+     "night_heat_loss_kwh": -1.885,
+     "total_heat_loss_kwh": -2.083,
+     "solar_gain_kwh": 13.482
+    }
+   },
+   "superinsulated_cold": {
+    "hot_week": {
+     "mean_indoor_c": 34.056,
+     "max_indoor_c": 35.944,
+     "comfort_fraction": 0.083,
+     "total_heat_loss_kwh": -29.078,
+     "solar_gain_kwh": 16.662
+    },
+    "cold_week": {
+     "mean_indoor_c": 27.821,
+     "min_indoor_c": 17.136,
+     "comfort_fraction": 0.976,
+     "night_heat_loss_kwh": -9.862,
+     "total_heat_loss_kwh": -13.31,
+     "solar_gain_kwh": 31.957
+    }
+   },
+   "insulated_relief_cell": {
+    "hot_week": {
+     "mean_indoor_c": 36.809,
+     "max_indoor_c": 43.912,
+     "comfort_fraction": 0.179,
+     "total_heat_loss_kwh": -20.095,
+     "solar_gain_kwh": 7.516
+    },
+    "cold_week": {
+     "mean_indoor_c": 27.503,
+     "min_indoor_c": 17.617,
+     "comfort_fraction": 0.738,
+     "night_heat_loss_kwh": -2.03,
+     "total_heat_loss_kwh": -8.082,
+     "solar_gain_kwh": 12.347
     }
    }
   },
@@ -1771,6 +2995,142 @@
      "total_heat_loss_kwh": -12.556,
      "solar_gain_kwh": 27.22
     }
+   },
+   "composite_coolroof": {
+    "hot_week": {
+     "mean_indoor_c": 31.903,
+     "max_indoor_c": 34.628,
+     "comfort_fraction": 0.446,
+     "total_heat_loss_kwh": -30.353,
+     "solar_gain_kwh": 19.363
+    },
+    "cold_week": {
+     "mean_indoor_c": 25.298,
+     "min_indoor_c": 13.995,
+     "comfort_fraction": 0.94,
+     "night_heat_loss_kwh": -13.105,
+     "total_heat_loss_kwh": -16.08,
+     "solar_gain_kwh": 26.629
+    }
+   },
+   "composite_monsoon_hybrid": {
+    "hot_week": {
+     "mean_indoor_c": 31.692,
+     "max_indoor_c": 34.354,
+     "comfort_fraction": 0.429,
+     "total_heat_loss_kwh": -29.42,
+     "solar_gain_kwh": 20.903
+    },
+    "cold_week": {
+     "mean_indoor_c": 24.094,
+     "min_indoor_c": 13.964,
+     "comfort_fraction": 0.923,
+     "night_heat_loss_kwh": -13.083,
+     "total_heat_loss_kwh": -15.291,
+     "solar_gain_kwh": 27.239
+    }
+   },
+   "cyclone_shell": {
+    "hot_week": {
+     "mean_indoor_c": 32.327,
+     "max_indoor_c": 35.531,
+     "comfort_fraction": 0.387,
+     "total_heat_loss_kwh": -33.809,
+     "solar_gain_kwh": 19.819
+    },
+    "cold_week": {
+     "mean_indoor_c": 22.879,
+     "min_indoor_c": 13.974,
+     "comfort_fraction": 0.929,
+     "night_heat_loss_kwh": -9.922,
+     "total_heat_loss_kwh": -10.793,
+     "solar_gain_kwh": 18.713
+    }
+   },
+   "breezeway_panel": {
+    "hot_week": {
+     "mean_indoor_c": 35.6,
+     "max_indoor_c": 50.727,
+     "comfort_fraction": 0.458,
+     "total_heat_loss_kwh": -56.32,
+     "solar_gain_kwh": 67.449
+    },
+    "cold_week": {
+     "mean_indoor_c": 23.913,
+     "min_indoor_c": 14.207,
+     "comfort_fraction": 0.536,
+     "night_heat_loss_kwh": -9.677,
+     "total_heat_loss_kwh": -25.806,
+     "solar_gain_kwh": 55.869
+    }
+   },
+   "passive_solar_temperate": {
+    "hot_week": {
+     "mean_indoor_c": 33.06,
+     "max_indoor_c": 36.353,
+     "comfort_fraction": 0.256,
+     "total_heat_loss_kwh": -39.788,
+     "solar_gain_kwh": 38.758
+    },
+    "cold_week": {
+     "mean_indoor_c": 25.899,
+     "min_indoor_c": 13.962,
+     "comfort_fraction": 0.935,
+     "night_heat_loss_kwh": -25.492,
+     "total_heat_loss_kwh": -32.631,
+     "solar_gain_kwh": 58.938
+    }
+   },
+   "desert_nightpurge": {
+    "hot_week": {
+     "mean_indoor_c": 31.267,
+     "max_indoor_c": 33.999,
+     "comfort_fraction": 0.494,
+     "total_heat_loss_kwh": -26.623,
+     "solar_gain_kwh": 17.398
+    },
+    "cold_week": {
+     "mean_indoor_c": 21.238,
+     "min_indoor_c": 13.947,
+     "comfort_fraction": 0.899,
+     "night_heat_loss_kwh": -1.22,
+     "total_heat_loss_kwh": -1.329,
+     "solar_gain_kwh": 12.775
+    }
+   },
+   "superinsulated_cold": {
+    "hot_week": {
+     "mean_indoor_c": 31.302,
+     "max_indoor_c": 33.614,
+     "comfort_fraction": 0.565,
+     "total_heat_loss_kwh": -26.932,
+     "solar_gain_kwh": 17.398
+    },
+    "cold_week": {
+     "mean_indoor_c": 25.65,
+     "min_indoor_c": 13.98,
+     "comfort_fraction": 0.935,
+     "night_heat_loss_kwh": -9.052,
+     "total_heat_loss_kwh": -12.293,
+     "solar_gain_kwh": 28.203
+    }
+   },
+   "insulated_relief_cell": {
+    "hot_week": {
+     "mean_indoor_c": 34.016,
+     "max_indoor_c": 41.978,
+     "comfort_fraction": 0.435,
+     "total_heat_loss_kwh": -19.17,
+     "solar_gain_kwh": 7.785
+    },
+    "cold_week": {
+     "mean_indoor_c": 25.996,
+     "min_indoor_c": 14.486,
+     "comfort_fraction": 0.821,
+     "night_heat_loss_kwh": -2.763,
+     "total_heat_loss_kwh": -8.415,
+     "solar_gain_kwh": 10.967
+    }
    }
   },
   "Leh": {
@@ -1947,6 +3307,142 @@
      "night_heat_loss_kwh": -5.194,
      "total_heat_loss_kwh": -6.317,
      "solar_gain_kwh": 37.322
+    }
+   },
+   "composite_coolroof": {
+    "hot_week": {
+     "mean_indoor_c": 9.304,
+     "max_indoor_c": 11.986,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -45.925,
+     "solar_gain_kwh": 22.326
+    },
+    "cold_week": {
+     "mean_indoor_c": -6.936,
+     "min_indoor_c": -21.064,
+     "comfort_fraction": 0.0,
+     "night_heat_loss_kwh": -9.116,
+     "total_heat_loss_kwh": -11.165,
+     "solar_gain_kwh": 35.906
+    }
+   },
+   "composite_monsoon_hybrid": {
+    "hot_week": {
+     "mean_indoor_c": 9.592,
+     "max_indoor_c": 11.894,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -43.093,
+     "solar_gain_kwh": 23.76
+    },
+    "cold_week": {
+     "mean_indoor_c": -8.784,
+     "min_indoor_c": -21.112,
+     "comfort_fraction": 0.0,
+     "night_heat_loss_kwh": -10.461,
+     "total_heat_loss_kwh": -13.475,
+     "solar_gain_kwh": 36.392
+    }
+   },
+   "cyclone_shell": {
+    "hot_week": {
+     "mean_indoor_c": 10.814,
+     "max_indoor_c": 14.087,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -47.248,
+     "solar_gain_kwh": 20.541
+    },
+    "cold_week": {
+     "mean_indoor_c": -11.688,
+     "min_indoor_c": -21.097,
+     "comfort_fraction": 0.0,
+     "night_heat_loss_kwh": -3.466,
+     "total_heat_loss_kwh": -4.698,
+     "solar_gain_kwh": 23.002
+    }
+   },
+   "breezeway_panel": {
+    "hot_week": {
+     "mean_indoor_c": 14.82,
+     "max_indoor_c": 29.428,
+     "comfort_fraction": 0.357,
+     "total_heat_loss_kwh": -70.992,
+     "solar_gain_kwh": 66.733
+    },
+    "cold_week": {
+     "mean_indoor_c": -12.396,
+     "min_indoor_c": -26.678,
+     "comfort_fraction": 0.0,
+     "night_heat_loss_kwh": -4.929,
+     "total_heat_loss_kwh": -16.2,
+     "solar_gain_kwh": 65.572
+    }
+   },
+   "passive_solar_temperate": {
+    "hot_week": {
+     "mean_indoor_c": 11.495,
+     "max_indoor_c": 14.616,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -56.082,
+     "solar_gain_kwh": 46.421
+    },
+    "cold_week": {
+     "mean_indoor_c": -6.74,
+     "min_indoor_c": -21.115,
+     "comfort_fraction": 0.0,
+     "night_heat_loss_kwh": -26.724,
+     "total_heat_loss_kwh": -36.176,
+     "solar_gain_kwh": 80.912
+    }
+   },
+   "desert_nightpurge": {
+    "hot_week": {
+     "mean_indoor_c": 9.989,
+     "max_indoor_c": 12.271,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -46.055,
+     "solar_gain_kwh": 17.041
+    },
+    "cold_week": {
+     "mean_indoor_c": -13.505,
+     "min_indoor_c": -21.138,
+     "comfort_fraction": 0.0,
+     "night_heat_loss_kwh": -0.022,
+     "total_heat_loss_kwh": -0.128,
+     "solar_gain_kwh": 14.0
+    }
+   },
+   "superinsulated_cold": {
+    "hot_week": {
+     "mean_indoor_c": 8.531,
+     "max_indoor_c": 10.513,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -46.229,
+     "solar_gain_kwh": 21.322
+    },
+    "cold_week": {
+     "mean_indoor_c": -5.859,
+     "min_indoor_c": -21.087,
+     "comfort_fraction": 0.0,
+     "night_heat_loss_kwh": -4.258,
+     "total_heat_loss_kwh": -5.142,
+     "solar_gain_kwh": 39.1
+    }
+   },
+   "insulated_relief_cell": {
+    "hot_week": {
+     "mean_indoor_c": 12.235,
+     "max_indoor_c": 20.507,
+     "comfort_fraction": 0.143,
+     "total_heat_loss_kwh": -28.367,
+     "solar_gain_kwh": 9.048
+    },
+    "cold_week": {
+     "mean_indoor_c": -7.98,
+     "min_indoor_c": -20.367,
+     "comfort_fraction": 0.0,
+     "night_heat_loss_kwh": -0.642,
+     "total_heat_loss_kwh": -3.771,
+     "solar_gain_kwh": 14.868
     }
    }
   },
@@ -2125,6 +3621,142 @@
      "total_heat_loss_kwh": -2.925,
      "solar_gain_kwh": 18.792
     }
+   },
+   "composite_coolroof": {
+    "hot_week": {
+     "mean_indoor_c": 19.569,
+     "max_indoor_c": 21.894,
+     "comfort_fraction": 0.887,
+     "total_heat_loss_kwh": -39.176,
+     "solar_gain_kwh": 22.378
+    },
+    "cold_week": {
+     "mean_indoor_c": 6.377,
+     "min_indoor_c": -2.366,
+     "comfort_fraction": 0.0,
+     "night_heat_loss_kwh": -4.707,
+     "total_heat_loss_kwh": -5.445,
+     "solar_gain_kwh": 18.294
+    }
+   },
+   "composite_monsoon_hybrid": {
+    "hot_week": {
+     "mean_indoor_c": 19.72,
+     "max_indoor_c": 21.756,
+     "comfort_fraction": 0.899,
+     "total_heat_loss_kwh": -37.802,
+     "solar_gain_kwh": 23.889
+    },
+    "cold_week": {
+     "mean_indoor_c": 5.095,
+     "min_indoor_c": -2.401,
+     "comfort_fraction": 0.0,
+     "night_heat_loss_kwh": -6.465,
+     "total_heat_loss_kwh": -7.502,
+     "solar_gain_kwh": 18.797
+    }
+   },
+   "cyclone_shell": {
+    "hot_week": {
+     "mean_indoor_c": 20.362,
+     "max_indoor_c": 23.146,
+     "comfort_fraction": 0.929,
+     "total_heat_loss_kwh": -39.153,
+     "solar_gain_kwh": 21.477
+    },
+    "cold_week": {
+     "mean_indoor_c": 2.993,
+     "min_indoor_c": -2.39,
+     "comfort_fraction": 0.0,
+     "night_heat_loss_kwh": -1.411,
+     "total_heat_loss_kwh": -1.528,
+     "solar_gain_kwh": 12.656
+    }
+   },
+   "breezeway_panel": {
+    "hot_week": {
+     "mean_indoor_c": 23.754,
+     "max_indoor_c": 37.944,
+     "comfort_fraction": 0.452,
+     "total_heat_loss_kwh": -60.73,
+     "solar_gain_kwh": 71.709
+    },
+    "cold_week": {
+     "mean_indoor_c": 1.745,
+     "min_indoor_c": -7.474,
+     "comfort_fraction": 0.0,
+     "night_heat_loss_kwh": -2.211,
+     "total_heat_loss_kwh": -9.188,
+     "solar_gain_kwh": 36.357
+    }
+   },
+   "passive_solar_temperate": {
+    "hot_week": {
+     "mean_indoor_c": 21.414,
+     "max_indoor_c": 24.231,
+     "comfort_fraction": 0.929,
+     "total_heat_loss_kwh": -50.875,
+     "solar_gain_kwh": 45.775
+    },
+    "cold_week": {
+     "mean_indoor_c": 5.842,
+     "min_indoor_c": -2.403,
+     "comfort_fraction": 0.0,
+     "night_heat_loss_kwh": -14.794,
+     "total_heat_loss_kwh": -18.845,
+     "solar_gain_kwh": 40.8
+    }
+   },
+   "desert_nightpurge": {
+    "hot_week": {
+     "mean_indoor_c": 19.636,
+     "max_indoor_c": 21.609,
+     "comfort_fraction": 0.881,
+     "total_heat_loss_kwh": -36.036,
+     "solar_gain_kwh": 18.403
+    },
+    "cold_week": {
+     "mean_indoor_c": 1.938,
+     "min_indoor_c": -2.42,
+     "comfort_fraction": 0.0,
+     "night_heat_loss_kwh": 0.0,
+     "total_heat_loss_kwh": 0.0,
+     "solar_gain_kwh": 8.57
+    }
+   },
+   "superinsulated_cold": {
+    "hot_week": {
+     "mean_indoor_c": 19.026,
+     "max_indoor_c": 20.787,
+     "comfort_fraction": 0.863,
+     "total_heat_loss_kwh": -38.405,
+     "solar_gain_kwh": 20.855
+    },
+    "cold_week": {
+     "mean_indoor_c": 7.182,
+     "min_indoor_c": -2.383,
+     "comfort_fraction": 0.0,
+     "night_heat_loss_kwh": -1.847,
+     "total_heat_loss_kwh": -2.151,
+     "solar_gain_kwh": 19.537
+    }
+   },
+   "insulated_relief_cell": {
+    "hot_week": {
+     "mean_indoor_c": 21.671,
+     "max_indoor_c": 28.984,
+     "comfort_fraction": 0.744,
+     "total_heat_loss_kwh": -23.227,
+     "solar_gain_kwh": 9.036
+    },
+    "cold_week": {
+     "mean_indoor_c": 5.718,
+     "min_indoor_c": -1.828,
+     "comfort_fraction": 0.0,
+     "night_heat_loss_kwh": -0.261,
+     "total_heat_loss_kwh": -2.168,
+     "solar_gain_kwh": 7.553
+    }
    }
   },
   "Kargil": {
@@ -2302,6 +3934,142 @@
      "total_heat_loss_kwh": -7.754,
      "solar_gain_kwh": 41.41
     }
+   },
+   "composite_coolroof": {
+    "hot_week": {
+     "mean_indoor_c": 11.073,
+     "max_indoor_c": 13.725,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -44.245,
+     "solar_gain_kwh": 23.008
+    },
+    "cold_week": {
+     "mean_indoor_c": -4.063,
+     "min_indoor_c": -16.904,
+     "comfort_fraction": 0.0,
+     "night_heat_loss_kwh": -10.314,
+     "total_heat_loss_kwh": -12.221,
+     "solar_gain_kwh": 39.763
+    }
+   },
+   "composite_monsoon_hybrid": {
+    "hot_week": {
+     "mean_indoor_c": 11.309,
+     "max_indoor_c": 13.467,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -41.478,
+     "solar_gain_kwh": 24.472
+    },
+    "cold_week": {
+     "mean_indoor_c": -5.875,
+     "min_indoor_c": -16.948,
+     "comfort_fraction": 0.0,
+     "night_heat_loss_kwh": -11.279,
+     "total_heat_loss_kwh": -13.812,
+     "solar_gain_kwh": 40.094
+    }
+   },
+   "cyclone_shell": {
+    "hot_week": {
+     "mean_indoor_c": 12.398,
+     "max_indoor_c": 15.566,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -45.083,
+     "solar_gain_kwh": 21.499
+    },
+    "cold_week": {
+     "mean_indoor_c": -8.967,
+     "min_indoor_c": -16.934,
+     "comfort_fraction": 0.0,
+     "night_heat_loss_kwh": -3.033,
+     "total_heat_loss_kwh": -3.606,
+     "solar_gain_kwh": 25.223
+    }
+   },
+   "breezeway_panel": {
+    "hot_week": {
+     "mean_indoor_c": 16.49,
+     "max_indoor_c": 31.249,
+     "comfort_fraction": 0.399,
+     "total_heat_loss_kwh": -69.946,
+     "solar_gain_kwh": 71.627
+    },
+    "cold_week": {
+     "mean_indoor_c": -9.484,
+     "min_indoor_c": -20.901,
+     "comfort_fraction": 0.0,
+     "night_heat_loss_kwh": -6.734,
+     "total_heat_loss_kwh": -19.649,
+     "solar_gain_kwh": 72.589
+    }
+   },
+   "passive_solar_temperate": {
+    "hot_week": {
+     "mean_indoor_c": 13.182,
+     "max_indoor_c": 16.26,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -54.469,
+     "solar_gain_kwh": 47.319
+    },
+    "cold_week": {
+     "mean_indoor_c": -3.439,
+     "min_indoor_c": -16.951,
+     "comfort_fraction": 0.0,
+     "night_heat_loss_kwh": -29.955,
+     "total_heat_loss_kwh": -39.319,
+     "solar_gain_kwh": 89.67
+    }
+   },
+   "desert_nightpurge": {
+    "hot_week": {
+     "mean_indoor_c": 11.564,
+     "max_indoor_c": 13.562,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -43.12,
+     "solar_gain_kwh": 18.047
+    },
+    "cold_week": {
+     "mean_indoor_c": -10.836,
+     "min_indoor_c": -16.972,
+     "comfort_fraction": 0.0,
+     "night_heat_loss_kwh": 0.0,
+     "total_heat_loss_kwh": 0.0,
+     "solar_gain_kwh": 15.07
+    }
+   },
+   "superinsulated_cold": {
+    "hot_week": {
+     "mean_indoor_c": 10.325,
+     "max_indoor_c": 12.266,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -44.338,
+     "solar_gain_kwh": 21.644
+    },
+    "cold_week": {
+     "mean_indoor_c": -2.86,
+     "min_indoor_c": -16.925,
+     "comfort_fraction": 0.0,
+     "night_heat_loss_kwh": -5.702,
+     "total_heat_loss_kwh": -6.832,
+     "solar_gain_kwh": 43.435
+    }
+   },
+   "insulated_relief_cell": {
+    "hot_week": {
+     "mean_indoor_c": 13.84,
+     "max_indoor_c": 22.149,
+     "comfort_fraction": 0.244,
+     "total_heat_loss_kwh": -27.245,
+     "solar_gain_kwh": 9.317
+    },
+    "cold_week": {
+     "mean_indoor_c": -5.235,
+     "min_indoor_c": -16.256,
+     "comfort_fraction": 0.0,
+     "night_heat_loss_kwh": -0.962,
+     "total_heat_loss_kwh": -4.827,
+     "solar_gain_kwh": 16.447
+    }
    }
   },
   "Dras": {
@@ -2478,6 +4246,142 @@
      "night_heat_loss_kwh": -7.471,
      "total_heat_loss_kwh": -8.758,
      "solar_gain_kwh": 40.732
+    }
+   },
+   "composite_coolroof": {
+    "hot_week": {
+     "mean_indoor_c": 10.192,
+     "max_indoor_c": 12.686,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -42.18,
+     "solar_gain_kwh": 21.988
+    },
+    "cold_week": {
+     "mean_indoor_c": -3.948,
+     "min_indoor_c": -16.826,
+     "comfort_fraction": 0.0,
+     "night_heat_loss_kwh": -11.271,
+     "total_heat_loss_kwh": -13.14,
+     "solar_gain_kwh": 39.114
+    }
+   },
+   "composite_monsoon_hybrid": {
+    "hot_week": {
+     "mean_indoor_c": 10.396,
+     "max_indoor_c": 12.47,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -39.446,
+     "solar_gain_kwh": 23.627
+    },
+    "cold_week": {
+     "mean_indoor_c": -5.72,
+     "min_indoor_c": -16.869,
+     "comfort_fraction": 0.0,
+     "night_heat_loss_kwh": -12.39,
+     "total_heat_loss_kwh": -14.492,
+     "solar_gain_kwh": 39.441
+    }
+   },
+   "cyclone_shell": {
+    "hot_week": {
+     "mean_indoor_c": 11.447,
+     "max_indoor_c": 14.382,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -43.034,
+     "solar_gain_kwh": 20.536
+    },
+    "cold_week": {
+     "mean_indoor_c": -8.624,
+     "min_indoor_c": -16.856,
+     "comfort_fraction": 0.0,
+     "night_heat_loss_kwh": -4.103,
+     "total_heat_loss_kwh": -4.392,
+     "solar_gain_kwh": 24.837
+    }
+   },
+   "breezeway_panel": {
+    "hot_week": {
+     "mean_indoor_c": 15.27,
+     "max_indoor_c": 29.1,
+     "comfort_fraction": 0.369,
+     "total_heat_loss_kwh": -66.441,
+     "solar_gain_kwh": 66.341
+    },
+    "cold_week": {
+     "mean_indoor_c": -8.96,
+     "min_indoor_c": -20.337,
+     "comfort_fraction": 0.0,
+     "night_heat_loss_kwh": -7.407,
+     "total_heat_loss_kwh": -21.579,
+     "solar_gain_kwh": 71.47
+    }
+   },
+   "passive_solar_temperate": {
+    "hot_week": {
+     "mean_indoor_c": 12.174,
+     "max_indoor_c": 15.094,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -51.804,
+     "solar_gain_kwh": 45.507
+    },
+    "cold_week": {
+     "mean_indoor_c": -3.295,
+     "min_indoor_c": -16.872,
+     "comfort_fraction": 0.0,
+     "night_heat_loss_kwh": -30.469,
+     "total_heat_loss_kwh": -39.242,
+     "solar_gain_kwh": 88.203
+    }
+   },
+   "desert_nightpurge": {
+    "hot_week": {
+     "mean_indoor_c": 10.587,
+     "max_indoor_c": 12.498,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -40.716,
+     "solar_gain_kwh": 17.42
+    },
+    "cold_week": {
+     "mean_indoor_c": -10.506,
+     "min_indoor_c": -16.893,
+     "comfort_fraction": 0.0,
+     "night_heat_loss_kwh": 0.0,
+     "total_heat_loss_kwh": 0.0,
+     "solar_gain_kwh": 14.824
+    }
+   },
+   "superinsulated_cold": {
+    "hot_week": {
+     "mean_indoor_c": 9.465,
+     "max_indoor_c": 11.336,
+     "comfort_fraction": 0.0,
+     "total_heat_loss_kwh": -41.934,
+     "solar_gain_kwh": 20.761
+    },
+    "cold_week": {
+     "mean_indoor_c": -2.828,
+     "min_indoor_c": -16.847,
+     "comfort_fraction": 0.0,
+     "night_heat_loss_kwh": -6.584,
+     "total_heat_loss_kwh": -7.921,
+     "solar_gain_kwh": 42.723
+    }
+   },
+   "insulated_relief_cell": {
+    "hot_week": {
+     "mean_indoor_c": 12.978,
+     "max_indoor_c": 20.845,
+     "comfort_fraction": 0.155,
+     "total_heat_loss_kwh": -26.438,
+     "solar_gain_kwh": 8.935
+    },
+    "cold_week": {
+     "mean_indoor_c": -4.91,
+     "min_indoor_c": -16.191,
+     "comfort_fraction": 0.0,
+     "night_heat_loss_kwh": -1.108,
+     "total_heat_loss_kwh": -5.409,
+     "solar_gain_kwh": 16.177
     }
    }
   }
@@ -2774,6 +4678,242 @@
     "window_u_w_m2k": 1.6
    },
    "rationale": "AAC blocks (k ~0.18 W/mK) build fast and insulate better than solid masonry; 100 mm XPS takes the envelope into cold-climate territory; low-e double glazing south-facing captures high-altitude sun."
+  },
+  {
+   "id": "composite_coolroof",
+   "name": "Cool-Roof Composite Studio",
+   "tagline": "Low-conductivity walls + roof insulation for hot plains",
+   "zones": [
+    "composite"
+   ],
+   "design": {
+    "length_m": 3.0,
+    "width_m": 3.0,
+    "height_m": 2.7,
+    "orientation_deg": 0.0,
+    "wall_material": "aerated_concrete",
+    "wall_thickness_m": 0.25,
+    "roof_material": "rcc_slab",
+    "roof_thickness_m": 0.12,
+    "floor_material": "concrete",
+    "floor_thickness_m": 0.1,
+    "insulation_material": "eps",
+    "insulation_thickness_m": 0.075,
+    "window_wall": "south",
+    "window_width_m": 1.2,
+    "window_height_m": 1.2,
+    "window_sill_m": 0.9,
+    "window_shgc": 0.5,
+    "window_u_w_m2k": 2.8
+   },
+   "rationale": "Roof gains dominate the composite-plains heat load, so 75 mm EPS sits above the ceiling slab while the 250 mm aerated-concrete walls carry their own low conductivity. A smaller south window with SHGC 0.5 keeps winter solar gain while trimming summer peaks."
+  },
+  {
+   "id": "composite_monsoon_hybrid",
+   "name": "Monsoon Hybrid Studio",
+   "tagline": "Brick mass below, insulated panel roof \u2014 dry-in fast",
+   "zones": [
+    "composite"
+   ],
+   "design": {
+    "length_m": 3.0,
+    "width_m": 3.0,
+    "height_m": 2.7,
+    "orientation_deg": 0.0,
+    "wall_material": "brick",
+    "wall_thickness_m": 0.23,
+    "roof_material": "puf_sandwich_panel",
+    "roof_thickness_m": 0.1,
+    "floor_material": "concrete",
+    "floor_thickness_m": 0.1,
+    "insulation_material": "xps",
+    "insulation_thickness_m": 0.05,
+    "window_wall": "south",
+    "window_width_m": 1.2,
+    "window_height_m": 1.2,
+    "window_sill_m": 1.0,
+    "window_shgc": 0.45,
+    "window_u_w_m2k": 2.8
+   },
+   "rationale": "A wet-season build that closes in quickly: PUF panel roof over brick mass walls, with XPS on the walls to limit conduction. Higher sill keeps the opening above typical local floor-flood levels while preserving light."
+  },
+  {
+   "id": "cyclone_shell",
+   "name": "Cyclone-Resilient Coastal Shell",
+   "tagline": "Reinforced concrete + XPS against storm coasts",
+   "zones": [
+    "warm-humid"
+   ],
+   "design": {
+    "length_m": 3.0,
+    "width_m": 3.0,
+    "height_m": 2.4,
+    "orientation_deg": 0.0,
+    "wall_material": "concrete",
+    "wall_thickness_m": 0.15,
+    "roof_material": "gi_sheet",
+    "roof_thickness_m": 0.002,
+    "floor_material": "concrete",
+    "floor_thickness_m": 0.12,
+    "insulation_material": "xps",
+    "insulation_thickness_m": 0.05,
+    "window_wall": "south",
+    "window_width_m": 0.6,
+    "window_height_m": 0.9,
+    "window_sill_m": 1.2,
+    "window_shgc": 0.4,
+    "window_u_w_m2k": 3.5,
+    "ach": 5
+   },
+   "rationale": "Low silhouette with a small, high, storm-shuttered opening and a light GI roof that a real build ties down to a reinforced ring beam. The heavy RCC-plus-XPS walls and 5 ACH night ventilation shed humid-day heat without relying on glass."
+  },
+  {
+   "id": "breezeway_panel",
+   "name": "Breezeway Panel Studio",
+   "tagline": "Light insulated shell that cools by night air",
+   "zones": [
+    "warm-humid"
+   ],
+   "design": {
+    "length_m": 3.0,
+    "width_m": 3.0,
+    "height_m": 2.8,
+    "orientation_deg": 0.0,
+    "wall_material": "puf_sandwich_panel",
+    "wall_thickness_m": 0.075,
+    "roof_material": "gi_sheet",
+    "roof_thickness_m": 0.002,
+    "floor_material": "concrete",
+    "floor_thickness_m": 0.1,
+    "insulation_material": "none",
+    "insulation_thickness_m": 0.0,
+    "window_wall": "south",
+    "window_width_m": 1.5,
+    "window_height_m": 1.2,
+    "window_sill_m": 1.0,
+    "window_shgc": 0.35,
+    "window_u_w_m2k": 3.5,
+    "ach": 8
+   },
+   "rationale": "For humid coasts the night sky is the heat sink: the shell stays light so it sheds daytime gains fast, operable openings give 8 ACH cross-ventilation, and low-SHGC glass plus a reflective metal roof keep daytime solar gain down."
+  },
+  {
+   "id": "passive_solar_temperate",
+   "name": "Passive-Solar Sunspace Studio",
+   "tagline": "Big south glass with thermal mass for mild winters",
+   "zones": [
+    "temperate"
+   ],
+   "design": {
+    "length_m": 3.0,
+    "width_m": 3.0,
+    "height_m": 2.6,
+    "orientation_deg": 0.0,
+    "wall_material": "brick",
+    "wall_thickness_m": 0.23,
+    "roof_material": "timber",
+    "roof_thickness_m": 0.15,
+    "floor_material": "concrete",
+    "floor_thickness_m": 0.12,
+    "insulation_material": "eps",
+    "insulation_thickness_m": 0.05,
+    "window_wall": "south",
+    "window_width_m": 1.8,
+    "window_height_m": 1.5,
+    "window_sill_m": 0.6,
+    "window_shgc": 0.65,
+    "window_u_w_m2k": 2.6
+   },
+   "rationale": "Temperate winters are mild but real: 2.7 m\u00b2 of south glass admits low-angle winter sun onto the exposed concrete floor slab, which stores it for the night. EPS on walls and a 150 mm timber roof cut the envelope losses, and the overhang geometry suits upland sun angles."
+  },
+  {
+   "id": "desert_nightpurge",
+   "name": "Desert Night-Purge Cell",
+   "tagline": "Rammed earth lag plus deliberate night ventilation",
+   "zones": [
+    "hot-dry"
+   ],
+   "design": {
+    "length_m": 3.0,
+    "width_m": 3.0,
+    "height_m": 2.7,
+    "orientation_deg": 0.0,
+    "wall_material": "rammed_earth",
+    "wall_thickness_m": 0.35,
+    "roof_material": "rcc_slab",
+    "roof_thickness_m": 0.18,
+    "floor_material": "concrete",
+    "floor_thickness_m": 0.1,
+    "insulation_material": "xps",
+    "insulation_thickness_m": 0.05,
+    "window_wall": "north",
+    "window_width_m": 0.6,
+    "window_height_m": 0.9,
+    "window_sill_m": 0.9,
+    "window_shgc": 0.35,
+    "window_u_w_m2k": 3.5,
+    "ach": 6
+   },
+   "rationale": "Where nights drop 15 K below days, mass alone works only if the stored heat can leave: this cell couples 350 mm rammed-earth walls with 6 ACH purge openings for after-sunset ventilation and XPS under the roof slab to kill the daytime top gain."
+  },
+  {
+   "id": "superinsulated_cold",
+   "name": "Super-Insulated Cold Cell",
+   "tagline": "150 mm XPS + solar glass for deep-winter plateaus",
+   "zones": [
+    "cold"
+   ],
+   "design": {
+    "length_m": 3.0,
+    "width_m": 3.0,
+    "height_m": 2.6,
+    "orientation_deg": 0.0,
+    "wall_material": "aerated_concrete",
+    "wall_thickness_m": 0.3,
+    "roof_material": "rcc_slab",
+    "roof_thickness_m": 0.15,
+    "floor_material": "concrete",
+    "floor_thickness_m": 0.12,
+    "insulation_material": "xps",
+    "insulation_thickness_m": 0.15,
+    "window_wall": "south",
+    "window_width_m": 1.2,
+    "window_height_m": 1.2,
+    "window_sill_m": 0.9,
+    "window_shgc": 0.62,
+    "window_u_w_m2k": 1.1
+   },
+   "rationale": "For -25 \u00b0C plateau nights the envelope is everything: 150 mm XPS continuous insulation, low-conductivity AAC walls, and the best glazing in the catalogue (U 1.1) kept on the south side with SHGC 0.62 so the winter sun still pays in."
+  },
+  {
+   "id": "insulated_relief_cell",
+   "name": "Insulated Rapid-Relief Cell",
+   "tagline": "Deployable panel shelter with winter-rated insulation",
+   "zones": [
+    "all"
+   ],
+   "design": {
+    "length_m": 3.0,
+    "width_m": 3.0,
+    "height_m": 2.6,
+    "orientation_deg": 0.0,
+    "wall_material": "puf_sandwich_panel",
+    "wall_thickness_m": 0.1,
+    "roof_material": "puf_sandwich_panel",
+    "roof_thickness_m": 0.1,
+    "floor_material": "plywood",
+    "floor_thickness_m": 0.05,
+    "insulation_material": "mineral_wool",
+    "insulation_thickness_m": 0.05,
+    "window_wall": "south",
+    "window_width_m": 0.6,
+    "window_height_m": 0.9,
+    "window_sill_m": 0.9,
+    "window_shgc": 0.55,
+    "window_u_w_m2k": 2.6,
+    "ach": 2
+   },
+   "rationale": "The relief kit's sibling for cold nights and hot afternoons alike: the same fast flat-pack panel envelope, plus 50 mm mineral-wool liner where the plain kit has none \u2014 one deployable design, wider climate reach."
   }
  ]
 }

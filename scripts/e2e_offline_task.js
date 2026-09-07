@@ -3,7 +3,18 @@ const { chromium } = require('/tmp/pw/node_modules/playwright-core');
 const fs = require('fs');
 
 const BASE = 'http://localhost:8010';
-const CHROME = '/home/user/.cache/ms-playwright/chromium-1169/chrome-linux/chrome';
+function resolveChrome() {
+  if (process.env.CHROME) return process.env.CHROME;
+  const cands = [
+    '/home/user/.cache/ms-playwright/chromium-1169/chrome-linux/chrome',
+    '/home/user/.local/share/choreographer/deps/chrome-linux64/chrome',
+  ];
+  for (const p of cands) if (fs.existsSync(p)) return p;
+  const shell = '/home/user/.cache/ms-playwright/chromium_headless_shell-1148/chrome-linux/headless_shell';
+  if (fs.existsSync(shell)) return shell;
+  return null;
+}
+const CHROME = resolveChrome();
 const results = [];
 function check(name, ok, extra) {
   results.push({ name, ok });
@@ -74,7 +85,7 @@ function check(name, ok, extra) {
     presets: document.getElementById('offPresets').textContent,
     samples: document.getElementById('offSamples').textContent,
   }));
-  check('offline: modal facts populated', facts.sites === '14' && facts.mats === '15' && facts.presets === '10' && /28,?000/.test(facts.samples), JSON.stringify(facts));
+  check('offline: modal facts populated', facts.sites === '14' && facts.mats === '15' && facts.presets === '18' && /28,?000/.test(facts.samples), JSON.stringify(facts));
 
   const dlPromise = page.waitForEvent('download', { timeout: 60000 });
   await page.click('#offAsGuest');

@@ -228,4 +228,185 @@ PRESETS = [
                      "envelope into cold-climate territory; low-e double "
                      "glazing south-facing captures high-altitude sun.",
     },
+
+    {
+        "id": "composite_coolroof",
+        "name": "Cool-Roof Composite Studio",
+        "tagline": "Low-conductivity walls + roof insulation for hot plains",
+        "zones": ["composite"],
+        "design": {
+            "length_m": 3.0, "width_m": 3.0, "height_m": 2.7,
+            "orientation_deg": 0.0,
+            "wall_material": "aerated_concrete", "wall_thickness_m": 0.25,
+            "roof_material": "rcc_slab", "roof_thickness_m": 0.12,
+            "floor_material": "concrete", "floor_thickness_m": 0.1,
+            "insulation_material": "eps", "insulation_thickness_m": 0.075,
+            "window_wall": "south", "window_width_m": 1.2,
+            "window_height_m": 1.2, "window_sill_m": 0.9,
+            "window_shgc": 0.5, "window_u_w_m2k": 2.8,
+        },
+        "rationale": "Roof gains dominate the composite-plains heat load, so "
+                     "75 mm EPS sits above the ceiling slab while the 250 mm "
+                     "aerated-concrete walls carry their own low conductivity. "
+                     "A smaller south window with SHGC 0.5 keeps winter solar "
+                     "gain while trimming summer peaks.",
+    },
+    {
+        "id": "composite_monsoon_hybrid",
+        "name": "Monsoon Hybrid Studio",
+        "tagline": "Brick mass below, insulated panel roof — dry-in fast",
+        "zones": ["composite"],
+        "design": {
+            "length_m": 3.0, "width_m": 3.0, "height_m": 2.7,
+            "orientation_deg": 0.0,
+            "wall_material": "brick", "wall_thickness_m": 0.23,
+            "roof_material": "puf_sandwich_panel", "roof_thickness_m": 0.1,
+            "floor_material": "concrete", "floor_thickness_m": 0.1,
+            "insulation_material": "xps", "insulation_thickness_m": 0.05,
+            "window_wall": "south", "window_width_m": 1.2,
+            "window_height_m": 1.2, "window_sill_m": 1.0,
+            "window_shgc": 0.45, "window_u_w_m2k": 2.8,
+        },
+        "rationale": "A wet-season build that closes in quickly: PUF panel "
+                     "roof over brick mass walls, with XPS on the walls to "
+                     "limit conduction. Higher sill keeps the opening above "
+                     "typical local floor-flood levels while preserving light.",
+    },
+    {
+        "id": "cyclone_shell",
+        "name": "Cyclone-Resilient Coastal Shell",
+        "tagline": "Reinforced concrete + XPS against storm coasts",
+        "zones": ["warm-humid"],
+        "design": {
+            "length_m": 3.0, "width_m": 3.0, "height_m": 2.4,
+            "orientation_deg": 0.0,
+            "wall_material": "concrete", "wall_thickness_m": 0.15,
+            "roof_material": "gi_sheet", "roof_thickness_m": 0.002,
+            "floor_material": "concrete", "floor_thickness_m": 0.12,
+            "insulation_material": "xps", "insulation_thickness_m": 0.05,
+            "window_wall": "south", "window_width_m": 0.6,
+            "window_height_m": 0.9, "window_sill_m": 1.2,
+            "window_shgc": 0.4, "window_u_w_m2k": 3.5,
+            "ach": 5,
+        },
+        "rationale": "Low silhouette with a small, high, storm-shuttered "
+                     "opening and a light GI roof that a real build ties down "
+                     "to a reinforced ring beam. The heavy RCC-plus-XPS walls "
+                     "and 5 ACH night ventilation shed humid-day heat without "
+                     "relying on glass.",
+    },
+    {
+        "id": "breezeway_panel",
+        "name": "Breezeway Panel Studio",
+        "tagline": "Light insulated shell that cools by night air",
+        "zones": ["warm-humid"],
+        "design": {
+            "length_m": 3.0, "width_m": 3.0, "height_m": 2.8,
+            "orientation_deg": 0.0,
+            "wall_material": "puf_sandwich_panel", "wall_thickness_m": 0.075,
+            "roof_material": "gi_sheet", "roof_thickness_m": 0.002,
+            "floor_material": "concrete", "floor_thickness_m": 0.1,
+            "insulation_material": "none", "insulation_thickness_m": 0.0,
+            "window_wall": "south", "window_width_m": 1.5,
+            "window_height_m": 1.2, "window_sill_m": 1.0,
+            "window_shgc": 0.35, "window_u_w_m2k": 3.5,
+            "ach": 8,
+        },
+        "rationale": "For humid coasts the night sky is the heat sink: the "
+                     "shell stays light so it sheds daytime gains fast, "
+                     "operable openings give 8 ACH cross-ventilation, and "
+                     "low-SHGC glass plus a reflective metal roof keep "
+                     "daytime solar gain down.",
+    },
+    {
+        "id": "passive_solar_temperate",
+        "name": "Passive-Solar Sunspace Studio",
+        "tagline": "Big south glass with thermal mass for mild winters",
+        "zones": ["temperate"],
+        "design": {
+            "length_m": 3.0, "width_m": 3.0, "height_m": 2.6,
+            "orientation_deg": 0.0,
+            "wall_material": "brick", "wall_thickness_m": 0.23,
+            "roof_material": "timber", "roof_thickness_m": 0.15,
+            "floor_material": "concrete", "floor_thickness_m": 0.12,
+            "insulation_material": "eps", "insulation_thickness_m": 0.05,
+            "window_wall": "south", "window_width_m": 1.8,
+            "window_height_m": 1.5, "window_sill_m": 0.6,
+            "window_shgc": 0.65, "window_u_w_m2k": 2.6,
+        },
+        "rationale": "Temperate winters are mild but real: 2.7 m² of south "
+                     "glass admits low-angle winter sun onto the exposed "
+                     "concrete floor slab, which stores it for the night. "
+                     "EPS on walls and a 150 mm timber roof cut the envelope "
+                     "losses, and the overhang geometry suits upland sun "
+                     "angles.",
+    },
+    {
+        "id": "desert_nightpurge",
+        "name": "Desert Night-Purge Cell",
+        "tagline": "Rammed earth lag plus deliberate night ventilation",
+        "zones": ["hot-dry"],
+        "design": {
+            "length_m": 3.0, "width_m": 3.0, "height_m": 2.7,
+            "orientation_deg": 0.0,
+            "wall_material": "rammed_earth", "wall_thickness_m": 0.35,
+            "roof_material": "rcc_slab", "roof_thickness_m": 0.18,
+            "floor_material": "concrete", "floor_thickness_m": 0.1,
+            "insulation_material": "xps", "insulation_thickness_m": 0.05,
+            "window_wall": "north", "window_width_m": 0.6,
+            "window_height_m": 0.9, "window_sill_m": 0.9,
+            "window_shgc": 0.35, "window_u_w_m2k": 3.5,
+            "ach": 6,
+        },
+        "rationale": "Where nights drop 15 K below days, mass alone works "
+                     "only if the stored heat can leave: this cell couples "
+                     "350 mm rammed-earth walls with 6 ACH purge openings "
+                     "for after-sunset ventilation and XPS under the roof "
+                     "slab to kill the daytime top gain.",
+    },
+    {
+        "id": "superinsulated_cold",
+        "name": "Super-Insulated Cold Cell",
+        "tagline": "150 mm XPS + solar glass for deep-winter plateaus",
+        "zones": ["cold"],
+        "design": {
+            "length_m": 3.0, "width_m": 3.0, "height_m": 2.6,
+            "orientation_deg": 0.0,
+            "wall_material": "aerated_concrete", "wall_thickness_m": 0.3,
+            "roof_material": "rcc_slab", "roof_thickness_m": 0.15,
+            "floor_material": "concrete", "floor_thickness_m": 0.12,
+            "insulation_material": "xps", "insulation_thickness_m": 0.15,
+            "window_wall": "south", "window_width_m": 1.2,
+            "window_height_m": 1.2, "window_sill_m": 0.9,
+            "window_shgc": 0.62, "window_u_w_m2k": 1.1,
+        },
+        "rationale": "For -25 °C plateau nights the envelope is everything: "
+                     "150 mm XPS continuous insulation, low-conductivity AAC "
+                     "walls, and the best glazing in the catalogue (U 1.1) "
+                     "kept on the south side with SHGC 0.62 so the winter "
+                     "sun still pays in.",
+    },
+    {
+        "id": "insulated_relief_cell",
+        "name": "Insulated Rapid-Relief Cell",
+        "tagline": "Deployable panel shelter with winter-rated insulation",
+        "zones": ["all"],
+        "design": {
+            "length_m": 3.0, "width_m": 3.0, "height_m": 2.6,
+            "orientation_deg": 0.0,
+            "wall_material": "puf_sandwich_panel", "wall_thickness_m": 0.1,
+            "roof_material": "puf_sandwich_panel", "roof_thickness_m": 0.1,
+            "floor_material": "plywood", "floor_thickness_m": 0.05,
+            "insulation_material": "mineral_wool", "insulation_thickness_m": 0.05,
+            "window_wall": "south", "window_width_m": 0.6,
+            "window_height_m": 0.9, "window_sill_m": 0.9,
+            "window_shgc": 0.55, "window_u_w_m2k": 2.6,
+            "ach": 2,
+        },
+        "rationale": "The relief kit's sibling for cold nights and hot "
+                     "afternoons alike: the same fast flat-pack panel "
+                     "envelope, plus 50 mm mineral-wool liner where the "
+                     "plain kit has none — one deployable design, wider "
+                     "climate reach.",
+    },
 ]
