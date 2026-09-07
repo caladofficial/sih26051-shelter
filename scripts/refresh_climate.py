@@ -49,6 +49,44 @@ REVISION_DAYS = 10
 FIRST_YEAR = 2024
 
 
+def hydrate_from_supabase(sites: list[str]) -> int:
+    """Rebuild the local CSV cache from Supabase before refreshing.
+
+    data/climate/hourly is a gitignored cache, so CI starts empty and would
+    otherwise re-download all 45 site-years from Open-Meteo every single day.
+    That is ~13 minutes, 45 large requests, and it was failing: five sites hit
+    read timeouts on a shared runner and the whole job aborted.
+
+    Supabase is already the source of truth for these rows, so read them from
+    there instead. The job then only fetches the genuinely new tail (a few
+    days), which is small, fast and far less likely to time out. It also stops
+    hammering a free public API with a full re-scrape once a day.
+    """
+    from src.db.store import Store
+    store = Store()
+    if store.backend != "supabase":
+        return 0
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    restored = 0
+    for site in sites:
+        meta = SITES[site]
+        loc_id = f"loc_{abs(meta['latitude']):.4f}_{abs(meta['longitude']):.4f}"
+        try:
+            df = store.load_weather(loc_id)
+        except Exception as exc:                         # noqa: BLE001
+            print(f"   {site}: hydrate failed ({exc})")
+            continue
+        if df is None or df.empty:
+            continue
+        for year, sub in df.groupby(df.index.year):
+            path = OUT_DIR / f"{site}_{year}.csv"
+            if path.exists():
+                continue
+            sub.sort_index().to_csv(path)
+            restored += len(sub)
+    return restored
+
+
 def site_last_hour(site: str) -> pd.Timestamp | None:
     df = ca.read_local(site)
     if df is None or df.empty:
@@ -227,11 +265,18 @@ def main() -> int:
                     help="only push the last N days of hourly rows "
                          "(default: everything)")
     ap.add_argument("--no-bundle", action="store_true")
+    ap.add_argument("--no-hydrate", action="store_true",
+                    help="skip seeding the local cache from Supabase")
     args = ap.parse_args()
 
     cap = date.today()
     sites = [s.strip() for s in args.sites.split(",") if s.strip() in SITES]
     print(f"== climate refresh · {len(sites)} sites · through {cap} ==")
+
+    if not (args.no_hydrate or args.full):
+        n = hydrate_from_supabase(sites)
+        if n:
+            print(f"   hydrated {n:,} rows from Supabase into the local cache")
 
     report = []
     for site in sites:
@@ -242,6 +287,24 @@ def main() -> int:
             print(f"!! {site}: {exc}", file=sys.stderr)
         report.append(res)
         print(f"   {res['site']}: {res['status']} (+{res.get('new_hours', 0)} h)")
+
+    # one retry pass: these failures are almost always transient read timeouts
+    # against a public API from a shared runner, and each site is independent
+    # and idempotent, so retrying costs nothing but a little time
+    retry = [r["site"] for r in report if r["status"] == "error"]
+    if retry:
+        print(f"\n-- retrying {len(retry)} failed site(s): {', '.join(retry)}")
+        time.sleep(10)
+        for site in retry:
+            try:
+                res = refresh_site(site, args.full, cap)
+            except Exception as exc:                     # noqa: BLE001
+                res = {"site": site, "status": "error", "error": str(exc)}
+                print(f"!! {site}: {exc}", file=sys.stderr)
+            for i, old in enumerate(report):
+                if old["site"] == site:
+                    report[i] = res
+            print(f"   {res['site']}: {res['status']} (+{res.get('new_hours', 0)} h)")
 
     index = rebuild_index(cap)
 

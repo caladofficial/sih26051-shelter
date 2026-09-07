@@ -52,9 +52,11 @@ jobs:
           pip install -r requirements.txt
           pip install pytest
 
-      # Hourly CSVs are gitignored, so the runner starts with an empty cache
-      # and re-downloads every site-year (~2 min). That also re-applies any
-      # ERA5T revisions the archive published for earlier dates.
+      # Hourly CSVs are gitignored, so the runner starts with an empty cache.
+      # The job hydrates it from Supabase (already the source of truth) and
+      # then fetches only the new tail from Open-Meteo — ~90 s instead of the
+      # ~13 min a full re-scrape took, and no longer five-sites-time-out
+      # flaky. Use --full to force a complete re-download.
       - name: Refresh archive + bundle + Supabase
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
