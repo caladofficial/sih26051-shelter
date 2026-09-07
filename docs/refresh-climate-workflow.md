@@ -56,7 +56,9 @@ jobs:
         # than pulling the whole dev set (which drags in streamlit)
         run: |
           pip install -r requirements.txt
-          pip install pytest
+          # httpx2 is required by starlette.testclient (which the verification
+          # step uses); it is not a runtime dependency of the app
+          pip install pytest httpx2
 
       # Hourly CSVs are gitignored, so the runner starts with an empty cache.
       # The job hydrates it from Supabase (already the source of truth) and
