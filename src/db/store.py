@@ -26,7 +26,10 @@ import requests
 
 try:                                  # auto-load .env when present (local runs)
     from dotenv import load_dotenv
-    load_dotenv()
+    # tests/conftest.py sets DOTENV_DISABLED so a developer's .env can't
+    # silently point the test suite at the production Supabase project
+    if os.environ.get("DOTENV_DISABLED") != "1":
+        load_dotenv()
 except ImportError:
     pass
 
@@ -180,6 +183,50 @@ class Store:
             self._conn.executescript(SCHEMA_SQLITE)
             self._conn.commit()
             self.backend = "sqlite"
+            self._seed_materials()
+
+    def _seed_materials(self) -> None:
+        """Populate an empty local materials table from the canonical CSV.
+
+        Supabase ships seeded via migration 0002; a fresh SQLite file did not,
+        so anything reading materials through the Store (the CAD assembly
+        tests, /api/materials) silently saw an empty table and computed zero
+        mass. The CSV is the same source the migration was generated from.
+        """
+        try:
+            n = self._conn.execute("SELECT COUNT(*) FROM materials").fetchone()[0]
+            if n:
+                return
+            csv_path = (Path(__file__).resolve().parents[2]
+                        / "data" / "external" / "materials.csv")
+            if not csv_path.exists():
+                return
+            df = pd.read_csv(csv_path, comment="#")
+            df.columns = [c.strip() for c in df.columns]
+            rows = []
+            for r in df.to_dict("records"):
+                rows.append({
+                    "material": r.get("material"),
+                    "category": r.get("category"),
+                    "k_W_mK": r.get("k_W_mK"),
+                    "density_kg_m3": r.get("density_kg_m3"),
+                    "cp_J_kgK": r.get("cp_J_kgK"),
+                    "solar_absorptance": r.get("solar_absorptance"),
+                    "emissivity": r.get("emissivity"),
+                    "thickness_m": r.get("thickness_m", 0) or 0,
+                    "source": r.get("source", "materials.csv"),
+                    "notes": r.get("notes", ""),
+                })
+            self._conn.executemany(
+                """INSERT OR REPLACE INTO materials
+                   (material, category, k_W_mK, density_kg_m3, cp_J_kgK,
+                    solar_absorptance, emissivity, thickness_m, source, notes)
+                   VALUES (:material, :category, :k_W_mK, :density_kg_m3,
+                           :cp_J_kgK, :solar_absorptance, :emissivity,
+                           :thickness_m, :source, :notes)""", rows)
+            self._conn.commit()
+        except Exception:                                    # noqa: BLE001
+            pass                                             # never block startup
 
     # ---------------------------------------------------- PostgREST helpers
     def _pg(self, method: str, table: str, params: dict | None = None,
@@ -278,12 +325,26 @@ class Store:
             return self._pg("GET", "materials",
                             params={"select": "*", "order": "material.asc"})
         rows = self._conn.execute("SELECT * FROM materials ORDER BY material").fetchall()
-        cols = [c[0] for c in self._conn.execute("SELECT * FROM materials").description]
+        # Postgres folds unquoted identifiers to lowercase, so PostgREST
+        # returns k_w_mk / cp_j_kgk. SQLite preserves the declared casing —
+        # fold it here so callers see ONE shape whichever backend is active
+        # (src.api_app._canon_materials maps them back to k_W_mK / cp_J_kgK).
+        cols = [c[0].lower()
+                for c in self._conn.execute("SELECT * FROM materials").description]
         return [dict(zip(cols, r)) for r in rows]
 
     # --------------------------------------------------------------- weather
-    def save_weather(self, df: pd.DataFrame, location_id: str) -> int:
-        """df: hourly DataFrame indexed by tz-aware UTC timestamps."""
+    def save_weather(self, df: pd.DataFrame, location_id: str,
+                     source: str | None = None,
+                     data_status: str | None = None) -> int:
+        """df: hourly DataFrame indexed by tz-aware UTC timestamps.
+
+        `source` records which service produced the rows ('nasa_power' or
+        'open-meteo-archive'). It matters: a year-over-year comparison that
+        silently mixes sources would show a source bias as climate change.
+        Columns exist only after migration 0006, so they are sent only when
+        explicitly requested and dropped if the server rejects them.
+        """
         df = df.copy()
         df["ts_utc"] = df.index.tz_convert("UTC").strftime("%Y-%m-%dT%H:%M:%S+00:00")
         df = df.reset_index(drop=True)
@@ -294,14 +355,28 @@ class Store:
                         "ghi_clear", "precip", "t2mdew"):
                 v = r.get(col)
                 row[col] = None if pd.isna(v) else float(v)
+            if source:
+                row["source"] = source
+            if data_status:
+                row["data_status"] = data_status
             rows.append(row)
         if self._rest:
             for i in range(0, len(rows), 500):
+                batch = rows[i:i + 500]
                 written = self._pg(
                     "POST", "weather",
                     params={"on_conflict": "location_id,ts_utc"},
-                    body=rows[i:i + 500],
+                    body=batch,
                     prefer="resolution=merge-duplicates")
+                if written is None and (source or data_status):
+                    # pre-0006 database: retry without the provenance columns
+                    plain = [{k: v for k, v in r.items()
+                              if k not in ("source", "data_status")}
+                             for r in batch]
+                    written = self._pg(
+                        "POST", "weather",
+                        params={"on_conflict": "location_id,ts_utc"},
+                        body=plain, prefer="resolution=merge-duplicates")
                 if written is None:           # serverless safety net
                     return 0
         else:
@@ -327,18 +402,26 @@ class Store:
         Only the numeric weather columns are selected.
         """
         if self._rest:
-            # PostgREST caps reads at 1000 rows/request (Supabase default) —
-            # page through the range until fewer than 1000 come back.
+            # PostgREST caps reads at its `max_rows` setting (Supabase
+            # defaults to 1000; this project is raised to 10000 so a full
+            # year of hourly weather arrives in one round trip instead of
+            # nine). Page until a short page comes back, so this stays
+            # correct whatever the server cap actually is.
             rows = []
             offset = 0
-            page_size = 1000
+            page_size = int(os.getenv("SUPABASE_PAGE_SIZE", "10000"))
             cols = "ts_utc,t2m,rh2m,ws10m,wd10m,ps,ghi,ghi_clear,precip,t2mdew"
             while True:
                 params = {"select": cols, "order": "ts_utc.asc"}
                 params["location_id"] = f"eq.{location_id}"
-                if start_utc:
+                # Both bounds must go in ONE `and=(...)` group: assigning
+                # params["ts_utc"] twice silently dropped the lower bound, so
+                # a bounded read returned the whole multi-year series.
+                if start_utc and end_utc:
+                    params["and"] = f"(ts_utc.gte.{start_utc},ts_utc.lte.{end_utc})"
+                elif start_utc:
                     params["ts_utc"] = f"gte.{start_utc}"
-                if end_utc:
+                elif end_utc:
                     params["ts_utc"] = f"lte.{end_utc}"
                 page = self._pg("GET", "weather", params=params,
                                 range_=(offset, offset + page_size - 1))
@@ -604,8 +687,12 @@ class Store:
             return r
         try:
             cur = self._conn.execute(
+                # user_id must be selected too: the Supabase branch uses
+                # select=* so it comes back there, and the API's ownership
+                # check reads it. Omitting it here made every authenticated
+                # PATCH/DELETE 404 on the SQLite backend.
                 "SELECT design_id, name, created_at, updated_at, design, "
-                "notes, favorite FROM designs WHERE design_id = ?",
+                "notes, favorite, user_id FROM designs WHERE design_id = ?",
                 (design_id,))
             row = cur.fetchone()
             if not row:

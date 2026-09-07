@@ -35,6 +35,16 @@ class SPAStatic(StaticFiles):
             raise
 
 
+# Vercel serves `public/` for any path that isn't /api/*, so its `/` is the
+# landing page — not the API's JSON index route. Drop that route here so the
+# local mirror matches production; otherwise `/` returns the endpoint list and
+# the landing-page e2e checks fail against a difference that doesn't exist on
+# the deployed site.
+app.router.routes = [
+    r for r in app.router.routes
+    if not (getattr(r, "path", None) == "/" and "GET" in getattr(r, "methods", set()))
+]
+
 app.mount("/", SPAStatic(directory=str(PUBLIC), html=True), name="public")
 
 

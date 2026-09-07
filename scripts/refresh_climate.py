@@ -169,7 +169,9 @@ def push_supabase(index: dict, limit_days: int | None = None) -> dict:
         if cutoff is not None:
             df = df[df.index >= cutoff]
         if not df.empty:
-            n_rows += store.save_weather(df, loc_id)
+            n_rows += store.save_weather(
+                df, loc_id, source="open-meteo-archive",
+                data_status="historical_reanalysis")
 
         tz = meta.get("timezone", "Asia/Kolkata")
         for year_s, y in meta.get("years", {}).items():

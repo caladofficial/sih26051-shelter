@@ -219,10 +219,16 @@ def get_weather_cached(lat: float, lon: float, year: int, timezone: str,
     if not force_refresh:
         # -- tier 1: Supabase -------------------------------------------
         try:
-            cached = STORE.load_weather(
-                location_id,
-                start_utc=start_utc if rolling else None,
-                end_utc=end_utc if rolling else None)
+            if rolling:
+                q_start, q_end = start_utc, end_utc
+            else:
+                # fetch the UTC year plus a day of slack either side, then
+                # filter on the LOCAL year below — a +05:30 site's local year
+                # starts before and ends after the UTC one
+                q_start = (pd.Timestamp(start_utc) - pd.Timedelta(days=1)).isoformat()
+                q_end = (pd.Timestamp(end_utc) + pd.Timedelta(days=1)).isoformat()
+            cached = STORE.load_weather(location_id, start_utc=q_start,
+                                        end_utc=q_end)
             if cached is not None:
                 cached.index = cached.index.tz_convert(timezone)
                 if not rolling:

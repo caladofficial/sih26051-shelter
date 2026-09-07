@@ -85,7 +85,7 @@ function check(name, ok, extra) {
     presets: document.getElementById('offPresets').textContent,
     samples: document.getElementById('offSamples').textContent,
   }));
-  check('offline: modal facts populated', facts.sites === '14' && facts.mats === '15' && facts.presets === '18' && /28,?000/.test(facts.samples), JSON.stringify(facts));
+  check('offline: modal facts populated', facts.sites === '15' && facts.mats === '15' && facts.presets === '18' && /28,?000/.test(facts.samples), JSON.stringify(facts));
 
   const dlPromise = page.waitForEvent('download', { timeout: 60000 });
   await page.click('#offAsGuest');
@@ -96,7 +96,7 @@ function check(name, ok, extra) {
   const dlBody = fs.readFileSync(dlPath, 'utf8');
   check('offline: guest download arrives', dlSize > 1_000_000, (dlSize / 1048576).toFixed(1) + ' MB, name=' + dl.suggestedFilename());
   check('offline: downloaded file is the offline app', dlBody.includes('FULLY OFFLINE') && dlBody.includes('OfflineEngine') && dlBody.includes('Prayagraj'));
-  check('offline: downloaded app embeds 14 sites', (dlBody.match(/"latitude"/g) || []).length >= 14);
+  check('offline: downloaded app embeds 15 sites', (dlBody.match(/"latitude"/g) || []).length >= 15);
   await page.waitForTimeout(400);
 
   /* ---------- 4. login-mode download ---------- */
