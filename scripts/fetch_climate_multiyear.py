@@ -80,6 +80,27 @@ HOURLY_MAP = {
 YEARS = (2024, 2025, 2026)
 
 
+#: One pooled session with transport-level retries. A *scalar* timeout is used
+#: deliberately: requests 2.34.2 (what CI resolves to) does not apply a
+#: (connect, read) tuple the way 2.33 does — a 10-day request died with
+#: "read timeout=15" while the code said timeout=(15, 180). A scalar applies to
+#: both phases and behaves identically across versions.
+REQUEST_TIMEOUT = 120
+
+def _session() -> requests.Session:
+    from requests.adapters import HTTPAdapter
+    from urllib3.util.retry import Retry
+    s = requests.Session()
+    retry = Retry(total=5, connect=5, read=5, backoff_factor=2.0,
+                  status_forcelist=(429, 500, 502, 503, 504),
+                  allowed_methods=frozenset(["GET"]), raise_on_status=False)
+    s.mount("https://", HTTPAdapter(max_retries=retry, pool_maxsize=4))
+    return s
+
+
+SESSION = _session()
+
+
 def fetch(site: str, meta: dict, start: date, end: date,
           retries: int = 4) -> pd.DataFrame:
     params = {
@@ -96,7 +117,7 @@ def fetch(site: str, meta: dict, start: date, end: date,
     last = None
     for attempt in range(retries):
         try:
-            r = requests.get(ARCHIVE, params=params, timeout=(15, 180))
+            r = SESSION.get(ARCHIVE, params=params, timeout=REQUEST_TIMEOUT)
             if r.status_code == 429:
                 time.sleep(15 * (attempt + 1))
                 continue
