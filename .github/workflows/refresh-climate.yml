@@ -68,8 +68,8 @@ jobs:
           # only the small derived artifacts are versioned (~770 KB);
           # the hourly CSVs stay out of git by design
           git add -f data/climate/index.json \
-                     public/data/climate_bundle.json \
-                     public-src/data/climate_bundle.json
+                     src/data/climate_bundle.json \
+                     public/data/climate_bundle.json
           if git diff --cached --quiet; then
             echo "No new hours published — nothing to commit."
             exit 0

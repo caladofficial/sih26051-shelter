@@ -26,7 +26,12 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[2]
 ARCHIVE_DIR = ROOT / "data" / "climate" / "hourly"
 INDEX_FILE = ROOT / "data" / "climate" / "index.json"
-BUNDLE_FILE = ROOT / "public" / "data" / "climate_bundle.json"
+#: The bundle must live somewhere the *serverless function* can read. Vercel
+#: serves `public/` from the CDN and does NOT include it in the Lambda
+#: filesystem, so the canonical copy sits in src/data/ (same place as
+#: offline_bundle.json) and public/data/ is a CDN mirror for the browser.
+BUNDLE_FILES = (ROOT / "src" / "data" / "climate_bundle.json",
+                ROOT / "public" / "data" / "climate_bundle.json")
 
 ENGINE_COLS = ("t2m", "rh2m", "ws10m", "wd10m", "ps",
                "ghi", "ghi_clear", "precip", "t2mdew")
@@ -56,10 +61,13 @@ def load_bundle(refresh: bool = False) -> dict:
     global _bundle_cache
     if _bundle_cache is not None and not refresh:
         return _bundle_cache
-    try:
-        _bundle_cache = json.loads(BUNDLE_FILE.read_text(encoding="utf-8"))
-    except Exception:                                       # noqa: BLE001
-        _bundle_cache = {"sites": {}}
+    for path in BUNDLE_FILES:
+        try:
+            _bundle_cache = json.loads(path.read_text(encoding="utf-8"))
+            return _bundle_cache
+        except Exception:                                   # noqa: BLE001
+            continue
+    _bundle_cache = {"sites": {}}
     return _bundle_cache
 
 

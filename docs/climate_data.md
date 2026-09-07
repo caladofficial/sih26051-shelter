@@ -20,7 +20,7 @@ problems for a shelter-design tool:
 |---|---|---|---|
 | Hourly rows, 15 sites × 2024–present | Supabase `weather` + `data/climate/hourly/*.csv` | ~26 MB | ❌ cache only |
 | Coverage manifest | `data/climate/index.json` | 32 KB | ✅ |
-| Derived fallback bundle | `public/data/climate_bundle.json` | ~740 KB | ✅ |
+| Derived fallback bundle | `src/data/climate_bundle.json` (canonical, ships in the function) + `public/data/` (CDN mirror) | ~740 KB | ✅ |
 | Per-year statistics | Supabase `climate_summary` | — | ✅ (DB) |
 | Refresh audit trail | Supabase `climate_refresh` | — | ✅ (DB) |
 
@@ -43,9 +43,13 @@ breaking:
 ```
 1. Supabase          live, authoritative, kept current by the refresh job
 2. Local CSV archive dev + CI only (gitignored, not in the serverless bundle)
-3. Static bundle     public/data/climate_bundle.json — summaries, monthly
+3. Static bundle     src/data/climate_bundle.json — summaries, monthly
                      means, diurnal curves and both design weeks. Renders
                      Climate Recon + Trends with no database at all.
+                     NOTE: it lives in src/, not public/ — Vercel serves
+                     public/ from the CDN and does not put it in the
+                     function's filesystem, so an API reading it from
+                     public/ gets FileNotFoundError in production.
 4. Live fetch        POWER + Open-Meteo, for arbitrary coordinates that aren't
                      one of the 15 canonical sites
 ```

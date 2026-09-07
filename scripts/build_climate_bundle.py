@@ -23,8 +23,10 @@ sys.path.insert(0, str(ROOT))
 
 from src.data import climate_archive as ca      # noqa: E402
 
-OUT = ROOT / "public" / "data" / "climate_bundle.json"
-OUT_SRC = ROOT / "public-src" / "data" / "climate_bundle.json"
+# canonical copy — inside the serverless bundle, read by the API
+OUT = ROOT / "src" / "data" / "climate_bundle.json"
+# CDN mirror — fetched directly by the browser as an offline fallback
+OUT_CDN = ROOT / "public" / "data" / "climate_bundle.json"
 
 
 def week_payload(df, tz: str) -> dict:
@@ -113,10 +115,10 @@ def main() -> int:
         print(f"[bundle] {site}: {len(entry['years'])} years")
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT_SRC.parent.mkdir(parents=True, exist_ok=True)
+    OUT_CDN.parent.mkdir(parents=True, exist_ok=True)
     text = json.dumps(bundle, separators=(",", ":"))
     OUT.write_text(text, encoding="utf-8")
-    OUT_SRC.write_text(text, encoding="utf-8")
+    OUT_CDN.write_text(text, encoding="utf-8")
     kb = len(text.encode()) / 1024
     print(f"\nWrote {OUT.relative_to(ROOT)}  ({kb:,.0f} KB, "
           f"{len(bundle['sites'])} sites)")

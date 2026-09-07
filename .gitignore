@@ -42,3 +42,4 @@ uv.lock
 #   python scripts/refresh_climate.py
 data/climate/hourly/
 data/climate/refresh_log.json
+.env*
