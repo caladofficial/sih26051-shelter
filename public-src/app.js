@@ -120,6 +120,16 @@ async function loadLocations() {
     opt.dataset.lat = l.latitude; opt.dataset.lon = l.longitude;
     sel.appendChild(opt);
   });
+  // remember the user's last choice; otherwise default to the project's
+  // configured site (Prayagraj) instead of the first alphabetical entry
+  let remembered = null;
+  try { remembered = localStorage.getItem("shl-site"); } catch (e) {}
+  const pick =
+    (remembered && [...sel.options].find((o) => o.value === remembered))
+    || [...sel.options].find((o) => o.value === "prayagraj"
+        || /^prayagraj/i.test(o.textContent))
+    || sel.options[0];
+  if (pick) sel.value = pick.value;
 }
 
 async function loadMaterials() {
@@ -901,6 +911,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (s.width_m) $("width").value = s.width_m;
       if (s.height_m) $("height").value = s.height_m;
       $("structSource").textContent = `CAD · ${(j.filename || "").split(".").pop().toUpperCase()}`;
+      studioPreset = null;
       toast(`CAD ingested: ${j.filename} — ${j.dimensions_m.length_m}×${j.dimensions_m.width_m}×${j.dimensions_m.height_m} m`);
       scheduleStructure();
       loadCadRecent();
@@ -950,6 +961,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       applyDesignToForm(row.design);
       $("designName").value = row.name || "";
       $("structSource").textContent = `LIBRARY · ${(row.name || "").toUpperCase()}`;
+      studioPreset = null;
       toast(`Loaded design — ${row.name}`);
       scheduleStructure();
     } else if (act.dataset.act === "ren") {
@@ -1361,6 +1373,7 @@ function importDesignJson(file) {
         throw new Error("not a design file (missing length_m)");
       applyDesignToForm(d);
       $("structSource").textContent = "JSON · IMPORTED";
+      studioPreset = null;
       toast(`Design imported from ${file.name}`);
       scheduleStructure();
     } catch (err) {
@@ -1752,7 +1765,8 @@ function detectLocation() {
     sel.appendChild(opt);
     sel.value = "my";
     $("geoBtn").textContent = "◎ DETECT MY LOCATION";
-    toast(`Site set to your location (${lat}, ${lon}) — load climate to profile it`);
+    toast(`Site set to your location (${lat}, ${lon}) — refreshing presets for this zone`);
+    sel.dispatchEvent(new Event("change"));
   }, (err) => {
     $("geoBtn").textContent = "◎ DETECT MY LOCATION";
     toast(`Location denied: ${err.message}`, true);
@@ -2037,6 +2051,7 @@ function initAi() {
    8 · PRE-DESIGNED SHELTERS (engine-verified presets)
    ============================================================ */
 const presets = { data: null, site: null };
+let studioPreset = null;   // { id, site } — active studio design that came from a preset card
 
 async function loadPresets() {
   const sel = $("location");
@@ -2058,15 +2073,33 @@ async function loadPresets() {
   }
 }
 
+function zoneCovers(preset, zone) {
+  const z = String(zone || "").toLowerCase();
+  return (preset.zones || []).some((x) => String(x).toLowerCase() === "all"
+    || String(x).toLowerCase() === z);
+}
+
 function renderPresets() {
   const g = $("presetGrid");
   if (!g || !presets.data) return;
   $("presetSiteTag").textContent =
     `SITE ${presets.data.site.toUpperCase()} · ${presets.data.zone_name || presets.data.zone || "—"}`;
+  const zn = $("presetZoneName");
+  if (zn) zn.textContent = (presets.data.zone_name || presets.data.zone || "THIS ZONE").toLowerCase();
   $("presetSource").textContent =
     `ENGINE ${(presets.data.engine || "").replace("src/thermal/", "").toUpperCase()}`;
+  const zone = presets.data.zone || "";
+  const rec = presets.data.presets.filter((p) => zoneCovers(p, zone));
+  const ref = presets.data.presets.filter((p) => !zoneCovers(p, zone));
+  const groups = [];
+  if (rec.length) groups.push({
+    label: `RECOMMENDED · ${(presets.data.zone_name || presets.data.zone || "THIS ZONE").toUpperCase()}`,
+    list: rec });
+  if (ref.length) groups.push({
+    label: `OTHER CLIMATE ZONES · REFERENCE METRICS AT ${presets.data.site.toUpperCase()}`,
+    list: ref });
   g.innerHTML = "";
-  for (const p of presets.data.presets) {
+  const mkCard = (p) => {
     const m = p.metrics || {};
     const h = m.hot_week || {}, c = m.cold_week || {};
     const card = document.createElement("div");
@@ -2097,8 +2130,28 @@ function renderPresets() {
         <button class="primary" data-preset="${p.id}">⬇ LOAD INTO STUDIO</button>
         <span class="tag">ENGINE-VERIFIED @ ${presets.data.site.toUpperCase()}</span>
       </div>`;
-    g.appendChild(card);
-  }
+    return card;
+  };
+  groups.forEach((grp) => {
+    const lab = document.createElement("div");
+    lab.className = "preset-group-hd";
+    lab.textContent = grp.label;
+    g.appendChild(lab);
+    grp.list.forEach((p) => g.appendChild(mkCard(p)));
+  });
+}
+
+async function autoSwapPresetForSite() {
+  if (!presets.data || !studioPreset) return;
+  const site = presets.data.site;
+  const zone = presets.data.zone || "";
+  if (!studioPreset.site || studioPreset.site === site) return;   // same site — nothing to swap
+  const cur = presets.data.presets.find((x) => x.id === studioPreset.id);
+  if (cur && zoneCovers(cur, zone)) { studioPreset.site = site; return; }  // preset still fits — keep design
+  const pick = presets.data.presets.find((x) => zoneCovers(x, zone)) || presets.data.presets[0];
+  if (!pick) return;
+  loadPresetIntoStudio(pick.id);
+  toast(`Location changed to ${site} — studio switched to “${pick.name}” (zone-matched)`);
 }
 
 function loadPresetIntoStudio(id) {
@@ -2106,6 +2159,7 @@ function loadPresetIntoStudio(id) {
   const p = presets.data.presets.find((x) => x.id === id);
   if (!p) return;
   applyDesignToForm(p.design);
+  studioPreset = { id: p.id, site: presets.data.site };
   $("structSource").textContent = `PRESET · ${p.id.toUpperCase()}`;
   toast(`Loaded preset — ${p.name}`);
   scheduleStructure();
@@ -2118,7 +2172,11 @@ function initPresets() {
   const g = $("presetGrid");
   if (!g) return;
   loadPresets();
-  if ($("location")) $("location").addEventListener("change", loadPresets);
+  if ($("location")) $("location").addEventListener("change", () => {
+    const sel = $("location");
+    try { localStorage.setItem("shl-site", sel.value); } catch (e) {}
+    loadPresets().then(autoSwapPresetForSite);
+  });
   g.addEventListener("click", (e) => {
     const btn = e.target.closest("[data-preset]");
     if (btn) loadPresetIntoStudio(btn.dataset.preset);

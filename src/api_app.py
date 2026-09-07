@@ -88,6 +88,27 @@ DEFAULT_LOCATION = {
 }
 
 
+def _canonical_site_name(lat: float, lon: float, tol_deg: float = 0.35):
+    """Name of the nearest engine-verified site, if within tol_deg (~39 km).
+
+    Weather-cache rows are created for every simulated coordinate; without
+    this the cache labels every site with the config default's name (the
+    bug that filled `locations` with 20 "Prayagraj" rows).
+    """
+    try:
+        data = json.loads(PRESETS_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+    best, best_d = None, tol_deg
+    for nm, sd in data.get("sites", {}).items():
+        dlat = float(sd["latitude"]) - lat
+        dlon = float(sd["longitude"]) - lon
+        d = (dlat * dlat + dlon * dlon) ** 0.5
+        if d < best_d:
+            best, best_d = nm, d
+    return best
+
+
 # --------------------------------------------------------------------------
 # request models
 # --------------------------------------------------------------------------
@@ -164,9 +185,12 @@ def get_weather_cached(lat: float, lon: float, year: int, timezone: str,
     df = power.copy()
     df.index = df.index.tz_convert(timezone)
     try:
-        STORE.upsert_location({**DEFAULT_LOCATION, "latitude": lat,
-                               "longitude": lon,
-                               "location_id": location_id})
+        STORE.upsert_location({"location_id": location_id,
+                               "name": _canonical_site_name(lat, lon)
+                                       or "Custom location",
+                               "latitude": lat, "longitude": lon,
+                               "elevation_m": DEFAULT_LOCATION["elevation_m"],
+                               "timezone": timezone})
         STORE.save_weather(power, location_id)      # store in UTC
     except Exception as exc:
         print(f"[api] weather cache write skipped: {exc}")
@@ -410,10 +434,18 @@ def health():
 def locations():
     try:
         rows = STORE.list_locations()
-        if rows:
-            return {"locations": rows, "source": STORE.backend}
     except Exception:
-        pass
+        rows = []
+    seen, out = set(), []
+    for r in rows:
+        key = (round(float(r.get("latitude", 0)), 4),
+               round(float(r.get("longitude", 0)), 4))
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(r)
+    if out:
+        return {"locations": out, "source": STORE.backend}
     return {"locations": [DEFAULT_LOCATION], "source": "config"}
 
 
