@@ -169,6 +169,11 @@ def _loc(req: BaseModel) -> dict:
 
 #: NASA POWER publishes with a multi-day lag; never request newer than this.
 POWER_LAG_DAYS = 7
+#: Days of overlap used for the POWER-vs-Open-Meteo cross-check. cross_check
+#: needs >= 100 shared hours to report anything; 60 days gives ~1,400, which is
+#: statistically ample. Pulling a full year here cost ~10 s per new pin for a
+#: validation report, not for any data the engine actually uses.
+POWER_CHECK_DAYS = 60
 
 
 def resolve_period(year=None, period: str | None = None):
@@ -283,10 +288,11 @@ def get_weather_cached(lat: float, lon: float, year: int, timezone: str,
     report = None
     power = None
     power_end = min(end_d, _dt.date.today() - _dt.timedelta(days=POWER_LAG_DAYS))
-    if power_end > start_d:
+    power_start = max(start_d, power_end - _dt.timedelta(days=POWER_CHECK_DAYS))
+    if power_end > power_start:
         try:
             power = nasa_power.hourly_to_dataframe(nasa_power.fetch_hourly(
-                lat, lon, start_d.strftime("%Y%m%d"),
+                lat, lon, power_start.strftime("%Y%m%d"),
                 power_end.strftime("%Y%m%d")))
             report = cross_check(power, om)
         except Exception as exc:                          # noqa: BLE001

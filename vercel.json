@@ -3,5 +3,6 @@
     "api/index.py": {
       "maxDuration": 60
     }
-  }
+  },
+  "regions": ["sin1"]
 }
