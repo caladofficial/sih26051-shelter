@@ -204,7 +204,7 @@ def main():
                 "leave-one-site-out training on the other 11 cities.",
     }
     model["metadata"] = {
-        "name": "rc-surrogate-v2",
+        "name": "rc-surrogate-v3",
         "family": "gradient-boosted regression trees (scikit-learn), "
                   "pure-NumPy inference",
         "n_samples": int(n),
