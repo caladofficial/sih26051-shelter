@@ -204,9 +204,50 @@ def _find_alias(text: str, table: dict) -> tuple[str | None, str | None]:
     return (table[best_key], best_key) if best_key else (None, None)
 
 
+#: Spelled-out numbers. People write "a family of six", not "6" — and the
+#: extractor was digit-only, so those requests silently lost their occupancy
+#: and footprint. Applied ONLY in slot extraction: normalise() feeds the
+#: intent featuriser and must stay byte-identical to training.
+_NUM_WORDS = {
+    "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6,
+    "seven": 7, "eight": 8, "nine": 9, "ten": 10, "eleven": 11,
+    "twelve": 12, "fifteen": 15, "twenty": 20,
+}
+
+#: Hazards the project already has an engine-verified answer for. Saying
+#: "cyclone" used to change nothing at all, even though a
+#: Cyclone-Resilient Coastal Shell preset exists in the library.
+HAZARD_WORDS = {
+    "cyclone": "cyclone", "typhoon": "cyclone", "hurricane": "cyclone",
+    "storm surge": "cyclone", "high wind": "cyclone",
+    "flood": "flood", "floods": "flood", "flooding": "flood",
+    "waterlogging": "flood", "monsoon": "monsoon", "heavy rain": "monsoon",
+    "snow": "snow", "snowfall": "snow", "snow load": "snow",
+    "blizzard": "snow", "earthquake": "seismic", "seismic": "seismic",
+}
+
+#: Ventilation is a REAL engine input (config ventilation_ach). "well
+#: ventilated" was parsed as nothing, so the phrase changed no physics.
+VENT_WORDS = {
+    "cross ventilation": 8.0, "cross-ventilation": 8.0,
+    "well ventilated": 6.0, "well-ventilated": 6.0, "good ventilation": 6.0,
+    "plenty of ventilation": 8.0, "lots of ventilation": 8.0,
+    "breezy": 6.0, "airy": 6.0, "night purge": 8.0, "night flush": 8.0,
+    "sealed": 0.5, "airtight": 0.5, "air tight": 0.5, "draught free": 1.0,
+    "draft free": 1.0, "no ventilation": 0.5,
+}
+
+
+def _digitise(t: str) -> str:
+    """Rewrite spelled-out numbers as digits so the numeric regexes fire."""
+    for word, num in _NUM_WORDS.items():
+        t = re.sub(rf"\b{word}\b", str(num), t)
+    return t
+
+
 def extract_slots(text: str) -> dict:
     """Pull design values out of free text. Only returns what it truly finds."""
-    t = normalise(text)
+    t = _digitise(normalise(text))
     slots: dict = {}
 
     site, _ = _find_alias(t, SITE_ALIASES)
@@ -288,7 +329,11 @@ def extract_slots(text: str) -> dict:
         slots.setdefault("length_m", 3.0)
         slots.setdefault("width_m", 3.0)
 
-    people = re.search(r"(\d+)\s*(?:people|persons?|members|occupants)", t)
+    people = re.search(r"(\d+)\s*(?:people|persons?|members|occupants|"
+                       r"adults|children|kids)", t)
+    if not people:
+        # "a family of six" / "household of 4"
+        people = re.search(r"(?:family|household|group)\s+of\s+(\d+)", t)
     if people:
         n = int(people.group(1))
         if 1 <= n <= 20:
@@ -297,4 +342,63 @@ def extract_slots(text: str) -> dict:
             side = round(area ** 0.5, 1)
             slots.setdefault("length_m", min(side, 6.0))
             slots.setdefault("width_m", min(side, 6.0))
+
+    # ---- ventilation -> air changes per hour (a real engine parameter) ----
+    for phrase, ach in VENT_WORDS.items():
+        if phrase in t:
+            slots["ach"] = ach
+            break
+
+    # ---- hazards ----------------------------------------------------------
+    hazards = []
+    for phrase, tag in HAZARD_WORDS.items():
+        if re.search(rf"\b{re.escape(phrase)}\b", t) and tag not in hazards:
+            hazards.append(tag)
+    if hazards:
+        slots["hazards"] = hazards
+
+    # ---- windows: negation, count and size --------------------------------
+    if re.search(r"\b(no|without|zero)\s+(windows?|glazing|openings?)\b", t):
+        # the engine has no "no window" flag; the honest equivalent is the
+        # smallest opening it will accept
+        slots["window_width_m"] = 0.3
+        slots["window_height_m"] = 0.3
+        slots["no_windows"] = True
+    else:
+        big = re.search(r"\b(large|big|wide|generous)\s+(windows?|openings?|glazing)\b", t)
+        small = re.search(r"\b(small|tiny|narrow|minimal)\s+(windows?|openings?|glazing)\b", t)
+        if big:
+            slots["window_width_m"], slots["window_height_m"] = 1.8, 1.5
+        elif small:
+            slots["window_width_m"], slots["window_height_m"] = 0.6, 0.6
+
+    # ---- things we could NOT honour, so the UI can say so -----------------
+    # Silently ignoring a material the user named is the worst outcome: they
+    # believe it was used. Report it instead.
+    unknown = []
+    for word in ("bamboo", "thatch", "canvas", "tarpaulin", "glass fibre",
+                 "ferrocement", "cob", "straw bale", "shipping container"):
+        if re.search(rf"\b{re.escape(word)}\b", t):
+            unknown.append(word)
+    if unknown:
+        slots["unsupported_materials"] = unknown
+    if re.search(r"(?:budget|under|below|less than)\s*(?:rs\.?|inr|₹)?\s*\d", t):
+        slots["budget_mentioned"] = True
+
+    # ---- a place we do not have climate data for --------------------------
+    # Worst case is silence: the user names Varanasi, gets a Prayagraj design
+    # and is never told. Catch the place-like token and surface it.
+    if "site" not in slots:
+        _stop = {"the", "a", "an", "my", "our", "this", "that", "winter",
+                 "summer", "monsoon", "night", "day", "village", "town",
+                 "city", "area", "region", "site", "place", "home", "family",
+                 "people", "sale", "rent", "now", "cheap", "hot", "cold"}
+        m = re.search(r"\b(?:in|for|at|near|around)\s+(?:the\s+|my\s+|our\s+)?"
+                      r"(?:village\s+|town\s+|city\s+|area\s+)?"
+                      r"(?:near\s+)?([a-z]{4,20})\b", t)
+        if m and m.group(1) not in _stop:
+            cand = m.group(1)
+            known = any(cand in k or k in cand for k in SITE_ALIASES)
+            if not known:
+                slots["unknown_place"] = cand
     return slots

@@ -332,8 +332,53 @@ def _mix(*fns):
     return pick
 
 
+HAZARDS = ["cyclone", "storm surge", "flooding", "the floods", "monsoon rain",
+           "heavy snow load", "snow", "an earthquake", "high winds",
+           "waterlogging", "a blizzard"]
+VENT_PHRASES = ["cross ventilation", "good ventilation", "well ventilated",
+                "night purge", "plenty of ventilation", "sealed and airtight"]
+BARE_NOUNS = ["hut", "shed", "unit", "shelter", "cabin", "room", "house",
+              "block", "dwelling", "structure"]
+
+
+def gen_design_bare(rng) -> str:
+    """Verb-less noun phrases and hazard-led asks.
+
+    Real users write "bamboo hut in Kolkata" or "needs to handle heavy snow
+    load in Dras" — no build verb, no need-opener. Every design template had
+    one or the other, so these landed in `explain` at ~0.4 confidence and the
+    request was refused instead of designed.
+    """
+    r = rng.random()
+    if r < 0.34:                                   # "<material> <noun> in <site>"
+        s = f"{_p(rng, WALL_WORDS)} {_p(rng, BARE_NOUNS)}"
+        if rng.random() < 0.8:
+            s += f" {_p(rng, ['in', 'for', 'at'])} {_p(rng, SITES)}"
+        if rng.random() < 0.3:
+            s += f", {_p(rng, DIMS)}"
+        return s
+    if r < 0.58:                                   # "<dims> <noun> in <site>"
+        s = f"{_p(rng, DIMS)} {_p(rng, BARE_NOUNS)} {_p(rng, ['in', 'for'])} {_p(rng, SITES)}"
+        if rng.random() < 0.4:
+            s += f" with {_p(rng, WALL_WORDS)} walls"
+        return s
+    if r < 0.82:                                   # hazard-led
+        opener = _p(rng, ["needs to handle", "has to survive", "must withstand",
+                          "something that can take", "it has to cope with",
+                          "must be safe in"])
+        s = f"{opener} {_p(rng, HAZARDS)}"
+        if rng.random() < 0.75:
+            s += f" {_p(rng, ['in', 'at', 'for'])} {_p(rng, SITES)}"
+        return s
+    s = f"{_p(rng, BARE_NOUNS)} with {_p(rng, VENT_PHRASES)}"   # ventilation-led
+    if rng.random() < 0.8:
+        s += f" {_p(rng, ['in', 'for'])} {_p(rng, SITES)}"
+    return s
+
+
 GENERATORS = {
-    "design": _mix(gen_design, gen_design, gen_design_indirect),
+    "design": _mix(gen_design, gen_design, gen_design_indirect,
+                   gen_design_bare, gen_design_bare),
     "modify": _mix(gen_modify, gen_modify_indirect, gen_modify_indirect),
     "optimize": _mix(gen_optimize, gen_optimize_indirect),
     "explain": _mix(gen_explain, gen_explain_yesno),

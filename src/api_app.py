@@ -1850,10 +1850,22 @@ def nlp_design_endpoint(req: NLPRequest):
 
     if intent in ("explain", "compare", "unknown") or \
             confidence < NLP_MIN_CONFIDENCE:
+        # Even when we cannot act, say what we could not honour — a user who
+        # typed "bamboo" must not be left assuming bamboo was considered.
+        caveats = [f"'{m}' is not in the sourced materials table — not "
+                   f"substituted" for m in (slots.get("unsupported_materials") or [])]
+        if slots.get("unknown_place"):
+            caveats.append(
+                f"no climate archive for '{slots['unknown_place'].title()}' — "
+                f"pick the nearest of the 15 archived cities, or drop a pin")
+        if slots.get("budget_mentioned"):
+            caveats.append("a budget was mentioned, but this project holds no "
+                           "costing data — treated as a low-cost preference only")
         return {
             "understood": understood,
             "actionable": False,
             "site": site_name,
+            "ignored": caveats,
             "message": _nlp_message(intent, confidence, site_name, slots),
         }
 
@@ -1878,7 +1890,10 @@ def nlp_design_endpoint(req: NLPRequest):
     for key in ("wall_material", "roof_material", "insulation_material",
                 "wall_thickness_m", "roof_thickness_m",
                 "insulation_thickness_m", "length_m", "width_m", "height_m",
-                "window_wall", "orientation_deg"):
+                "window_wall", "orientation_deg",
+                # ach is a real engine input; window size lets "no windows"
+                # and "large windows" actually change the physics
+                "ach", "window_width_m", "window_height_m"):
         if key not in slots:
             continue
         val = slots[key]
@@ -1888,6 +1903,36 @@ def nlp_design_endpoint(req: NLPRequest):
             continue
         design[key] = val
         applied.append(f"{key} = {val}")
+
+    # ---- hazards: reuse the engine-verified preset built for them --------
+    # The library already contains a Cyclone-Resilient Coastal Shell and a
+    # Monsoon Hybrid Studio. Before this, saying "cyclone" changed nothing.
+    hazard_preset = {"cyclone": "cyclone_shell",
+                     "flood": "composite_monsoon_hybrid",
+                     "monsoon": "composite_monsoon_hybrid",
+                     "snow": "superinsulated_cold"}
+    for hz in (slots.get("hazards") or []):
+        pid = hazard_preset.get(hz)
+        if not pid:
+            ignored.append(f"hazard '{hz}' noted, but the RC engine models "
+                           f"heat only — structural design is out of scope")
+            continue
+        try:
+            _plib = json.loads(PRESETS_FILE.read_text(encoding="utf-8"))
+        except Exception:                                    # noqa: BLE001
+            _plib = {"presets": []}
+        pre = next((x for x in _plib.get("presets", [])
+                    if x["id"] == pid), None)
+        if not pre:
+            continue
+        for k, v in (pre.get("design") or {}).items():
+            if k in ("window", "wall", "roof"):
+                continue
+            # an explicit user instruction always outranks the preset
+            if k not in slots and v is not None:
+                design[k] = v
+        applied.append(f"{hz} hazard → {pre['name']} envelope "
+                       f"(engine-verified preset)")
 
     goals = slots.get("goals") or []
     if "cooling" in goals:
@@ -1908,6 +1953,21 @@ def nlp_design_endpoint(req: NLPRequest):
         design["wall_material"] = slots.get("wall_material",
                                             "puf_sandwich_panel")
         applied.append("rapid-deploy goal → sandwich-panel envelope")
+
+    if slots.get("unknown_place"):
+        ignored.append(
+            f"no climate archive for '{slots['unknown_place'].title()}' — "
+            f"designed for {site_name or 'the current pin'} instead; pick the "
+            f"nearest of the 15 archived cities, or drop a pin, for local weather")
+    for m in (slots.get("unsupported_materials") or []):
+        ignored.append(f"'{m}' is not in the sourced materials table "
+                       f"(15 materials with measured k/rho/cp) — not substituted")
+    if slots.get("budget_mentioned"):
+        ignored.append("a budget was mentioned, but no costing data exists in "
+                       "this project — treated as a low-cost preference only")
+    if slots.get("no_windows"):
+        applied.append("no windows → glazing reduced to the 0.3 x 0.3 m minimum "
+                       "the engine accepts (it has no zero-window mode)")
 
     out = {
         "understood": understood,
