@@ -61,6 +61,7 @@ from src.data.climate import (design_weeks, load_config,  # noqa: E402
                               cross_check)
 from src.data import nasa_power, openmeteo  # noqa: E402
 from src.data import climate_archive  # noqa: E402
+from src import nlp_design  # noqa: E402
 import datetime as _dt  # noqa: E402
 from src.db.store import Store, new_id  # noqa: E402
 from src.cad import model as cad_model  # noqa: E402
@@ -1719,6 +1720,193 @@ class AiSuggestRequest(SimulateRequest):
     design: dict | None = None
     objective: str = "coolest_peak"   # coolest_peak | max_comfort | coolest_mean
     n_candidates: int = 800
+
+
+# --------------------------------------------------------------------------
+# Natural-language design assistant (SEC/11)
+# --------------------------------------------------------------------------
+class NLPRequest(BaseModel):
+    text: str = Field(..., min_length=1, max_length=600)
+    lat: float | None = None
+    lon: float | None = None
+    timezone: str | None = None
+    climate_period: str | None = None
+    simulate: bool = True          # verify the proposal with the real engine
+
+
+#: below this the parse is reported as uncertain rather than acted on silently
+NLP_MIN_CONFIDENCE = 0.45
+
+
+@app.get("/api/nlp/info")
+def nlp_info():
+    """What the language model is, and how well it actually works."""
+    m = nlp_design.load_model()
+    if not m:
+        return {"available": False,
+                "reason": "src/data/nlp_model.json not built"}
+    return {
+        "available": True,
+        "family": m.get("family"),
+        "intents": m.get("labels"),
+        "n_features": m.get("n_buckets"),
+        "metrics": m.get("metrics"),
+        "min_confidence": NLP_MIN_CONFIDENCE,
+        "note": m.get("note"),
+        "honesty": ("Split accuracy is measured on utterances from the same "
+                    "generator as the training data and therefore flatters "
+                    "the model. The number worth quoting is the hand-written "
+                    "held-out score in ml/nlp/eval_nlp.py."),
+    }
+
+
+@app.post("/api/nlp/design")
+def nlp_design_endpoint(req: NLPRequest):
+    """Turn a plain-English request into a design the engine has verified.
+
+    Flow: classify intent -> extract slots -> start from the site's
+    engine-backed zone recommendation -> apply whatever the user explicitly
+    asked for -> run the real RC simulation on the result.
+
+    The parser only ever proposes. Every number returned under `metrics` comes
+    from the same engine /api/simulate uses, so a confidently-wrong parse
+    still cannot invent performance figures.
+    """
+    text = req.text.strip()
+    intent, confidence, scores = nlp_design.classify(text)
+    slots = nlp_design.extract_slots(text)
+
+    # site: explicit in the sentence, else the caller's current pin
+    site_name = slots.get("site")
+    lat, lon = req.lat, req.lon
+    if site_name:
+        meta = climate_archive.load_index().get("sites", {}).get(site_name)
+        if meta:
+            lat, lon = float(meta["latitude"]), float(meta["longitude"])
+    if lat is None or lon is None:
+        lat = DEFAULT_LOCATION["latitude"]
+        lon = DEFAULT_LOCATION["longitude"]
+        site_name = site_name or _canonical_site_name(lat, lon)
+
+    tz = req.timezone or DEFAULT_LOCATION["timezone"]
+    period = resolve_period(None, req.climate_period)
+
+    understood = {"intent": intent, "confidence": round(confidence, 3),
+                  "slots": slots, "scores": scores}
+
+    if intent in ("explain", "compare", "unknown") or \
+            confidence < NLP_MIN_CONFIDENCE:
+        return {
+            "understood": understood,
+            "actionable": False,
+            "site": site_name,
+            "message": _nlp_message(intent, confidence, site_name, slots),
+        }
+
+    try:
+        weather, source, _ = get_weather_cached(lat, lon, _period_year(period),
+                                                tz, period=period)
+    except Exception as exc:
+        raise HTTPException(502, f"weather fetch failed: {exc}")
+
+    mats = load_materials()
+    profile = _location_profile(weather, lat, lon)
+
+    # start from the engine-backed prescription for this climate zone, then
+    # let anything the user actually said override it
+    base = _flat_design(CFG)
+    rec = _recommend_design(profile, mats, base)
+    design = dict(base)
+    design.update({k: v for k, v in (rec.get("design") or {}).items()
+                   if v is not None})
+
+    applied, ignored = [], []
+    for key in ("wall_material", "roof_material", "insulation_material",
+                "wall_thickness_m", "roof_thickness_m",
+                "insulation_thickness_m", "length_m", "width_m", "height_m",
+                "window_wall", "orientation_deg"):
+        if key not in slots:
+            continue
+        val = slots[key]
+        if key.endswith("_material") and key != "insulation_material" \
+                and val not in mats.index:
+            ignored.append(f"{key}={val} (not in the materials table)")
+            continue
+        design[key] = val
+        applied.append(f"{key} = {val}")
+
+    goals = slots.get("goals") or []
+    if "cooling" in goals:
+        design["window_wall"] = slots.get("window_wall", "north")
+        design["window_shgc"] = min(float(design.get("window_shgc", 0.5)), 0.4)
+        applied.append("cooling goal → north glazing, low-SHGC glass")
+    if "heating" in goals:
+        design["window_wall"] = slots.get("window_wall", "south")
+        design["window_shgc"] = max(float(design.get("window_shgc", 0.5)), 0.7)
+        applied.append("heating goal → south glazing, high-SHGC glass")
+    if "low_cost" in goals:
+        design["insulation_material"] = slots.get("insulation_material", "eps")
+        design["insulation_thickness_m"] = min(
+            float(design.get("insulation_thickness_m", 0.05)), 0.05)
+        applied.append("low-cost goal → EPS capped at 50 mm")
+    if "rapid" in goals:
+        design.setdefault("wall_material", "puf_sandwich_panel")
+        design["wall_material"] = slots.get("wall_material",
+                                            "puf_sandwich_panel")
+        applied.append("rapid-deploy goal → sandwich-panel envelope")
+
+    out = {
+        "understood": understood,
+        "actionable": True,
+        "intent": intent,
+        "site": site_name or _canonical_site_name(lat, lon) or "Custom location",
+        "location": {"latitude": lat, "longitude": lon, "timezone": tz,
+                     "period": period, "year": _period_year(period)},
+        "zone": profile.get("zone"),
+        "zone_name": profile.get("zone_name"),
+        "design": design,
+        "applied": applied,
+        "ignored": ignored,
+        "weather_source": source,
+        "message": _nlp_message(intent, confidence, site_name, slots),
+    }
+
+    if req.simulate and intent in ("design", "modify", "optimize"):
+        try:
+            weeks = design_weeks(weather, _period_year(period))
+            cfg = _apply_ground_temp(_apply_site_location(
+                _apply_design(CFG, design), lat, lon, tz), weather)
+            res = simulate(cfg, weeks["hot_week"], mats)
+            st = comfort_stats(res, CFG["climate"]["comfort_range_c"])
+            out["metrics"] = {k: (round(float(v), 3)
+                                  if isinstance(v, float) else v)
+                              for k, v in st.items()}
+            out["verified_by"] = ("src/thermal/rc_model.simulate on the hot "
+                                  "design week — not an AI estimate")
+        except Exception as exc:                        # noqa: BLE001
+            out["metrics_error"] = str(exc)
+    return out
+
+
+def _nlp_message(intent: str, confidence: float, site: str | None,
+                 slots: dict) -> str:
+    """Say plainly what was understood — including when it wasn't."""
+    if confidence < NLP_MIN_CONFIDENCE:
+        return ("I'm not confident I understood that. Try naming a site and "
+                "what you want, e.g. \"a cool shelter for Jaipur with thick "
+                "mud walls\".")
+    if intent == "unknown":
+        return ("That looks outside what I can do. I can design a shelter, "
+                "change one you already have, optimise it, or describe a "
+                "site's climate.")
+    if intent == "explain":
+        return (f"That's a climate question about {site or 'the selected site'}"
+                " — load Climate Recon (SEC/02) or Climate Trends (SEC/10).")
+    if intent == "compare":
+        return ("That's a comparison — use Multi-Zone Validation (MOD·02E) "
+                "or Climate Trends (SEC/10).")
+    named = ", ".join(k for k in slots if k != "goals") or "no specifics"
+    return f"Read as a {intent} request ({named})."
 
 
 @app.get("/api/ai/info")

@@ -144,7 +144,7 @@ function metric(value, label) {
 
 /* ---------- state ---------- */
 const state = { locations: [], materials: [], climate: null,
-                coverage: null, trends: null };
+                coverage: null, trends: null, nlpDesign: null };
 
 /* ---------- 1 · locations ---------- */
 async function loadLocations() {
@@ -410,6 +410,157 @@ function signed(v, dp = 1, unit = "") {
   if (v === null || v === undefined || isNaN(v)) return "—";
   const n = Number(v);
   return `${n > 0 ? "+" : ""}${n.toFixed(dp)}${unit}`;
+}
+
+
+/* ---------- 11 · natural-language design assistant ---------- */
+/* The parser proposes; the RC engine disposes. Everything shown under
+   "metrics" here is a real simulation of the produced design, so a confident
+   misread still cannot fabricate performance numbers. */
+
+async function loadNlpInfo() {
+  const tag = $("nlpModelTag");
+  if (!tag) return;
+  try {
+    const j = await api("/api/nlp/info");
+    tag.textContent = j.available
+      ? `${j.intents.length} intents · ${j.n_features} features`
+      : "unavailable";
+    if (j.available) tag.title = j.family || "";
+  } catch (e) { tag.textContent = "unavailable"; }
+}
+
+async function runNlp(textOverride) {
+  const input = $("nlpInput");
+  const text = (textOverride || input.value || "").trim();
+  if (!text) { toast("Describe what you need first", true); return; }
+  input.value = text;
+  const btn = $("nlpBtn");
+  const st = $("nlpStatus");
+  btn.disabled = true; btn.classList.add("busy");
+  st.classList.remove("err");
+  const stopProgress = startProgress(st, "reading your request…");
+
+  const sel = $("location").selectedOptions[0];
+  try {
+    const j = await api("/api/nlp/design", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        text,
+        lat: sel ? parseFloat(sel.dataset.lat) : undefined,
+        lon: sel ? parseFloat(sel.dataset.lon) : undefined,
+        climate_period: climatePeriod(),
+        simulate: true,
+      }),
+    });
+    stopProgress();
+    renderNlp(j);
+    st.textContent = j.actionable
+      ? `understood as ${j.understood.intent} · ${Math.round(j.understood.confidence * 100)}% confident`
+      : "not actionable";
+  } catch (err) {
+    stopProgress();
+    st.textContent = `ASSISTANT FAILED: ${err.message}`;
+    st.classList.add("err");
+  } finally {
+    btn.disabled = false; btn.classList.remove("busy");
+  }
+}
+
+function renderNlp(j) {
+  const wrap = $("nlpResult");
+  const u = j.understood || {};
+  $("nlpIntent").textContent = `INTENT: ${u.intent || "?"}`;
+  $("nlpConf").textContent = `CONFIDENCE: ${Math.round((u.confidence || 0) * 100)}%`;
+  $("nlpSite").textContent = `SITE: ${j.site || "—"}`;
+  $("nlpZone").textContent = j.zone_name ? `ZONE: ${j.zone_name}` : "ZONE: —";
+
+  const verdict = $("nlpVerdict");
+  if (!j.actionable) {
+    wrap.hidden = false;
+    verdict.className = "verdict warn";
+    verdict.innerHTML = `<b>Not a design request</b><span>${j.message || ""}</span>`;
+    $("nlpMetrics").innerHTML = "";
+    $("nlpApplied").innerHTML = "";
+    $("nlpDesign").innerHTML = "";
+    $("nlpApply").hidden = true;
+    return;
+  }
+  wrap.hidden = false;
+  $("nlpApply").hidden = false;
+  state.nlpDesign = j.design;
+
+  const m = j.metrics;
+  if (m) {
+    const pct = Math.round((m.comfort_fraction || 0) * 100);
+    const cls = pct >= 70 ? "good" : pct >= 30 ? "warn" : "bad";
+    verdict.className = `verdict ${cls}`;
+    verdict.innerHTML =
+      `<b>Designed for ${j.site} — peak ${fmt(m.max_indoor_c, 1)} °C, ${pct}% of the hot week comfortable.</b>` +
+      `<span>${j.message} · verified by the RC engine, not estimated</span>`;
+    const box = $("nlpMetrics");
+    box.innerHTML = "";
+    box.append(metric(`${fmt(m.mean_indoor_c, 1)} °C`, "mean indoor · hot week"),
+               metric(`${fmt(m.max_indoor_c, 1)} °C`, "peak indoor"),
+               metric(`${pct}%`, "comfort hours"),
+               metric(fmt(m.solar_gain_kwh, 0), "solar gain kWh"));
+  } else {
+    verdict.className = "verdict warn";
+    verdict.innerHTML = `<b>Design produced</b><span>${j.metrics_error || j.message}</span>`;
+    $("nlpMetrics").innerHTML = "";
+  }
+
+  const ap = $("nlpApplied");
+  ap.innerHTML = "";
+  const items = (j.applied || []).slice();
+  (j.ignored || []).forEach((x) => items.push(`ignored: ${x}`));
+  if (!items.length) items.push("nothing specific — used the zone prescription");
+  items.forEach((line) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${line}</td>`;
+    ap.appendChild(tr);
+  });
+
+  const dt = $("nlpDesign");
+  dt.innerHTML = "";
+  const d = j.design || {};
+  const show = [
+    ["Footprint", `${fmt(d.length_m, 1)} × ${fmt(d.width_m, 1)} m`],
+    ["Height", `${fmt(d.height_m, 1)} m`],
+    ["Walls", `${d.wall_material} · ${fmt(d.wall_thickness_m * 1000, 0)} mm`],
+    ["Roof", `${d.roof_material} · ${fmt(d.roof_thickness_m * 1000, 0)} mm`],
+    ["Insulation", d.insulation_material === "none" ? "none"
+      : `${d.insulation_material} · ${fmt(d.insulation_thickness_m * 1000, 0)} mm`],
+    ["Window", `${d.window_wall} · ${fmt(d.window_width_m, 1)} × ${fmt(d.window_height_m, 1)} m`],
+    ["Orientation", `${fmt(d.orientation_deg, 0)}°`],
+  ];
+  show.forEach(([k, v]) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td class="k">${k}</td><td>${v}</td>`;
+    dt.appendChild(tr);
+  });
+}
+
+/* Push the assistant's design into the studio controls so the user can keep
+   working on it with the normal tools. */
+function applyNlpDesign() {
+  const d = state.nlpDesign;
+  if (!d) return;
+  const set = (id, v) => { const e = $(id); if (e && v !== undefined && v !== null) e.value = v; };
+  set("length", d.length_m); set("width", d.width_m); set("height", d.height_m);
+  set("orientation", d.orientation_deg);
+  set("wallMat", d.wall_material); set("wallThick", d.wall_thickness_m);
+  set("roofMat", d.roof_material); set("roofThick", d.roof_thickness_m);
+  set("insMat", d.insulation_material);
+  set("insThick", Math.round((d.insulation_thickness_m || 0) * 1000));
+  set("winWall", d.window_wall);
+  ["length", "width", "height", "orientation", "wallMat", "wallThick",
+   "roofMat", "roofThick", "insMat", "insThick", "winWall"].forEach((id) => {
+    const e = $(id);
+    if (e) e.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  $("nlpApplyStatus").textContent = "applied to the studio — run SEC/04 to re-verify";
+  toast("Design applied to the studio");
 }
 
 /* ---------- 2 · climate ---------- */
@@ -1261,6 +1412,17 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("loadClimate").addEventListener("click", loadClimate);
   const trendBtn = $("trendBtn");
   if (trendBtn) trendBtn.addEventListener("click", loadTrends);
+  const nlpBtn = $("nlpBtn");
+  if (nlpBtn) {
+    nlpBtn.addEventListener("click", () => runNlp());
+    $("nlpInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") runNlp();
+    });
+    document.querySelectorAll(".nlp-eg").forEach((b) =>
+      b.addEventListener("click", () => runNlp(b.textContent.trim())));
+    $("nlpApply").addEventListener("click", applyNlpDesign);
+    loadNlpInfo();
+  }
   $("simulate").addEventListener("click", runSimulate);
   $("optimize").addEventListener("click", runOptimize);
 

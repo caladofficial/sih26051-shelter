@@ -1206,3 +1206,29 @@ body { overflow-x: clip; }
 .verdict.warn > b { color: var(--saff, #ff9933); }
 .verdict.bad  > b { color: var(--red, #e2564a); }
 .chart-legend-note { margin: 6px 12px 12px; font-size: 0.72rem; line-height: 1.65; }
+
+/* ---------------- SEC/11 natural-language assistant ---------------- */
+.nlp-bar { display: flex; gap: 10px; margin: 14px 0 8px; flex-wrap: wrap; }
+.nlp-bar input {
+  flex: 1 1 420px; min-width: 260px; padding: 12px 14px;
+  font-family: var(--mono); font-size: 0.86rem;
+  background: var(--m2); color: var(--fg);
+  border: 1px solid var(--line);
+}
+.nlp-bar input:focus { outline: none; border-color: var(--saff); }
+.nlp-bar button { white-space: nowrap; }
+.nlp-examples { display: flex; gap: 7px; flex-wrap: wrap; align-items: center;
+                margin-bottom: 10px; }
+.nlp-examples > span { color: var(--mut); font-family: var(--mono);
+                       font-size: 0.62rem; letter-spacing: 1.5px;
+                       text-transform: uppercase; }
+.chip.nlp-eg {
+  font-family: var(--mono); font-size: 0.66rem; padding: 5px 10px;
+  background: transparent; color: var(--mut);
+  border: 1px dashed var(--line); cursor: pointer; text-align: left;
+}
+.chip.nlp-eg:hover { color: var(--saff); border-color: var(--saff);
+                     border-style: solid; }
+.nlp-understood { display: flex; gap: 7px; flex-wrap: wrap; margin: 14px 0 6px; }
+#sec11 .rec-table td { font-size: 0.76rem; }
+#sec11 .rec-table td.k { color: var(--mut); }

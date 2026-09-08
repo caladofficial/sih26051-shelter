@@ -43,7 +43,11 @@ DESIGN_FEATURES = [
 ]
 FEATURES = SITE_FEATURES + DESIGN_FEATURES
 
-TARGETS = ["hot_mean_c", "hot_max_c", "hot_comfort_fraction", "cold_min_c"]
+# Hot-week AND cold-week targets. v1 predicted only cold_min_c for winter,
+# which says nothing about whether a cold-climate shelter is actually liveable
+# — Leh, Dras, Kargil and Srinagar are designed against the cold week.
+TARGETS = ["hot_mean_c", "hot_max_c", "hot_comfort_fraction",
+           "cold_min_c", "cold_mean_c", "cold_comfort_fraction"]
 
 # --------------------------------------------------------------------------
 # design space used for dataset generation AND for the AI suggestion search

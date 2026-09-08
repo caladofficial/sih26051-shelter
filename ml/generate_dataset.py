@@ -2,7 +2,7 @@
 
 Every row = one flat-schema design simulated by the validated engine on REAL
 hourly weather (NASA POWER + Open-Meteo cross-check) of an Indian city.
-12 cities cover all NBC-style climate zones. Deterministic (seeded) so the
+15 cities cover all NBC-style climate zones. Deterministic (seeded) so the
 dataset is reproducible; per-site CSVs are written independently so the run
 can be resumed. The engine code path is the same one /api/simulate uses
 (design_weeks + simulate + comfort_stats) — no averages, no invented data.
@@ -36,6 +36,7 @@ from src.thermal.rc_model import (comfort_stats, load_materials,  # noqa: E402
 SITES = [
     ("Prayagraj", 25.4358, 81.8463),   # composite
     ("Delhi", 28.6139, 77.2090),       # composite
+    ("Jaipur", 26.9124, 75.7873),      # composite/hot-dry (dataset package)
     ("Jaisalmer", 26.9157, 70.9083),   # hot-dry
     ("Ahmedabad", 23.0225, 72.5714),   # hot-dry
     ("Chennai", 13.0827, 80.2707),     # warm-humid
@@ -50,7 +51,13 @@ SITES = [
     ("Dras", 34.4306, 75.7499),        # cold (Ladakh, ~3,280 m — among the
                                        # coldest inhabited places in India)
 ]
-YEAR = int(CFG["climate"]["data_year"])
+# Train on the SAME window the deployed engine serves. v1 learned from the
+# 2024 NASA POWER snapshot while the API now answers from the rolling
+# Open-Meteo archive, so the surrogate and the engine disagreed about the
+# climate before either of them saw a design.
+from src.api_app import _period_year            # noqa: E402
+PERIOD = "latest"
+YEAR = _period_year(PERIOD)
 BASE_SEED = 26051
 OUT_DIR = os.path.join(REPO, "ml", "data")
 ROW_COLS = [
@@ -62,7 +69,8 @@ ROW_COLS = [
     "window_wall", "window_width_m", "window_height_m",
     "window_shgc", "window_u_w_m2k",
 ] + [
-    "hot_mean_c", "hot_max_c", "hot_comfort_fraction", "cold_min_c",
+    "hot_mean_c", "hot_max_c", "hot_comfort_fraction",
+    "cold_min_c", "cold_mean_c", "cold_comfort_fraction",
 ]
 
 
@@ -75,7 +83,9 @@ def _sim_metrics(weather, weeks, design, mats, cfg_base=None):
     return (round(float(hot["mean_indoor_c"]), 3),
             round(float(hot["max_indoor_c"]), 3),
             round(float(hot["comfort_fraction"]), 4),
-            round(float(cold["min_indoor_c"]), 3))
+            round(float(cold["min_indoor_c"]), 3),
+            round(float(cold["mean_indoor_c"]), 3),
+            round(float(cold["comfort_fraction"]), 4))
 
 
 def _site_seed(name: str) -> int:
@@ -86,7 +96,8 @@ def _site_seed(name: str) -> int:
 def generate_site(site, n_designs, profile, mats):
     name, lat, lon = site
     weather, source, _ = get_weather_cached(lat, lon, YEAR,
-                                            CFG["location"]["timezone"])
+                                            CFG["location"]["timezone"],
+                                            period=PERIOD)
     rng = np.random.default_rng(_site_seed(name))
     weeks = design_weeks(weather, YEAR)
     # site-adapted physics: ground temperature (MAAT + 2 K) AND solar
@@ -99,8 +110,8 @@ def generate_site(site, n_designs, profile, mats):
     for i in range(n_designs):
         d = sample_design(rng)
         try:
-            hm, hx, hcf, cm = _sim_metrics(weather, weeks, d, mats,
-                                           cfg_site)
+            hm, hx, hcf, cm, cmean, ccf = _sim_metrics(weather, weeks, d,
+                                                       mats, cfg_site)
         except Exception as exc:          # skip pathological samples
             print(f"[gen] {name} sample {i} skipped: {exc}")
             continue
@@ -112,7 +123,7 @@ def generate_site(site, n_designs, profile, mats):
             d["insulation_material"], d["insulation_thickness_m"],
             d["window_wall"], d["window_width_m"], d["window_height_m"],
             d["window_shgc"], d["window_u_w_m2k"],
-            hm, hx, hcf, cm,
+            hm, hx, hcf, cm, cmean, ccf,
         ])
         if (i + 1) % 200 == 0:
             el = time.time() - t0

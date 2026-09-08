@@ -308,3 +308,73 @@ def test_power_request_is_clamped_to_what_power_can_serve():
     assert "POWER_LAG_DAYS" in src_txt, "tier-3 must clamp the POWER range"
     # and a POWER outage must not fail the request
     assert "cross-check unavailable" in src_txt
+
+
+# ------------------------------------------------------- NLP design assistant
+
+def test_nlp_featuriser_is_deterministic_and_normalised():
+    """Train-time and inference-time encoding must match exactly."""
+    from src.nlp_design import featurise, feature_counts, N_BUCKETS
+    import numpy as np
+
+    a = featurise("a cool shelter for Jaipur")
+    b = featurise("a cool shelter for Jaipur")
+    assert np.allclose(a, b)
+    assert a.shape == (N_BUCKETS,)
+    assert abs(float(np.linalg.norm(a)) - 1.0) < 1e-5
+    # the sparse path used for training must agree with the dense one
+    counts = feature_counts("a cool shelter for Jaipur")
+    assert len(counts) > 10
+    assert set(counts) == set(np.nonzero(a)[0].tolist())
+
+
+def test_nlp_slots_never_invent_materials():
+    """A slot value must exist in the project's own materials table."""
+    from src.nlp_design import extract_slots
+    from src.thermal.rc_model import load_materials
+
+    mats = set(load_materials().index)
+    texts = ["brick walls with a tin roof in Delhi",
+             "mud brick walls, 300mm, no insulation",
+             "unobtainium walls with vibranium roof",
+             "stone walls and an RCC slab in Srinagar"]
+    for t in texts:
+        s = extract_slots(t)
+        for key in ("wall_material", "roof_material"):
+            if key in s:
+                assert s[key] in mats, f"{s[key]} is not a real material"
+        if s.get("insulation_material") not in (None, "none"):
+            assert s["insulation_material"] in mats
+
+
+def test_nlp_rejects_out_of_scope_instead_of_guessing():
+    r = client.post("/api/nlp/design",
+                    json={"text": "book me a flight to goa", "simulate": False})
+    assert r.status_code == 200
+    j = r.json()
+    assert j["actionable"] is False
+    assert j["understood"]["intent"] in ("unknown", "explain", "compare")
+
+
+@needs_archive
+def test_nlp_design_is_engine_verified_not_estimated():
+    """The headline numbers must come from the RC engine, not the parser."""
+    r = client.post("/api/nlp/design", json={
+        "text": "a cool shelter for Jaipur with thick mud walls", "simulate": True})
+    assert r.status_code == 200
+    j = r.json()
+    assert j["actionable"] and j["understood"]["intent"] == "design"
+    assert j["site"] == "Jaipur"
+    assert j["design"]["wall_material"] == "mud_brick"
+    assert "verified_by" in j and "rc_model" in j["verified_by"]
+
+    # same design through /api/simulate must give the same physics
+    sim = client.post("/api/simulate", json={
+        "lat": 26.9124, "lon": 75.7873, "period": "hot_week",
+        **{k: v for k, v in j["design"].items()
+           if k in ("length_m", "width_m", "height_m", "orientation_deg",
+                    "wall_material", "wall_thickness_m", "roof_material",
+                    "roof_thickness_m", "insulation_material",
+                    "insulation_thickness_m", "window_wall")}}).json()
+    assert abs(sim["metrics"]["max_indoor_c"]
+               - j["metrics"]["max_indoor_c"]) < 0.75

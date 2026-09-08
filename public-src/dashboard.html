@@ -113,6 +113,7 @@
     <a href="#sec8"><b>08</b>Presets</a>
     <a href="#sec9"><b>09</b>AI</a>
     <a href="#sec10"><b>10</b>Trends</a>
+    <a href="#sec11"><b>11</b>Assistant</a>
     <a href="index.html">HOME</a>
   </nav>
 
@@ -668,6 +669,73 @@
                 <tbody id="trendYearBody"></tbody>
               </table>
             </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 11 · NATURAL-LANGUAGE ASSISTANT ============ -->
+    <section class="module" id="sec11">
+      <div class="mod-head">
+        <span class="sec">SEC/11</span>
+        <h2>Design Assistant</h2>
+        <span class="code">NLP: <span id="nlpModelTag" class="tag">—</span></span>
+      </div>
+      <div class="loc-profile">
+        <p class="hint">
+          Describe the shelter you need in ordinary English — the site, who it's
+          for, what it should be made of, what it has to survive. The assistant
+          reads the request, starts from the engine-backed prescription for that
+          climate zone, applies whatever you specified, and then <b>runs the real
+          RC simulation</b> on the result. Every number below is engine output,
+          never a language-model guess.
+        </p>
+        <div class="nlp-bar">
+          <input id="nlpInput" type="text" autocomplete="off"
+                 placeholder="e.g. a cool shelter for Jaipur with thick mud walls and small north windows" />
+          <button id="nlpBtn" class="primary">✦ DESIGN IT</button>
+        </div>
+        <div class="nlp-examples">
+          <span>Try:</span>
+          <button type="button" class="chip nlp-eg">we need somewhere for a family of six to sleep in Leh through winter</button>
+          <button type="button" class="chip nlp-eg">cheap rapid shelter for Kolkata after the floods</button>
+          <button type="button" class="chip nlp-eg">a 4 by 5 unit in Jaisalmer with stone walls and 100mm EPS</button>
+          <button type="button" class="chip nlp-eg">how hot does it get in Delhi</button>
+        </div>
+        <div id="nlpStatus" class="status"></div>
+
+        <div id="nlpResult" hidden>
+          <div class="nlp-understood">
+            <span class="tag" id="nlpIntent">—</span>
+            <span class="tag" id="nlpConf">—</span>
+            <span class="tag" id="nlpSite">—</span>
+            <span class="tag" id="nlpZone">—</span>
+          </div>
+          <div id="nlpVerdict" class="verdict"></div>
+          <div class="metrics" id="nlpMetrics"></div>
+          <div class="grid2">
+            <div class="mod">
+              <div class="mod-hd"><i></i>MOD·11A — WHAT IT UNDERSTOOD</div>
+              <div class="tblwrap">
+                <table class="rec-table">
+                  <thead><tr><th>Applied from your words</th></tr></thead>
+                  <tbody id="nlpApplied"></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="mod">
+              <div class="mod-hd"><i></i>MOD·11B — RESULTING DESIGN</div>
+              <div class="tblwrap">
+                <table class="rec-table">
+                  <thead><tr><th>Parameter</th><th>Value</th></tr></thead>
+                  <tbody id="nlpDesign"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div class="adapt-actions">
+            <button id="nlpApply" class="primary">APPLY TO STUDIO →</button>
+            <span id="nlpApplyStatus" class="tag"></span>
           </div>
         </div>
       </div>

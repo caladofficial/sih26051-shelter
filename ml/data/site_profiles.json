@@ -2,228 +2,229 @@
  "Prayagraj": {
   "zone": "composite",
   "zone_name": "COMPOSITE",
-  "n_hours": 8784,
-  "t_mean_c": 26.55,
-  "t_hottest_month_c": 37.94,
-  "t_coldest_month_c": 15.22,
-  "diurnal_range_c": 12.01,
-  "hdd18": 314.1,
-  "cdd18": 3444.7,
-  "rh_mean_pct": 54.7,
-  "ghi_mean_w_m2": 187.2,
-  "wind_mean_ms": 2.81,
-  "wet_hours_pct": 24.7,
-  "monsoon_share_pct": 83.7,
+  "zone_basis": "selected-period",
+  "n_hours": 6024,
+  "t_mean_c": 27.49,
+  "t_hottest_month_c": 34.62,
+  "t_coldest_month_c": 14.97,
+  "diurnal_range_c": 10.22,
+  "hdd18": 152.2,
+  "cdd18": 2533.0,
+  "rh_mean_pct": 62.3,
+  "ghi_mean_w_m2": 225.1,
+  "wind_mean_ms": 7.5,
+  "wet_hours_pct": 11.9,
+  "monsoon_share_pct": 95.7,
   "wind_rose": [
    {
     "sector": 0,
     "center_deg": 0.0,
     "label": "N",
-    "freq_pct": 4.46,
-    "mean_ws_ms": 2.12
+    "freq_pct": 3.98,
+    "mean_ws_ms": 6.4
    },
    {
     "sector": 1,
     "center_deg": 22.5,
     "label": "NNE",
-    "freq_pct": 3.56,
-    "mean_ws_ms": 2.08
+    "freq_pct": 3.9,
+    "mean_ws_ms": 6.16
    },
    {
     "sector": 2,
     "center_deg": 45.0,
     "label": "NE",
-    "freq_pct": 4.39,
-    "mean_ws_ms": 2.63
+    "freq_pct": 4.7,
+    "mean_ws_ms": 6.73
    },
    {
     "sector": 3,
     "center_deg": 67.5,
     "label": "ENE",
-    "freq_pct": 6.03,
-    "mean_ws_ms": 3.2
+    "freq_pct": 6.04,
+    "mean_ws_ms": 8.57
    },
    {
     "sector": 4,
     "center_deg": 90.0,
     "label": "E",
-    "freq_pct": 6.12,
-    "mean_ws_ms": 2.94
+    "freq_pct": 7.75,
+    "mean_ws_ms": 8.95
    },
    {
     "sector": 5,
     "center_deg": 112.5,
     "label": "ESE",
-    "freq_pct": 4.35,
-    "mean_ws_ms": 2.68
+    "freq_pct": 5.53,
+    "mean_ws_ms": 7.38
    },
    {
     "sector": 6,
     "center_deg": 135.0,
     "label": "SE",
-    "freq_pct": 2.69,
-    "mean_ws_ms": 2.24
+    "freq_pct": 3.65,
+    "mean_ws_ms": 5.51
    },
    {
     "sector": 7,
     "center_deg": 157.5,
     "label": "SSE",
-    "freq_pct": 2.28,
-    "mean_ws_ms": 2.21
+    "freq_pct": 2.77,
+    "mean_ws_ms": 5.19
    },
    {
     "sector": 8,
     "center_deg": 180.0,
     "label": "S",
-    "freq_pct": 2.62,
-    "mean_ws_ms": 2.28
+    "freq_pct": 3.37,
+    "mean_ws_ms": 5.37
    },
    {
     "sector": 9,
     "center_deg": 202.5,
     "label": "SSW",
-    "freq_pct": 3.56,
-    "mean_ws_ms": 2.35
+    "freq_pct": 3.17,
+    "mean_ws_ms": 5.43
    },
    {
     "sector": 10,
     "center_deg": 225.0,
     "label": "SW",
-    "freq_pct": 5.42,
-    "mean_ws_ms": 2.8
+    "freq_pct": 5.58,
+    "mean_ws_ms": 6.09
    },
    {
     "sector": 11,
     "center_deg": 247.5,
     "label": "WSW",
-    "freq_pct": 8.87,
-    "mean_ws_ms": 2.97
+    "freq_pct": 9.1,
+    "mean_ws_ms": 7.39
    },
    {
     "sector": 12,
     "center_deg": 270.0,
     "label": "W",
-    "freq_pct": 14.29,
-    "mean_ws_ms": 3.09
+    "freq_pct": 15.02,
+    "mean_ws_ms": 8.33
    },
    {
     "sector": 13,
     "center_deg": 292.5,
     "label": "WNW",
-    "freq_pct": 17.61,
-    "mean_ws_ms": 3.39
+    "freq_pct": 13.63,
+    "mean_ws_ms": 8.84
    },
    {
     "sector": 14,
     "center_deg": 315.0,
     "label": "NW",
-    "freq_pct": 8.62,
-    "mean_ws_ms": 2.5
+    "freq_pct": 7.45,
+    "mean_ws_ms": 8.08
    },
    {
     "sector": 15,
     "center_deg": 337.5,
     "label": "NNW",
-    "freq_pct": 5.12,
-    "mean_ws_ms": 2.16
+    "freq_pct": 4.35,
+    "mean_ws_ms": 6.82
    }
   ],
   "diurnal": [
    {
     "hour": 0,
-    "mean_c": 23.07
+    "mean_c": 24.83
    },
    {
     "hour": 1,
-    "mean_c": 22.55
+    "mean_c": 24.29
    },
    {
     "hour": 2,
-    "mean_c": 22.06
+    "mean_c": 23.88
    },
    {
     "hour": 3,
-    "mean_c": 21.61
+    "mean_c": 23.45
    },
    {
     "hour": 4,
-    "mean_c": 21.2
+    "mean_c": 23.11
    },
    {
     "hour": 5,
-    "mean_c": 21.14
+    "mean_c": 23.03
    },
    {
     "hour": 6,
-    "mean_c": 22.28
+    "mean_c": 23.25
    },
    {
     "hour": 7,
-    "mean_c": 24.64
+    "mean_c": 24.4
    },
    {
     "hour": 8,
-    "mean_c": 27.15
+    "mean_c": 26.31
    },
    {
     "hour": 9,
-    "mean_c": 29.57
+    "mean_c": 28.33
    },
    {
     "hour": 10,
-    "mean_c": 31.2
+    "mean_c": 30.12
    },
    {
     "hour": 11,
-    "mean_c": 32.19
+    "mean_c": 31.11
    },
    {
     "hour": 12,
-    "mean_c": 32.72
+    "mean_c": 31.89
    },
    {
     "hour": 13,
-    "mean_c": 32.83
+    "mean_c": 32.39
    },
    {
     "hour": 14,
-    "mean_c": 32.51
+    "mean_c": 32.52
    },
    {
     "hour": 15,
-    "mean_c": 31.71
+    "mean_c": 32.28
    },
    {
     "hour": 16,
-    "mean_c": 30.03
+    "mean_c": 31.67
    },
    {
     "hour": 17,
-    "mean_c": 28.1
+    "mean_c": 30.64
    },
    {
     "hour": 18,
-    "mean_c": 26.77
+    "mean_c": 29.1
    },
    {
     "hour": 19,
-    "mean_c": 26.04
+    "mean_c": 28.03
    },
    {
     "hour": 20,
-    "mean_c": 25.38
+    "mean_c": 27.21
    },
    {
     "hour": 21,
-    "mean_c": 24.76
+    "mean_c": 26.48
    },
    {
     "hour": 22,
-    "mean_c": 24.17
+    "mean_c": 25.78
    },
    {
     "hour": 23,
-    "mean_c": 23.6
+    "mean_c": 25.53
    }
   ],
   "guidance": [
@@ -239,228 +240,229 @@
  "Delhi": {
   "zone": "cold",
   "zone_name": "COLD",
-  "n_hours": 8784,
-  "t_mean_c": 25.51,
-  "t_hottest_month_c": 37.7,
-  "t_coldest_month_c": 12.72,
-  "diurnal_range_c": 13.0,
-  "hdd18": 479.3,
-  "cdd18": 3228.2,
-  "rh_mean_pct": 51.0,
-  "ghi_mean_w_m2": 191.2,
-  "wind_mean_ms": 2.94,
-  "wet_hours_pct": 24.3,
-  "monsoon_share_pct": 85.6,
+  "zone_basis": "selected-period",
+  "n_hours": 6024,
+  "t_mean_c": 26.79,
+  "t_hottest_month_c": 33.21,
+  "t_coldest_month_c": 13.12,
+  "diurnal_range_c": 9.94,
+  "hdd18": 202.3,
+  "cdd18": 2409.0,
+  "rh_mean_pct": 59.4,
+  "ghi_mean_w_m2": 214.0,
+  "wind_mean_ms": 7.12,
+  "wet_hours_pct": 10.0,
+  "monsoon_share_pct": 80.5,
   "wind_rose": [
    {
     "sector": 0,
     "center_deg": 0.0,
     "label": "N",
-    "freq_pct": 4.22,
-    "mean_ws_ms": 2.32
+    "freq_pct": 3.32,
+    "mean_ws_ms": 5.17
    },
    {
     "sector": 1,
     "center_deg": 22.5,
     "label": "NNE",
-    "freq_pct": 2.72,
-    "mean_ws_ms": 2.05
+    "freq_pct": 2.57,
+    "mean_ws_ms": 5.37
    },
    {
     "sector": 2,
     "center_deg": 45.0,
     "label": "NE",
-    "freq_pct": 1.78,
-    "mean_ws_ms": 2.15
+    "freq_pct": 2.81,
+    "mean_ws_ms": 5.48
    },
    {
     "sector": 3,
     "center_deg": 67.5,
     "label": "ENE",
-    "freq_pct": 2.15,
-    "mean_ws_ms": 2.49
+    "freq_pct": 3.05,
+    "mean_ws_ms": 6.33
    },
    {
     "sector": 4,
     "center_deg": 90.0,
     "label": "E",
-    "freq_pct": 3.43,
-    "mean_ws_ms": 2.52
+    "freq_pct": 7.22,
+    "mean_ws_ms": 7.26
    },
    {
     "sector": 5,
     "center_deg": 112.5,
     "label": "ESE",
-    "freq_pct": 6.01,
-    "mean_ws_ms": 3.12
+    "freq_pct": 8.78,
+    "mean_ws_ms": 8.14
    },
    {
     "sector": 6,
     "center_deg": 135.0,
     "label": "SE",
-    "freq_pct": 8.52,
-    "mean_ws_ms": 3.18
+    "freq_pct": 6.14,
+    "mean_ws_ms": 7.45
    },
    {
     "sector": 7,
     "center_deg": 157.5,
     "label": "SSE",
-    "freq_pct": 6.16,
-    "mean_ws_ms": 2.65
+    "freq_pct": 2.99,
+    "mean_ws_ms": 5.47
    },
    {
     "sector": 8,
     "center_deg": 180.0,
     "label": "S",
-    "freq_pct": 4.85,
-    "mean_ws_ms": 2.38
+    "freq_pct": 3.05,
+    "mean_ws_ms": 4.87
    },
    {
     "sector": 9,
     "center_deg": 202.5,
     "label": "SSW",
-    "freq_pct": 2.97,
-    "mean_ws_ms": 2.17
+    "freq_pct": 2.36,
+    "mean_ws_ms": 5.16
    },
    {
     "sector": 10,
     "center_deg": 225.0,
     "label": "SW",
-    "freq_pct": 3.15,
-    "mean_ws_ms": 2.04
+    "freq_pct": 3.1,
+    "mean_ws_ms": 5.03
    },
    {
     "sector": 11,
     "center_deg": 247.5,
     "label": "WSW",
-    "freq_pct": 3.6,
-    "mean_ws_ms": 2.2
+    "freq_pct": 5.35,
+    "mean_ws_ms": 6.41
    },
    {
     "sector": 12,
     "center_deg": 270.0,
     "label": "W",
-    "freq_pct": 6.51,
-    "mean_ws_ms": 2.9
+    "freq_pct": 13.58,
+    "mean_ws_ms": 7.75
    },
    {
     "sector": 13,
     "center_deg": 292.5,
     "label": "WNW",
-    "freq_pct": 17.02,
-    "mean_ws_ms": 3.85
+    "freq_pct": 19.19,
+    "mean_ws_ms": 8.65
    },
    {
     "sector": 14,
     "center_deg": 315.0,
     "label": "NW",
-    "freq_pct": 17.07,
-    "mean_ws_ms": 3.22
+    "freq_pct": 11.19,
+    "mean_ws_ms": 7.23
    },
    {
     "sector": 15,
     "center_deg": 337.5,
     "label": "NNW",
-    "freq_pct": 9.85,
-    "mean_ws_ms": 2.69
+    "freq_pct": 5.3,
+    "mean_ws_ms": 5.86
    }
   ],
   "diurnal": [
    {
     "hour": 0,
-    "mean_c": 21.71
+    "mean_c": 24.74
    },
    {
     "hour": 1,
-    "mean_c": 21.16
+    "mean_c": 24.17
    },
    {
     "hour": 2,
-    "mean_c": 20.67
-   },
-   {
-    "hour": 3,
-    "mean_c": 20.25
-   },
-   {
-    "hour": 4,
-    "mean_c": 19.88
-   },
-   {
-    "hour": 5,
-    "mean_c": 19.73
-   },
-   {
-    "hour": 6,
-    "mean_c": 20.6
-   },
-   {
-    "hour": 7,
-    "mean_c": 22.79
-   },
-   {
-    "hour": 8,
-    "mean_c": 25.39
-   },
-   {
-    "hour": 9,
-    "mean_c": 27.91
-   },
-   {
-    "hour": 10,
-    "mean_c": 30.16
-   },
-   {
-    "hour": 11,
-    "mean_c": 31.47
-   },
-   {
-    "hour": 12,
-    "mean_c": 32.16
-   },
-   {
-    "hour": 13,
-    "mean_c": 32.41
-   },
-   {
-    "hour": 14,
-    "mean_c": 32.2
-   },
-   {
-    "hour": 15,
-    "mean_c": 31.51
-   },
-   {
-    "hour": 16,
-    "mean_c": 29.88
-   },
-   {
-    "hour": 17,
-    "mean_c": 27.85
-   },
-   {
-    "hour": 18,
-    "mean_c": 26.13
-   },
-   {
-    "hour": 19,
-    "mean_c": 25.12
-   },
-   {
-    "hour": 20,
-    "mean_c": 24.36
-   },
-   {
-    "hour": 21,
     "mean_c": 23.65
    },
    {
+    "hour": 3,
+    "mean_c": 23.16
+   },
+   {
+    "hour": 4,
+    "mean_c": 22.75
+   },
+   {
+    "hour": 5,
+    "mean_c": 22.43
+   },
+   {
+    "hour": 6,
+    "mean_c": 22.46
+   },
+   {
+    "hour": 7,
+    "mean_c": 23.15
+   },
+   {
+    "hour": 8,
+    "mean_c": 24.72
+   },
+   {
+    "hour": 9,
+    "mean_c": 26.63
+   },
+   {
+    "hour": 10,
+    "mean_c": 28.42
+   },
+   {
+    "hour": 11,
+    "mean_c": 29.84
+   },
+   {
+    "hour": 12,
+    "mean_c": 30.8
+   },
+   {
+    "hour": 13,
+    "mean_c": 31.27
+   },
+   {
+    "hour": 14,
+    "mean_c": 31.47
+   },
+   {
+    "hour": 15,
+    "mean_c": 31.37
+   },
+   {
+    "hour": 16,
+    "mean_c": 30.89
+   },
+   {
+    "hour": 17,
+    "mean_c": 29.87
+   },
+   {
+    "hour": 18,
+    "mean_c": 28.77
+   },
+   {
+    "hour": 19,
+    "mean_c": 27.75
+   },
+   {
+    "hour": 20,
+    "mean_c": 27.06
+   },
+   {
+    "hour": 21,
+    "mean_c": 26.41
+   },
+   {
     "hour": 22,
-    "mean_c": 22.96
+    "mean_c": 25.79
    },
    {
     "hour": 23,
-    "mean_c": 22.32
+    "mean_c": 25.44
    }
   ],
   "guidance": [
@@ -472,239 +474,477 @@
   "latitude": 28.6139,
   "longitude": 77.209
  },
- "Jaisalmer": {
-  "zone": "hot_dry",
-  "zone_name": "HOT-DRY",
-  "n_hours": 8784,
-  "t_mean_c": 27.68,
-  "t_hottest_month_c": 36.58,
-  "t_coldest_month_c": 15.82,
-  "diurnal_range_c": 13.07,
-  "hdd18": 299.5,
-  "cdd18": 3843.9,
-  "rh_mean_pct": 40.0,
-  "ghi_mean_w_m2": 224.4,
-  "wind_mean_ms": 3.69,
-  "wet_hours_pct": 14.3,
-  "monsoon_share_pct": 84.7,
+ "Jaipur": {
+  "zone": "composite",
+  "zone_name": "COMPOSITE",
+  "zone_basis": "selected-period",
+  "n_hours": 6024,
+  "t_mean_c": 26.75,
+  "t_hottest_month_c": 33.53,
+  "t_coldest_month_c": 14.12,
+  "diurnal_range_c": 10.23,
+  "hdd18": 171.1,
+  "cdd18": 2368.2,
+  "rh_mean_pct": 54.0,
+  "ghi_mean_w_m2": 233.3,
+  "wind_mean_ms": 8.02,
+  "wet_hours_pct": 6.8,
+  "monsoon_share_pct": 82.6,
   "wind_rose": [
    {
     "sector": 0,
     "center_deg": 0.0,
     "label": "N",
-    "freq_pct": 3.3,
-    "mean_ws_ms": 2.51
+    "freq_pct": 5.61,
+    "mean_ws_ms": 6.42
    },
    {
     "sector": 1,
     "center_deg": 22.5,
     "label": "NNE",
-    "freq_pct": 5.87,
-    "mean_ws_ms": 3.08
+    "freq_pct": 7.92,
+    "mean_ws_ms": 7.28
    },
    {
     "sector": 2,
     "center_deg": 45.0,
     "label": "NE",
-    "freq_pct": 7.15,
-    "mean_ws_ms": 3.44
+    "freq_pct": 5.71,
+    "mean_ws_ms": 6.25
    },
    {
     "sector": 3,
     "center_deg": 67.5,
     "label": "ENE",
-    "freq_pct": 6.42,
-    "mean_ws_ms": 3.11
+    "freq_pct": 4.98,
+    "mean_ws_ms": 7.37
    },
    {
     "sector": 4,
     "center_deg": 90.0,
     "label": "E",
-    "freq_pct": 5.48,
-    "mean_ws_ms": 3.1
+    "freq_pct": 4.25,
+    "mean_ws_ms": 7.27
    },
    {
     "sector": 5,
     "center_deg": 112.5,
     "label": "ESE",
-    "freq_pct": 3.43,
-    "mean_ws_ms": 2.7
+    "freq_pct": 3.07,
+    "mean_ws_ms": 6.17
    },
    {
     "sector": 6,
     "center_deg": 135.0,
     "label": "SE",
-    "freq_pct": 2.47,
-    "mean_ws_ms": 2.78
+    "freq_pct": 3.82,
+    "mean_ws_ms": 6.76
    },
    {
     "sector": 7,
     "center_deg": 157.5,
     "label": "SSE",
-    "freq_pct": 2.49,
-    "mean_ws_ms": 2.82
+    "freq_pct": 3.2,
+    "mean_ws_ms": 6.4
    },
    {
     "sector": 8,
     "center_deg": 180.0,
     "label": "S",
-    "freq_pct": 5.19,
-    "mean_ws_ms": 3.84
+    "freq_pct": 3.25,
+    "mean_ws_ms": 6.03
    },
    {
     "sector": 9,
     "center_deg": 202.5,
     "label": "SSW",
-    "freq_pct": 13.96,
-    "mean_ws_ms": 4.97
+    "freq_pct": 3.44,
+    "mean_ws_ms": 6.43
    },
    {
     "sector": 10,
     "center_deg": 225.0,
     "label": "SW",
-    "freq_pct": 16.13,
-    "mean_ws_ms": 4.81
+    "freq_pct": 5.43,
+    "mean_ws_ms": 7.52
    },
    {
     "sector": 11,
     "center_deg": 247.5,
     "label": "WSW",
-    "freq_pct": 10.41,
-    "mean_ws_ms": 3.62
+    "freq_pct": 10.14,
+    "mean_ws_ms": 9.62
    },
    {
     "sector": 12,
     "center_deg": 270.0,
     "label": "W",
-    "freq_pct": 6.55,
-    "mean_ws_ms": 3.53
+    "freq_pct": 14.84,
+    "mean_ws_ms": 9.92
    },
    {
     "sector": 13,
     "center_deg": 292.5,
     "label": "WNW",
-    "freq_pct": 4.45,
-    "mean_ws_ms": 3.15
+    "freq_pct": 11.69,
+    "mean_ws_ms": 9.83
    },
    {
     "sector": 14,
     "center_deg": 315.0,
     "label": "NW",
-    "freq_pct": 3.81,
-    "mean_ws_ms": 2.67
+    "freq_pct": 7.5,
+    "mean_ws_ms": 8.19
    },
    {
     "sector": 15,
     "center_deg": 337.5,
     "label": "NNW",
-    "freq_pct": 2.89,
-    "mean_ws_ms": 2.21
+    "freq_pct": 5.15,
+    "mean_ws_ms": 7.05
    }
   ],
   "diurnal": [
    {
     "hour": 0,
-    "mean_c": 24.55
+    "mean_c": 24.29
    },
    {
     "hour": 1,
-    "mean_c": 23.85
+    "mean_c": 23.79
    },
    {
     "hour": 2,
-    "mean_c": 23.2
+    "mean_c": 23.32
    },
    {
     "hour": 3,
-    "mean_c": 22.61
+    "mean_c": 22.89
    },
    {
     "hour": 4,
-    "mean_c": 22.08
+    "mean_c": 22.46
    },
    {
     "hour": 5,
-    "mean_c": 21.64
+    "mean_c": 22.41
    },
    {
     "hour": 6,
-    "mean_c": 21.71
+    "mean_c": 22.36
    },
    {
     "hour": 7,
-    "mean_c": 23.14
+    "mean_c": 23.04
    },
    {
     "hour": 8,
-    "mean_c": 25.65
+    "mean_c": 24.76
    },
    {
     "hour": 9,
-    "mean_c": 28.4
+    "mean_c": 26.82
    },
    {
     "hour": 10,
-    "mean_c": 31.09
+    "mean_c": 28.64
    },
    {
     "hour": 11,
-    "mean_c": 32.76
+    "mean_c": 29.97
    },
    {
     "hour": 12,
-    "mean_c": 33.73
+    "mean_c": 30.92
    },
    {
     "hour": 13,
-    "mean_c": 34.27
+    "mean_c": 31.56
    },
    {
     "hour": 14,
-    "mean_c": 34.38
+    "mean_c": 31.79
    },
    {
     "hour": 15,
-    "mean_c": 34.08
+    "mean_c": 31.68
    },
    {
     "hour": 16,
-    "mean_c": 33.21
+    "mean_c": 31.15
    },
    {
     "hour": 17,
-    "mean_c": 31.25
+    "mean_c": 30.62
    },
    {
     "hour": 18,
-    "mean_c": 29.4
+    "mean_c": 29.04
    },
    {
     "hour": 19,
-    "mean_c": 28.19
+    "mean_c": 27.67
    },
    {
     "hour": 20,
-    "mean_c": 27.4
+    "mean_c": 26.74
    },
    {
     "hour": 21,
-    "mean_c": 26.65
+    "mean_c": 25.98
    },
    {
     "hour": 22,
-    "mean_c": 25.94
+    "mean_c": 25.3
    },
    {
     "hour": 23,
-    "mean_c": 25.24
+    "mean_c": 24.9
    }
   ],
   "guidance": [
-   "High thermal-mass walls and roof to damp the large diurnal swing",
-   "Insulate the roof and west-facing wall; keep exterior light-coloured",
-   "Small windows on north/south with shading \u2014 avoid west glazing",
-   "Night-time ventilation to flush stored heat (high diurnal range)",
-   "Minimise solar aperture during the day (shading devices, overhangs)"
+   "Thermal mass + insulation for the long hot-dry season",
+   "Design for strong cross-ventilation during the monsoon humidity",
+   "North/south glazing with shading; avoid east/west apertures",
+   "Insulated roof is the single most effective measure",
+   "Operable openings for seasonal ventilation control"
+  ],
+  "latitude": 26.9124,
+  "longitude": 75.7873
+ },
+ "Jaisalmer": {
+  "zone": "cold",
+  "zone_name": "COLD",
+  "zone_basis": "selected-period",
+  "n_hours": 6024,
+  "t_mean_c": 28.01,
+  "t_hottest_month_c": 35.03,
+  "t_coldest_month_c": 13.83,
+  "diurnal_range_c": 11.49,
+  "hdd18": 172.8,
+  "cdd18": 2685.4,
+  "rh_mean_pct": 48.7,
+  "ghi_mean_w_m2": 247.6,
+  "wind_mean_ms": 11.28,
+  "wet_hours_pct": 1.6,
+  "monsoon_share_pct": 71.1,
+  "wind_rose": [
+   {
+    "sector": 0,
+    "center_deg": 0.0,
+    "label": "N",
+    "freq_pct": 2.47,
+    "mean_ws_ms": 7.06
+   },
+   {
+    "sector": 1,
+    "center_deg": 22.5,
+    "label": "NNE",
+    "freq_pct": 4.65,
+    "mean_ws_ms": 8.4
+   },
+   {
+    "sector": 2,
+    "center_deg": 45.0,
+    "label": "NE",
+    "freq_pct": 4.9,
+    "mean_ws_ms": 8.05
+   },
+   {
+    "sector": 3,
+    "center_deg": 67.5,
+    "label": "ENE",
+    "freq_pct": 3.78,
+    "mean_ws_ms": 7.9
+   },
+   {
+    "sector": 4,
+    "center_deg": 90.0,
+    "label": "E",
+    "freq_pct": 2.94,
+    "mean_ws_ms": 7.1
+   },
+   {
+    "sector": 5,
+    "center_deg": 112.5,
+    "label": "ESE",
+    "freq_pct": 2.08,
+    "mean_ws_ms": 6.87
+   },
+   {
+    "sector": 6,
+    "center_deg": 135.0,
+    "label": "SE",
+    "freq_pct": 1.98,
+    "mean_ws_ms": 6.12
+   },
+   {
+    "sector": 7,
+    "center_deg": 157.5,
+    "label": "SSE",
+    "freq_pct": 1.99,
+    "mean_ws_ms": 6.31
+   },
+   {
+    "sector": 8,
+    "center_deg": 180.0,
+    "label": "S",
+    "freq_pct": 5.56,
+    "mean_ws_ms": 10.05
+   },
+   {
+    "sector": 9,
+    "center_deg": 202.5,
+    "label": "SSW",
+    "freq_pct": 23.44,
+    "mean_ws_ms": 13.55
+   },
+   {
+    "sector": 10,
+    "center_deg": 225.0,
+    "label": "SW",
+    "freq_pct": 28.42,
+    "mean_ws_ms": 14.1
+   },
+   {
+    "sector": 11,
+    "center_deg": 247.5,
+    "label": "WSW",
+    "freq_pct": 8.47,
+    "mean_ws_ms": 10.98
+   },
+   {
+    "sector": 12,
+    "center_deg": 270.0,
+    "label": "W",
+    "freq_pct": 3.62,
+    "mean_ws_ms": 8.44
+   },
+   {
+    "sector": 13,
+    "center_deg": 292.5,
+    "label": "WNW",
+    "freq_pct": 2.01,
+    "mean_ws_ms": 8.13
+   },
+   {
+    "sector": 14,
+    "center_deg": 315.0,
+    "label": "NW",
+    "freq_pct": 2.01,
+    "mean_ws_ms": 7.68
+   },
+   {
+    "sector": 15,
+    "center_deg": 337.5,
+    "label": "NNW",
+    "freq_pct": 1.69,
+    "mean_ws_ms": 7.73
+   }
+  ],
+  "diurnal": [
+   {
+    "hour": 0,
+    "mean_c": 26.0
+   },
+   {
+    "hour": 1,
+    "mean_c": 25.28
+   },
+   {
+    "hour": 2,
+    "mean_c": 24.6
+   },
+   {
+    "hour": 3,
+    "mean_c": 23.95
+   },
+   {
+    "hour": 4,
+    "mean_c": 23.35
+   },
+   {
+    "hour": 5,
+    "mean_c": 22.97
+   },
+   {
+    "hour": 6,
+    "mean_c": 22.62
+   },
+   {
+    "hour": 7,
+    "mean_c": 22.94
+   },
+   {
+    "hour": 8,
+    "mean_c": 24.36
+   },
+   {
+    "hour": 9,
+    "mean_c": 26.64
+   },
+   {
+    "hour": 10,
+    "mean_c": 28.94
+   },
+   {
+    "hour": 11,
+    "mean_c": 30.82
+   },
+   {
+    "hour": 12,
+    "mean_c": 32.15
+   },
+   {
+    "hour": 13,
+    "mean_c": 33.07
+   },
+   {
+    "hour": 14,
+    "mean_c": 33.53
+   },
+   {
+    "hour": 15,
+    "mean_c": 33.61
+   },
+   {
+    "hour": 16,
+    "mean_c": 33.41
+   },
+   {
+    "hour": 17,
+    "mean_c": 33.04
+   },
+   {
+    "hour": 18,
+    "mean_c": 31.43
+   },
+   {
+    "hour": 19,
+    "mean_c": 29.7
+   },
+   {
+    "hour": 20,
+    "mean_c": 28.54
+   },
+   {
+    "hour": 21,
+    "mean_c": 27.73
+   },
+   {
+    "hour": 22,
+    "mean_c": 27.02
+   },
+   {
+    "hour": 23,
+    "mean_c": 26.54
+   }
+  ],
+  "guidance": [
+   "Insulate the whole envelope heavily (walls + roof + floor edge)",
+   "South-facing glazing for passive solar gain; limit north apertures",
+   "Low air-change rate \u2014 minimise infiltration and heat loss",
+   "Use a better glazing if available (lower U-value)"
   ],
   "latitude": 26.9157,
   "longitude": 70.9083
@@ -712,228 +952,229 @@
  "Ahmedabad": {
   "zone": "composite",
   "zone_name": "COMPOSITE",
-  "n_hours": 8784,
-  "t_mean_c": 27.39,
-  "t_hottest_month_c": 36.36,
-  "t_coldest_month_c": 17.94,
-  "diurnal_range_c": 12.84,
-  "hdd18": 162.4,
-  "cdd18": 3597.4,
-  "rh_mean_pct": 54.5,
-  "ghi_mean_w_m2": 214.7,
-  "wind_mean_ms": 3.45,
-  "wet_hours_pct": 26.1,
-  "monsoon_share_pct": 89.1,
+  "zone_basis": "selected-period",
+  "n_hours": 6024,
+  "t_mean_c": 29.85,
+  "t_hottest_month_c": 35.16,
+  "t_coldest_month_c": 21.57,
+  "diurnal_range_c": 10.3,
+  "hdd18": 14.4,
+  "cdd18": 2988.0,
+  "rh_mean_pct": 50.8,
+  "ghi_mean_w_m2": 241.1,
+  "wind_mean_ms": 8.86,
+  "wet_hours_pct": 6.8,
+  "monsoon_share_pct": 94.9,
   "wind_rose": [
    {
     "sector": 0,
     "center_deg": 0.0,
     "label": "N",
-    "freq_pct": 5.92,
-    "mean_ws_ms": 2.85
+    "freq_pct": 3.34,
+    "mean_ws_ms": 6.54
    },
    {
     "sector": 1,
     "center_deg": 22.5,
     "label": "NNE",
-    "freq_pct": 4.77,
-    "mean_ws_ms": 2.67
+    "freq_pct": 2.77,
+    "mean_ws_ms": 6.93
    },
    {
     "sector": 2,
     "center_deg": 45.0,
     "label": "NE",
-    "freq_pct": 5.65,
-    "mean_ws_ms": 2.69
+    "freq_pct": 4.08,
+    "mean_ws_ms": 7.54
    },
    {
     "sector": 3,
     "center_deg": 67.5,
     "label": "ENE",
-    "freq_pct": 8.54,
-    "mean_ws_ms": 2.93
+    "freq_pct": 4.68,
+    "mean_ws_ms": 9.0
    },
    {
     "sector": 4,
     "center_deg": 90.0,
     "label": "E",
-    "freq_pct": 5.4,
-    "mean_ws_ms": 2.74
+    "freq_pct": 1.59,
+    "mean_ws_ms": 6.75
    },
    {
     "sector": 5,
     "center_deg": 112.5,
     "label": "ESE",
-    "freq_pct": 1.96,
-    "mean_ws_ms": 2.23
+    "freq_pct": 0.73,
+    "mean_ws_ms": 5.31
    },
    {
     "sector": 6,
     "center_deg": 135.0,
     "label": "SE",
-    "freq_pct": 1.07,
-    "mean_ws_ms": 1.96
+    "freq_pct": 0.83,
+    "mean_ws_ms": 4.73
    },
    {
     "sector": 7,
     "center_deg": 157.5,
     "label": "SSE",
-    "freq_pct": 1.41,
-    "mean_ws_ms": 3.13
+    "freq_pct": 0.91,
+    "mean_ws_ms": 6.77
    },
    {
     "sector": 8,
     "center_deg": 180.0,
     "label": "S",
-    "freq_pct": 2.81,
-    "mean_ws_ms": 4.25
+    "freq_pct": 3.88,
+    "mean_ws_ms": 10.19
    },
    {
     "sector": 9,
     "center_deg": 202.5,
     "label": "SSW",
-    "freq_pct": 4.6,
-    "mean_ws_ms": 4.16
+    "freq_pct": 7.98,
+    "mean_ws_ms": 9.12
    },
    {
     "sector": 10,
     "center_deg": 225.0,
     "label": "SW",
-    "freq_pct": 8.86,
-    "mean_ws_ms": 4.19
+    "freq_pct": 13.46,
+    "mean_ws_ms": 9.78
    },
    {
     "sector": 11,
     "center_deg": 247.5,
     "label": "WSW",
-    "freq_pct": 10.95,
-    "mean_ws_ms": 4.29
+    "freq_pct": 16.87,
+    "mean_ws_ms": 9.73
    },
    {
     "sector": 12,
     "center_deg": 270.0,
     "label": "W",
-    "freq_pct": 11.53,
-    "mean_ws_ms": 3.92
+    "freq_pct": 17.07,
+    "mean_ws_ms": 9.65
    },
    {
     "sector": 13,
     "center_deg": 292.5,
     "label": "WNW",
-    "freq_pct": 11.85,
-    "mean_ws_ms": 3.63
+    "freq_pct": 9.33,
+    "mean_ws_ms": 8.79
    },
    {
     "sector": 14,
     "center_deg": 315.0,
     "label": "NW",
-    "freq_pct": 8.69,
-    "mean_ws_ms": 3.24
+    "freq_pct": 7.64,
+    "mean_ws_ms": 7.46
    },
    {
     "sector": 15,
     "center_deg": 337.5,
     "label": "NNW",
-    "freq_pct": 6.0,
-    "mean_ws_ms": 2.93
+    "freq_pct": 4.83,
+    "mean_ws_ms": 7.29
    }
   ],
   "diurnal": [
    {
     "hour": 0,
-    "mean_c": 24.05
+    "mean_c": 27.98
    },
    {
     "hour": 1,
-    "mean_c": 23.42
+    "mean_c": 27.36
    },
    {
     "hour": 2,
-    "mean_c": 22.84
+    "mean_c": 26.7
    },
    {
     "hour": 3,
-    "mean_c": 22.33
+    "mean_c": 26.14
    },
    {
     "hour": 4,
-    "mean_c": 21.88
+    "mean_c": 25.64
    },
    {
     "hour": 5,
-    "mean_c": 21.51
+    "mean_c": 25.37
    },
    {
     "hour": 6,
-    "mean_c": 21.72
+    "mean_c": 25.18
    },
    {
     "hour": 7,
-    "mean_c": 23.4
+    "mean_c": 25.39
    },
    {
     "hour": 8,
-    "mean_c": 25.73
+    "mean_c": 26.43
    },
    {
     "hour": 9,
-    "mean_c": 28.48
+    "mean_c": 28.16
    },
    {
     "hour": 10,
-    "mean_c": 30.92
+    "mean_c": 30.09
    },
    {
     "hour": 11,
-    "mean_c": 32.59
+    "mean_c": 31.77
    },
    {
     "hour": 12,
-    "mean_c": 33.6
+    "mean_c": 33.18
    },
    {
     "hour": 13,
-    "mean_c": 34.1
+    "mean_c": 34.18
    },
    {
     "hour": 14,
-    "mean_c": 34.11
+    "mean_c": 34.75
    },
    {
     "hour": 15,
-    "mean_c": 33.72
+    "mean_c": 34.95
    },
    {
     "hour": 16,
-    "mean_c": 32.71
+    "mean_c": 34.75
    },
    {
     "hour": 17,
-    "mean_c": 30.67
+    "mean_c": 34.17
    },
    {
     "hour": 18,
-    "mean_c": 28.73
+    "mean_c": 33.19
    },
    {
     "hour": 19,
-    "mean_c": 27.65
+    "mean_c": 32.01
    },
    {
     "hour": 20,
-    "mean_c": 26.87
+    "mean_c": 31.02
    },
    {
     "hour": 21,
-    "mean_c": 26.12
+    "mean_c": 30.1
    },
    {
     "hour": 22,
-    "mean_c": 25.41
+    "mean_c": 29.28
    },
    {
     "hour": 23,
-    "mean_c": 24.71
+    "mean_c": 28.56
    }
   ],
   "guidance": [
@@ -949,228 +1190,229 @@
  "Chennai": {
   "zone": "warm_humid",
   "zone_name": "WARM-HUMID",
-  "n_hours": 8784,
-  "t_mean_c": 28.36,
-  "t_hottest_month_c": 32.11,
-  "t_coldest_month_c": 24.74,
-  "diurnal_range_c": 7.33,
+  "zone_basis": "selected-period",
+  "n_hours": 6024,
+  "t_mean_c": 29.46,
+  "t_hottest_month_c": 31.81,
+  "t_coldest_month_c": 24.78,
+  "diurnal_range_c": 7.27,
   "hdd18": 0.0,
-  "cdd18": 3792.6,
-  "rh_mean_pct": 74.7,
-  "ghi_mean_w_m2": 208.1,
-  "wind_mean_ms": 3.99,
-  "wet_hours_pct": 51.5,
-  "monsoon_share_pct": 47.5,
+  "cdd18": 2876.7,
+  "rh_mean_pct": 69.0,
+  "ghi_mean_w_m2": 248.9,
+  "wind_mean_ms": 11.29,
+  "wet_hours_pct": 8.3,
+  "monsoon_share_pct": 65.5,
   "wind_rose": [
    {
     "sector": 0,
     "center_deg": 0.0,
     "label": "N",
-    "freq_pct": 2.48,
-    "mean_ws_ms": 5.38
+    "freq_pct": 1.23,
+    "mean_ws_ms": 7.5
    },
    {
     "sector": 1,
     "center_deg": 22.5,
     "label": "NNE",
-    "freq_pct": 6.28,
-    "mean_ws_ms": 4.83
+    "freq_pct": 5.83,
+    "mean_ws_ms": 11.47
    },
    {
     "sector": 2,
     "center_deg": 45.0,
     "label": "NE",
-    "freq_pct": 10.17,
-    "mean_ws_ms": 4.26
+    "freq_pct": 11.77,
+    "mean_ws_ms": 13.0
    },
    {
     "sector": 3,
     "center_deg": 67.5,
     "label": "ENE",
-    "freq_pct": 8.74,
-    "mean_ws_ms": 3.91
+    "freq_pct": 4.96,
+    "mean_ws_ms": 10.27
    },
    {
     "sector": 4,
     "center_deg": 90.0,
     "label": "E",
-    "freq_pct": 6.51,
-    "mean_ws_ms": 3.54
+    "freq_pct": 2.99,
+    "mean_ws_ms": 8.68
    },
    {
     "sector": 5,
     "center_deg": 112.5,
     "label": "ESE",
-    "freq_pct": 7.06,
-    "mean_ws_ms": 3.6
+    "freq_pct": 3.98,
+    "mean_ws_ms": 10.71
    },
    {
     "sector": 6,
     "center_deg": 135.0,
     "label": "SE",
-    "freq_pct": 9.02,
-    "mean_ws_ms": 3.78
+    "freq_pct": 7.5,
+    "mean_ws_ms": 11.16
    },
    {
     "sector": 7,
     "center_deg": 157.5,
     "label": "SSE",
-    "freq_pct": 7.19,
-    "mean_ws_ms": 3.59
+    "freq_pct": 12.38,
+    "mean_ws_ms": 12.99
    },
    {
     "sector": 8,
     "center_deg": 180.0,
     "label": "S",
-    "freq_pct": 6.15,
-    "mean_ws_ms": 3.42
+    "freq_pct": 9.31,
+    "mean_ws_ms": 11.04
    },
    {
     "sector": 9,
     "center_deg": 202.5,
     "label": "SSW",
-    "freq_pct": 7.08,
-    "mean_ws_ms": 3.73
+    "freq_pct": 8.85,
+    "mean_ws_ms": 10.67
    },
    {
     "sector": 10,
     "center_deg": 225.0,
     "label": "SW",
-    "freq_pct": 6.69,
-    "mean_ws_ms": 3.92
+    "freq_pct": 8.9,
+    "mean_ws_ms": 10.09
    },
    {
     "sector": 11,
     "center_deg": 247.5,
     "label": "WSW",
-    "freq_pct": 9.44,
-    "mean_ws_ms": 4.37
+    "freq_pct": 9.5,
+    "mean_ws_ms": 11.84
    },
    {
     "sector": 12,
     "center_deg": 270.0,
     "label": "W",
-    "freq_pct": 6.89,
-    "mean_ws_ms": 4.37
+    "freq_pct": 7.01,
+    "mean_ws_ms": 11.84
    },
    {
     "sector": 13,
     "center_deg": 292.5,
     "label": "WNW",
-    "freq_pct": 3.45,
-    "mean_ws_ms": 3.95
+    "freq_pct": 3.15,
+    "mean_ws_ms": 11.1
    },
    {
     "sector": 14,
     "center_deg": 315.0,
     "label": "NW",
-    "freq_pct": 1.41,
-    "mean_ws_ms": 3.58
+    "freq_pct": 1.54,
+    "mean_ws_ms": 7.74
    },
    {
     "sector": 15,
     "center_deg": 337.5,
     "label": "NNW",
-    "freq_pct": 1.43,
-    "mean_ws_ms": 4.25
+    "freq_pct": 1.1,
+    "mean_ws_ms": 6.34
    }
   ],
   "diurnal": [
    {
     "hour": 0,
-    "mean_c": 26.09
+    "mean_c": 27.85
    },
    {
     "hour": 1,
-    "mean_c": 25.87
+    "mean_c": 27.45
    },
    {
     "hour": 2,
-    "mean_c": 25.67
+    "mean_c": 27.14
    },
    {
     "hour": 3,
-    "mean_c": 25.49
+    "mean_c": 26.87
    },
    {
     "hour": 4,
-    "mean_c": 25.33
+    "mean_c": 26.65
    },
    {
     "hour": 5,
-    "mean_c": 25.25
+    "mean_c": 26.81
    },
    {
     "hour": 6,
-    "mean_c": 26.05
+    "mean_c": 26.81
    },
    {
     "hour": 7,
-    "mean_c": 27.37
+    "mean_c": 27.75
    },
    {
     "hour": 8,
-    "mean_c": 28.8
+    "mean_c": 29.29
    },
    {
     "hour": 9,
-    "mean_c": 30.14
+    "mean_c": 30.8
    },
    {
     "hour": 10,
-    "mean_c": 31.21
+    "mean_c": 32.03
    },
    {
     "hour": 11,
-    "mean_c": 31.95
+    "mean_c": 32.72
    },
    {
     "hour": 12,
-    "mean_c": 32.36
+    "mean_c": 33.12
    },
    {
     "hour": 13,
-    "mean_c": 32.44
+    "mean_c": 33.09
    },
    {
     "hour": 14,
-    "mean_c": 32.2
+    "mean_c": 32.71
    },
    {
     "hour": 15,
-    "mean_c": 31.63
+    "mean_c": 31.93
    },
    {
     "hour": 16,
-    "mean_c": 30.68
+    "mean_c": 31.09
    },
    {
     "hour": 17,
-    "mean_c": 29.19
+    "mean_c": 30.53
    },
    {
     "hour": 18,
-    "mean_c": 28.19
+    "mean_c": 29.56
    },
    {
     "hour": 19,
-    "mean_c": 27.67
+    "mean_c": 29.1
    },
    {
     "hour": 20,
-    "mean_c": 27.26
+    "mean_c": 28.78
    },
    {
     "hour": 21,
-    "mean_c": 26.92
+    "mean_c": 28.53
    },
    {
     "hour": 22,
-    "mean_c": 26.62
+    "mean_c": 28.21
    },
    {
     "hour": 23,
-    "mean_c": 26.33
+    "mean_c": 28.24
    }
   ],
   "guidance": [
@@ -1186,164 +1428,165 @@
  "Mumbai": {
   "zone": "warm_humid",
   "zone_name": "WARM-HUMID",
-  "n_hours": 8784,
-  "t_mean_c": 27.2,
-  "t_hottest_month_c": 32.16,
-  "t_coldest_month_c": 22.92,
-  "diurnal_range_c": 10.3,
-  "hdd18": 23.6,
-  "cdd18": 3392.4,
-  "rh_mean_pct": 69.1,
-  "ghi_mean_w_m2": 209.2,
-  "wind_mean_ms": 3.55,
-  "wet_hours_pct": 47.0,
-  "monsoon_share_pct": 70.1,
+  "zone_basis": "selected-period",
+  "n_hours": 6024,
+  "t_mean_c": 28.09,
+  "t_hottest_month_c": 31.01,
+  "t_coldest_month_c": 24.41,
+  "diurnal_range_c": 6.48,
+  "hdd18": 0.0,
+  "cdd18": 2533.4,
+  "rh_mean_pct": 69.4,
+  "ghi_mean_w_m2": 235.8,
+  "wind_mean_ms": 10.54,
+  "wet_hours_pct": 24.9,
+  "monsoon_share_pct": 96.6,
   "wind_rose": [
    {
     "sector": 0,
     "center_deg": 0.0,
     "label": "N",
-    "freq_pct": 5.53,
-    "mean_ws_ms": 2.31
+    "freq_pct": 8.23,
+    "mean_ws_ms": 6.79
    },
    {
     "sector": 1,
     "center_deg": 22.5,
     "label": "NNE",
-    "freq_pct": 5.21,
-    "mean_ws_ms": 2.32
+    "freq_pct": 5.0,
+    "mean_ws_ms": 5.13
    },
    {
     "sector": 2,
     "center_deg": 45.0,
     "label": "NE",
-    "freq_pct": 5.7,
-    "mean_ws_ms": 2.42
+    "freq_pct": 3.4,
+    "mean_ws_ms": 4.47
    },
    {
     "sector": 3,
     "center_deg": 67.5,
     "label": "ENE",
-    "freq_pct": 6.39,
-    "mean_ws_ms": 2.78
+    "freq_pct": 1.69,
+    "mean_ws_ms": 4.65
    },
    {
     "sector": 4,
     "center_deg": 90.0,
     "label": "E",
-    "freq_pct": 9.67,
-    "mean_ws_ms": 4.07
+    "freq_pct": 0.8,
+    "mean_ws_ms": 3.87
    },
    {
     "sector": 5,
     "center_deg": 112.5,
     "label": "ESE",
-    "freq_pct": 3.27,
-    "mean_ws_ms": 3.71
+    "freq_pct": 0.83,
+    "mean_ws_ms": 3.96
    },
    {
     "sector": 6,
     "center_deg": 135.0,
     "label": "SE",
-    "freq_pct": 1.23,
-    "mean_ws_ms": 2.65
+    "freq_pct": 0.71,
+    "mean_ws_ms": 4.71
    },
    {
     "sector": 7,
     "center_deg": 157.5,
     "label": "SSE",
-    "freq_pct": 0.71,
-    "mean_ws_ms": 2.32
+    "freq_pct": 1.34,
+    "mean_ws_ms": 5.69
    },
    {
     "sector": 8,
     "center_deg": 180.0,
     "label": "S",
-    "freq_pct": 1.1,
-    "mean_ws_ms": 2.27
+    "freq_pct": 1.93,
+    "mean_ws_ms": 6.74
    },
    {
     "sector": 9,
     "center_deg": 202.5,
     "label": "SSW",
-    "freq_pct": 2.65,
-    "mean_ws_ms": 3.76
+    "freq_pct": 3.0,
+    "mean_ws_ms": 8.64
    },
    {
     "sector": 10,
     "center_deg": 225.0,
     "label": "SW",
-    "freq_pct": 8.83,
-    "mean_ws_ms": 4.95
+    "freq_pct": 7.98,
+    "mean_ws_ms": 12.68
    },
    {
     "sector": 11,
     "center_deg": 247.5,
     "label": "WSW",
-    "freq_pct": 12.34,
-    "mean_ws_ms": 4.9
+    "freq_pct": 16.02,
+    "mean_ws_ms": 13.41
    },
    {
     "sector": 12,
     "center_deg": 270.0,
     "label": "W",
-    "freq_pct": 10.52,
-    "mean_ws_ms": 3.89
+    "freq_pct": 21.15,
+    "mean_ws_ms": 13.34
    },
    {
     "sector": 13,
     "center_deg": 292.5,
     "label": "WNW",
-    "freq_pct": 11.17,
-    "mean_ws_ms": 3.49
+    "freq_pct": 10.23,
+    "mean_ws_ms": 11.07
    },
    {
     "sector": 14,
     "center_deg": 315.0,
     "label": "NW",
-    "freq_pct": 9.72,
-    "mean_ws_ms": 3.19
+    "freq_pct": 10.26,
+    "mean_ws_ms": 11.19
    },
    {
     "sector": 15,
     "center_deg": 337.5,
     "label": "NNW",
-    "freq_pct": 5.95,
-    "mean_ws_ms": 2.48
+    "freq_pct": 7.42,
+    "mean_ws_ms": 8.96
    }
   ],
   "diurnal": [
    {
     "hour": 0,
-    "mean_c": 24.04
+    "mean_c": 26.73
    },
    {
     "hour": 1,
-    "mean_c": 23.74
+    "mean_c": 26.43
    },
    {
     "hour": 2,
-    "mean_c": 23.47
+    "mean_c": 26.13
    },
    {
     "hour": 3,
-    "mean_c": 23.24
+    "mean_c": 25.87
    },
    {
     "hour": 4,
-    "mean_c": 23.04
+    "mean_c": 25.62
    },
    {
     "hour": 5,
-    "mean_c": 22.88
+    "mean_c": 25.57
    },
    {
     "hour": 6,
-    "mean_c": 23.25
+    "mean_c": 25.51
    },
    {
     "hour": 7,
-    "mean_c": 24.97
+    "mean_c": 25.93
    },
    {
     "hour": 8,
@@ -1351,63 +1594,63 @@
    },
    {
     "hour": 9,
-    "mean_c": 29.36
+    "mean_c": 28.63
    },
    {
     "hour": 10,
-    "mean_c": 31.14
+    "mean_c": 30.02
    },
    {
     "hour": 11,
-    "mean_c": 32.27
+    "mean_c": 30.81
    },
    {
     "hour": 12,
-    "mean_c": 32.85
+    "mean_c": 31.36
    },
    {
     "hour": 13,
-    "mean_c": 32.98
+    "mean_c": 31.37
    },
    {
     "hour": 14,
-    "mean_c": 32.71
+    "mean_c": 31.11
    },
    {
     "hour": 15,
-    "mean_c": 32.13
+    "mean_c": 30.72
    },
    {
     "hour": 16,
-    "mean_c": 31.03
+    "mean_c": 30.11
    },
    {
     "hour": 17,
-    "mean_c": 29.08
+    "mean_c": 29.47
    },
    {
     "hour": 18,
-    "mean_c": 27.32
+    "mean_c": 28.49
    },
    {
     "hour": 19,
-    "mean_c": 26.35
+    "mean_c": 27.9
    },
    {
     "hour": 20,
-    "mean_c": 25.69
+    "mean_c": 27.68
    },
    {
     "hour": 21,
-    "mean_c": 25.18
+    "mean_c": 27.46
    },
    {
     "hour": 22,
-    "mean_c": 24.75
+    "mean_c": 27.21
    },
    {
     "hour": 23,
-    "mean_c": 24.37
+    "mean_c": 27.03
    }
   ],
   "guidance": [
@@ -1423,228 +1666,229 @@
  "Kolkata": {
   "zone": "warm_humid",
   "zone_name": "WARM-HUMID",
-  "n_hours": 8783,
-  "t_mean_c": 26.33,
-  "t_hottest_month_c": 33.7,
-  "t_coldest_month_c": 16.54,
-  "diurnal_range_c": 9.66,
-  "hdd18": 162.5,
-  "cdd18": 3210.8,
-  "rh_mean_pct": 74.5,
-  "ghi_mean_w_m2": 174.8,
-  "wind_mean_ms": 3.09,
-  "wet_hours_pct": 48.3,
-  "monsoon_share_pct": 60.1,
+  "zone_basis": "selected-period",
+  "n_hours": 6024,
+  "t_mean_c": 27.08,
+  "t_hottest_month_c": 30.11,
+  "t_coldest_month_c": 19.6,
+  "diurnal_range_c": 8.28,
+  "hdd18": 39.2,
+  "cdd18": 2317.5,
+  "rh_mean_pct": 74.7,
+  "ghi_mean_w_m2": 211.7,
+  "wind_mean_ms": 7.68,
+  "wet_hours_pct": 19.6,
+  "monsoon_share_pct": 83.1,
   "wind_rose": [
    {
     "sector": 0,
     "center_deg": 0.0,
     "label": "N",
-    "freq_pct": 10.49,
-    "mean_ws_ms": 2.54
+    "freq_pct": 5.18,
+    "mean_ws_ms": 5.49
    },
    {
     "sector": 1,
     "center_deg": 22.5,
     "label": "NNE",
-    "freq_pct": 5.74,
-    "mean_ws_ms": 2.33
+    "freq_pct": 2.44,
+    "mean_ws_ms": 4.69
    },
    {
     "sector": 2,
     "center_deg": 45.0,
     "label": "NE",
-    "freq_pct": 3.05,
-    "mean_ws_ms": 2.71
+    "freq_pct": 3.04,
+    "mean_ws_ms": 5.6
    },
    {
     "sector": 3,
     "center_deg": 67.5,
     "label": "ENE",
-    "freq_pct": 2.25,
-    "mean_ws_ms": 3.08
+    "freq_pct": 3.78,
+    "mean_ws_ms": 7.66
    },
    {
     "sector": 4,
     "center_deg": 90.0,
     "label": "E",
-    "freq_pct": 2.24,
-    "mean_ws_ms": 3.16
+    "freq_pct": 4.68,
+    "mean_ws_ms": 7.61
    },
    {
     "sector": 5,
     "center_deg": 112.5,
     "label": "ESE",
-    "freq_pct": 2.89,
-    "mean_ws_ms": 3.29
+    "freq_pct": 5.41,
+    "mean_ws_ms": 7.68
    },
    {
     "sector": 6,
     "center_deg": 135.0,
     "label": "SE",
-    "freq_pct": 3.6,
-    "mean_ws_ms": 3.32
+    "freq_pct": 8.98,
+    "mean_ws_ms": 7.7
    },
    {
     "sector": 7,
     "center_deg": 157.5,
     "label": "SSE",
-    "freq_pct": 5.01,
-    "mean_ws_ms": 3.43
+    "freq_pct": 12.63,
+    "mean_ws_ms": 8.07
    },
    {
     "sector": 8,
     "center_deg": 180.0,
     "label": "S",
-    "freq_pct": 12.16,
-    "mean_ws_ms": 3.88
+    "freq_pct": 17.9,
+    "mean_ws_ms": 9.09
    },
    {
     "sector": 9,
     "center_deg": 202.5,
     "label": "SSW",
-    "freq_pct": 13.24,
-    "mean_ws_ms": 3.71
+    "freq_pct": 11.01,
+    "mean_ws_ms": 9.33
    },
    {
     "sector": 10,
     "center_deg": 225.0,
     "label": "SW",
-    "freq_pct": 8.58,
-    "mean_ws_ms": 3.2
+    "freq_pct": 5.1,
+    "mean_ws_ms": 7.29
    },
    {
     "sector": 11,
     "center_deg": 247.5,
     "label": "WSW",
-    "freq_pct": 5.13,
-    "mean_ws_ms": 2.7
+    "freq_pct": 2.71,
+    "mean_ws_ms": 6.42
    },
    {
     "sector": 12,
     "center_deg": 270.0,
     "label": "W",
-    "freq_pct": 4.33,
-    "mean_ws_ms": 2.74
+    "freq_pct": 2.24,
+    "mean_ws_ms": 5.58
    },
    {
     "sector": 13,
     "center_deg": 292.5,
     "label": "WNW",
-    "freq_pct": 4.58,
-    "mean_ws_ms": 2.92
+    "freq_pct": 2.26,
+    "mean_ws_ms": 6.04
    },
    {
     "sector": 14,
     "center_deg": 315.0,
     "label": "NW",
-    "freq_pct": 6.91,
-    "mean_ws_ms": 2.82
+    "freq_pct": 4.48,
+    "mean_ws_ms": 6.53
    },
    {
     "sector": 15,
     "center_deg": 337.5,
     "label": "NNW",
-    "freq_pct": 9.79,
-    "mean_ws_ms": 2.62
+    "freq_pct": 8.17,
+    "mean_ws_ms": 7.14
    }
   ],
   "diurnal": [
    {
     "hour": 0,
-    "mean_c": 23.37
+    "mean_c": 25.09
    },
    {
     "hour": 1,
-    "mean_c": 23.01
+    "mean_c": 24.74
    },
    {
     "hour": 2,
-    "mean_c": 22.67
+    "mean_c": 24.41
    },
    {
     "hour": 3,
-    "mean_c": 22.36
+    "mean_c": 24.13
    },
    {
     "hour": 4,
-    "mean_c": 22.09
+    "mean_c": 23.86
    },
    {
     "hour": 5,
-    "mean_c": 22.35
+    "mean_c": 24.03
    },
    {
     "hour": 6,
-    "mean_c": 23.8
+    "mean_c": 24.39
    },
    {
     "hour": 7,
-    "mean_c": 25.66
+    "mean_c": 25.45
    },
    {
     "hour": 8,
-    "mean_c": 27.8
+    "mean_c": 26.94
    },
    {
     "hour": 9,
-    "mean_c": 29.62
+    "mean_c": 28.52
    },
    {
     "hour": 10,
-    "mean_c": 30.7
+    "mean_c": 29.79
    },
    {
     "hour": 11,
-    "mean_c": 31.29
+    "mean_c": 30.39
    },
    {
     "hour": 12,
-    "mean_c": 31.52
+    "mean_c": 30.84
    },
    {
     "hour": 13,
-    "mean_c": 31.41
+    "mean_c": 30.96
    },
    {
     "hour": 14,
-    "mean_c": 30.91
+    "mean_c": 30.53
    },
    {
     "hour": 15,
-    "mean_c": 29.93
+    "mean_c": 29.92
    },
    {
     "hour": 16,
-    "mean_c": 28.15
+    "mean_c": 29.23
    },
    {
     "hour": 17,
-    "mean_c": 26.68
+    "mean_c": 28.5
    },
    {
     "hour": 18,
-    "mean_c": 25.96
+    "mean_c": 27.56
    },
    {
     "hour": 19,
-    "mean_c": 25.4
+    "mean_c": 26.95
    },
    {
     "hour": 20,
-    "mean_c": 24.91
+    "mean_c": 26.43
    },
    {
     "hour": 21,
-    "mean_c": 24.48
+    "mean_c": 26.02
    },
    {
     "hour": 22,
-    "mean_c": 24.09
+    "mean_c": 25.61
    },
    {
     "hour": 23,
-    "mean_c": 23.76
+    "mean_c": 25.56
    }
   ],
   "guidance": [
@@ -1658,712 +1902,713 @@
   "longitude": 88.3639
  },
  "Bengaluru": {
-  "zone": "warm_humid",
-  "zone_name": "WARM-HUMID",
-  "n_hours": 8784,
-  "t_mean_c": 24.71,
-  "t_hottest_month_c": 30.31,
-  "t_coldest_month_c": 21.58,
-  "diurnal_range_c": 11.65,
-  "hdd18": 24.2,
-  "cdd18": 2481.4,
-  "rh_mean_pct": 68.1,
-  "ghi_mean_w_m2": 215.5,
-  "wind_mean_ms": 4.15,
-  "wet_hours_pct": 39.6,
-  "monsoon_share_pct": 53.8,
+  "zone": "temperate",
+  "zone_name": "TEMPERATE",
+  "zone_basis": "selected-period",
+  "n_hours": 6024,
+  "t_mean_c": 24.72,
+  "t_hottest_month_c": 28.87,
+  "t_coldest_month_c": 21.07,
+  "diurnal_range_c": 10.08,
+  "hdd18": 18.6,
+  "cdd18": 1704.4,
+  "rh_mean_pct": 61.9,
+  "ghi_mean_w_m2": 250.6,
+  "wind_mean_ms": 11.08,
+  "wet_hours_pct": 9.4,
+  "monsoon_share_pct": 82.9,
   "wind_rose": [
    {
     "sector": 0,
     "center_deg": 0.0,
     "label": "N",
-    "freq_pct": 1.41,
-    "mean_ws_ms": 3.19
+    "freq_pct": 1.16,
+    "mean_ws_ms": 6.93
    },
    {
     "sector": 1,
     "center_deg": 22.5,
     "label": "NNE",
-    "freq_pct": 2.09,
-    "mean_ws_ms": 3.09
+    "freq_pct": 1.29,
+    "mean_ws_ms": 8.41
    },
    {
     "sector": 2,
     "center_deg": 45.0,
     "label": "NE",
-    "freq_pct": 3.59,
-    "mean_ws_ms": 3.04
+    "freq_pct": 2.14,
+    "mean_ws_ms": 9.55
    },
    {
     "sector": 3,
     "center_deg": 67.5,
     "label": "ENE",
-    "freq_pct": 7.37,
-    "mean_ws_ms": 3.53
+    "freq_pct": 7.59,
+    "mean_ws_ms": 10.81
    },
    {
     "sector": 4,
     "center_deg": 90.0,
     "label": "E",
-    "freq_pct": 13.43,
-    "mean_ws_ms": 3.93
+    "freq_pct": 17.03,
+    "mean_ws_ms": 11.0
    },
    {
     "sector": 5,
     "center_deg": 112.5,
     "label": "ESE",
-    "freq_pct": 13.74,
-    "mean_ws_ms": 4.03
+    "freq_pct": 8.72,
+    "mean_ws_ms": 9.91
    },
    {
     "sector": 6,
     "center_deg": 135.0,
     "label": "SE",
-    "freq_pct": 9.85,
-    "mean_ws_ms": 3.26
+    "freq_pct": 5.0,
+    "mean_ws_ms": 8.65
    },
    {
     "sector": 7,
     "center_deg": 157.5,
     "label": "SSE",
-    "freq_pct": 5.83,
-    "mean_ws_ms": 2.81
+    "freq_pct": 1.76,
+    "mean_ws_ms": 6.47
    },
    {
     "sector": 8,
     "center_deg": 180.0,
     "label": "S",
-    "freq_pct": 3.39,
-    "mean_ws_ms": 2.66
+    "freq_pct": 2.12,
+    "mean_ws_ms": 5.61
    },
    {
     "sector": 9,
     "center_deg": 202.5,
     "label": "SSW",
-    "freq_pct": 1.67,
-    "mean_ws_ms": 2.48
+    "freq_pct": 2.21,
+    "mean_ws_ms": 6.5
    },
    {
     "sector": 10,
     "center_deg": 225.0,
     "label": "SW",
-    "freq_pct": 1.78,
-    "mean_ws_ms": 3.3
+    "freq_pct": 3.52,
+    "mean_ws_ms": 8.66
    },
    {
     "sector": 11,
     "center_deg": 247.5,
     "label": "WSW",
-    "freq_pct": 8.01,
-    "mean_ws_ms": 5.28
+    "freq_pct": 17.7,
+    "mean_ws_ms": 13.24
    },
    {
     "sector": 12,
     "center_deg": 270.0,
     "label": "W",
-    "freq_pct": 15.56,
-    "mean_ws_ms": 6.4
+    "freq_pct": 19.77,
+    "mean_ws_ms": 13.33
    },
    {
     "sector": 13,
     "center_deg": 292.5,
     "label": "WNW",
-    "freq_pct": 7.04,
-    "mean_ws_ms": 4.63
+    "freq_pct": 6.18,
+    "mean_ws_ms": 11.6
    },
    {
     "sector": 14,
     "center_deg": 315.0,
     "label": "NW",
-    "freq_pct": 3.22,
-    "mean_ws_ms": 3.56
+    "freq_pct": 2.67,
+    "mean_ws_ms": 8.55
    },
    {
     "sector": 15,
     "center_deg": 337.5,
     "label": "NNW",
-    "freq_pct": 2.02,
-    "mean_ws_ms": 2.97
+    "freq_pct": 1.15,
+    "mean_ws_ms": 7.92
    }
   ],
   "diurnal": [
    {
     "hour": 0,
-    "mean_c": 21.01
+    "mean_c": 22.0
    },
    {
     "hour": 1,
-    "mean_c": 20.61
+    "mean_c": 21.45
    },
    {
     "hour": 2,
-    "mean_c": 20.26
+    "mean_c": 20.99
    },
    {
     "hour": 3,
-    "mean_c": 19.96
+    "mean_c": 20.6
    },
    {
     "hour": 4,
-    "mean_c": 19.72
+    "mean_c": 20.28
    },
    {
     "hour": 5,
-    "mean_c": 19.52
+    "mean_c": 20.34
    },
    {
     "hour": 6,
-    "mean_c": 20.29
+    "mean_c": 20.27
    },
    {
     "hour": 7,
-    "mean_c": 22.33
+    "mean_c": 21.19
    },
    {
     "hour": 8,
-    "mean_c": 24.95
+    "mean_c": 23.08
    },
    {
     "hour": 9,
-    "mean_c": 27.24
+    "mean_c": 25.18
    },
    {
     "hour": 10,
-    "mean_c": 28.97
+    "mean_c": 27.01
    },
    {
     "hour": 11,
-    "mean_c": 30.16
+    "mean_c": 27.89
    },
    {
     "hour": 12,
-    "mean_c": 30.86
+    "mean_c": 28.98
    },
    {
     "hour": 13,
-    "mean_c": 31.07
+    "mean_c": 29.7
    },
    {
     "hour": 14,
-    "mean_c": 30.79
+    "mean_c": 29.85
    },
    {
     "hour": 15,
-    "mean_c": 30.07
+    "mean_c": 29.5
    },
    {
     "hour": 16,
-    "mean_c": 28.86
+    "mean_c": 28.74
    },
    {
     "hour": 17,
-    "mean_c": 26.81
+    "mean_c": 28.16
    },
    {
     "hour": 18,
-    "mean_c": 25.17
+    "mean_c": 26.89
    },
    {
     "hour": 19,
-    "mean_c": 24.39
+    "mean_c": 25.91
    },
    {
     "hour": 20,
-    "mean_c": 23.61
+    "mean_c": 25.0
    },
    {
     "hour": 21,
-    "mean_c": 22.84
+    "mean_c": 24.12
    },
    {
     "hour": 22,
-    "mean_c": 22.12
+    "mean_c": 23.32
    },
    {
     "hour": 23,
-    "mean_c": 21.51
+    "mean_c": 22.74
    }
   ],
   "guidance": [
-   "Shade every glazed opening \u2014 direct sun is the main heat source",
-   "Maximise cross-ventilation; keep ACH high (moisture + heat removal)",
-   "Moderate insulation only \u2014 avoid trapping humidity with heavy mass",
-   "Ventilated / elevated roof construction to shed solar gain",
-   "Light-coloured, reflective exterior surfaces"
+   "South-facing glazing to harvest winter solar gain",
+   "Moderate insulation; lightweight construction is acceptable",
+   "Shade summer sun with fixed overhangs sized for the season",
+   "Small diurnal range \u2014 thermal mass matters less than solar control"
   ],
   "latitude": 12.9716,
   "longitude": 77.5946
  },
  "Hyderabad": {
-  "zone": "warm_humid",
-  "zone_name": "WARM-HUMID",
-  "n_hours": 8784,
-  "t_mean_c": 26.44,
-  "t_hottest_month_c": 33.56,
-  "t_coldest_month_c": 21.05,
-  "diurnal_range_c": 10.95,
-  "hdd18": 44.5,
-  "cdd18": 3135.1,
-  "rh_mean_pct": 65.2,
-  "ghi_mean_w_m2": 203.6,
-  "wind_mean_ms": 3.7,
-  "wet_hours_pct": 40.2,
-  "monsoon_share_pct": 65.1,
+  "zone": "composite",
+  "zone_name": "COMPOSITE",
+  "zone_basis": "selected-period",
+  "n_hours": 6024,
+  "t_mean_c": 27.8,
+  "t_hottest_month_c": 32.15,
+  "t_coldest_month_c": 23.02,
+  "diurnal_range_c": 8.83,
+  "hdd18": 1.3,
+  "cdd18": 2461.7,
+  "rh_mean_pct": 54.3,
+  "ghi_mean_w_m2": 238.0,
+  "wind_mean_ms": 9.39,
+  "wet_hours_pct": 8.4,
+  "monsoon_share_pct": 89.0,
   "wind_rose": [
    {
     "sector": 0,
     "center_deg": 0.0,
     "label": "N",
-    "freq_pct": 2.77,
-    "mean_ws_ms": 2.62
+    "freq_pct": 0.91,
+    "mean_ws_ms": 6.39
    },
    {
     "sector": 1,
     "center_deg": 22.5,
     "label": "NNE",
-    "freq_pct": 6.26,
-    "mean_ws_ms": 2.9
+    "freq_pct": 1.0,
+    "mean_ws_ms": 7.36
    },
    {
     "sector": 2,
     "center_deg": 45.0,
     "label": "NE",
-    "freq_pct": 6.93,
-    "mean_ws_ms": 2.84
+    "freq_pct": 2.49,
+    "mean_ws_ms": 6.85
    },
    {
     "sector": 3,
     "center_deg": 67.5,
     "label": "ENE",
-    "freq_pct": 6.68,
-    "mean_ws_ms": 2.6
+    "freq_pct": 4.02,
+    "mean_ws_ms": 7.35
    },
    {
     "sector": 4,
     "center_deg": 90.0,
     "label": "E",
-    "freq_pct": 5.79,
-    "mean_ws_ms": 2.7
+    "freq_pct": 7.62,
+    "mean_ws_ms": 7.53
    },
    {
     "sector": 5,
     "center_deg": 112.5,
     "label": "ESE",
-    "freq_pct": 8.21,
-    "mean_ws_ms": 3.08
+    "freq_pct": 11.45,
+    "mean_ws_ms": 7.08
    },
    {
     "sector": 6,
     "center_deg": 135.0,
     "label": "SE",
-    "freq_pct": 9.88,
-    "mean_ws_ms": 3.43
+    "freq_pct": 7.74,
+    "mean_ws_ms": 6.91
    },
    {
     "sector": 7,
     "center_deg": 157.5,
     "label": "SSE",
-    "freq_pct": 9.57,
-    "mean_ws_ms": 3.41
+    "freq_pct": 3.98,
+    "mean_ws_ms": 6.2
    },
    {
     "sector": 8,
     "center_deg": 180.0,
     "label": "S",
-    "freq_pct": 5.04,
-    "mean_ws_ms": 3.0
+    "freq_pct": 2.47,
+    "mean_ws_ms": 5.26
    },
    {
     "sector": 9,
     "center_deg": 202.5,
     "label": "SSW",
-    "freq_pct": 3.03,
-    "mean_ws_ms": 2.68
+    "freq_pct": 2.77,
+    "mean_ws_ms": 5.99
    },
    {
     "sector": 10,
     "center_deg": 225.0,
     "label": "SW",
-    "freq_pct": 3.12,
-    "mean_ws_ms": 3.44
+    "freq_pct": 4.66,
+    "mean_ws_ms": 7.51
    },
    {
     "sector": 11,
     "center_deg": 247.5,
     "label": "WSW",
-    "freq_pct": 7.49,
-    "mean_ws_ms": 4.77
+    "freq_pct": 11.64,
+    "mean_ws_ms": 11.64
    },
    {
     "sector": 12,
     "center_deg": 270.0,
     "label": "W",
-    "freq_pct": 11.24,
-    "mean_ws_ms": 6.15
+    "freq_pct": 20.95,
+    "mean_ws_ms": 12.43
    },
    {
     "sector": 13,
     "center_deg": 292.5,
     "label": "WNW",
-    "freq_pct": 7.37,
-    "mean_ws_ms": 4.87
+    "freq_pct": 12.48,
+    "mean_ws_ms": 12.13
    },
    {
     "sector": 14,
     "center_deg": 315.0,
     "label": "NW",
-    "freq_pct": 4.6,
-    "mean_ws_ms": 4.1
+    "freq_pct": 4.4,
+    "mean_ws_ms": 9.24
    },
    {
     "sector": 15,
     "center_deg": 337.5,
     "label": "NNW",
-    "freq_pct": 2.02,
-    "mean_ws_ms": 3.18
+    "freq_pct": 1.41,
+    "mean_ws_ms": 7.0
    }
   ],
   "diurnal": [
    {
     "hour": 0,
-    "mean_c": 23.11
+    "mean_c": 25.84
    },
    {
     "hour": 1,
-    "mean_c": 22.64
+    "mean_c": 25.29
    },
    {
     "hour": 2,
-    "mean_c": 22.24
+    "mean_c": 24.77
    },
    {
     "hour": 3,
-    "mean_c": 21.91
+    "mean_c": 24.34
    },
    {
     "hour": 4,
-    "mean_c": 21.64
+    "mean_c": 23.97
    },
    {
     "hour": 5,
-    "mean_c": 21.47
+    "mean_c": 23.6
    },
    {
     "hour": 6,
-    "mean_c": 22.29
+    "mean_c": 23.74
    },
    {
     "hour": 7,
-    "mean_c": 24.33
+    "mean_c": 24.35
    },
    {
     "hour": 8,
-    "mean_c": 26.78
+    "mean_c": 25.93
    },
    {
     "hour": 9,
-    "mean_c": 28.91
+    "mean_c": 27.85
    },
    {
     "hour": 10,
-    "mean_c": 30.44
+    "mean_c": 29.49
    },
    {
     "hour": 11,
-    "mean_c": 31.5
+    "mean_c": 30.19
    },
    {
     "hour": 12,
-    "mean_c": 32.12
+    "mean_c": 31.14
    },
    {
     "hour": 13,
-    "mean_c": 32.32
+    "mean_c": 31.75
    },
    {
     "hour": 14,
-    "mean_c": 32.08
+    "mean_c": 31.92
    },
    {
     "hour": 15,
-    "mean_c": 31.44
+    "mean_c": 31.87
    },
    {
     "hour": 16,
-    "mean_c": 30.22
+    "mean_c": 31.5
    },
    {
     "hour": 17,
-    "mean_c": 28.15
+    "mean_c": 30.99
    },
    {
     "hour": 18,
-    "mean_c": 26.75
+    "mean_c": 30.11
    },
    {
     "hour": 19,
-    "mean_c": 26.09
+    "mean_c": 29.21
    },
    {
     "hour": 20,
-    "mean_c": 25.48
+    "mean_c": 28.41
    },
    {
     "hour": 21,
-    "mean_c": 24.86
+    "mean_c": 27.65
    },
    {
     "hour": 22,
-    "mean_c": 24.24
+    "mean_c": 27.02
    },
    {
     "hour": 23,
-    "mean_c": 23.65
+    "mean_c": 26.33
    }
   ],
   "guidance": [
-   "Shade every glazed opening \u2014 direct sun is the main heat source",
-   "Maximise cross-ventilation; keep ACH high (moisture + heat removal)",
-   "Moderate insulation only \u2014 avoid trapping humidity with heavy mass",
-   "Ventilated / elevated roof construction to shed solar gain",
-   "Light-coloured, reflective exterior surfaces"
+   "Thermal mass + insulation for the long hot-dry season",
+   "Design for strong cross-ventilation during the monsoon humidity",
+   "North/south glazing with shading; avoid east/west apertures",
+   "Insulated roof is the single most effective measure",
+   "Operable openings for seasonal ventilation control"
   ],
   "latitude": 17.385,
   "longitude": 78.4867
  },
  "Pune": {
-  "zone": "warm_humid",
-  "zone_name": "WARM-HUMID",
-  "n_hours": 8784,
-  "t_mean_c": 24.24,
-  "t_hottest_month_c": 30.56,
-  "t_coldest_month_c": 19.81,
-  "diurnal_range_c": 11.21,
-  "hdd18": 137.1,
-  "cdd18": 2419.5,
-  "rh_mean_pct": 69.7,
-  "ghi_mean_w_m2": 202.5,
-  "wind_mean_ms": 3.9,
-  "wet_hours_pct": 43.9,
-  "monsoon_share_pct": 73.7,
+  "zone": "temperate",
+  "zone_name": "TEMPERATE",
+  "zone_basis": "selected-period",
+  "n_hours": 6024,
+  "t_mean_c": 26.37,
+  "t_hottest_month_c": 29.96,
+  "t_coldest_month_c": 22.58,
+  "diurnal_range_c": 10.45,
+  "hdd18": 10.7,
+  "cdd18": 2112.8,
+  "rh_mean_pct": 59.3,
+  "ghi_mean_w_m2": 243.9,
+  "wind_mean_ms": 10.47,
+  "wet_hours_pct": 12.2,
+  "monsoon_share_pct": 93.6,
   "wind_rose": [
    {
     "sector": 0,
     "center_deg": 0.0,
     "label": "N",
-    "freq_pct": 4.37,
-    "mean_ws_ms": 2.23
+    "freq_pct": 1.31,
+    "mean_ws_ms": 3.68
    },
    {
     "sector": 1,
     "center_deg": 22.5,
     "label": "NNE",
-    "freq_pct": 4.06,
-    "mean_ws_ms": 2.12
+    "freq_pct": 1.74,
+    "mean_ws_ms": 4.09
    },
    {
     "sector": 2,
     "center_deg": 45.0,
     "label": "NE",
-    "freq_pct": 4.96,
-    "mean_ws_ms": 2.31
+    "freq_pct": 3.72,
+    "mean_ws_ms": 5.23
    },
    {
     "sector": 3,
     "center_deg": 67.5,
     "label": "ENE",
-    "freq_pct": 7.81,
-    "mean_ws_ms": 2.94
+    "freq_pct": 5.54,
+    "mean_ws_ms": 7.58
    },
    {
     "sector": 4,
     "center_deg": 90.0,
     "label": "E",
-    "freq_pct": 10.34,
-    "mean_ws_ms": 3.85
+    "freq_pct": 4.33,
+    "mean_ws_ms": 6.68
    },
    {
     "sector": 5,
     "center_deg": 112.5,
     "label": "ESE",
-    "freq_pct": 4.72,
-    "mean_ws_ms": 3.89
+    "freq_pct": 2.04,
+    "mean_ws_ms": 6.65
    },
    {
     "sector": 6,
     "center_deg": 135.0,
     "label": "SE",
-    "freq_pct": 1.59,
-    "mean_ws_ms": 3.33
+    "freq_pct": 1.39,
+    "mean_ws_ms": 4.66
    },
    {
     "sector": 7,
     "center_deg": 157.5,
     "label": "SSE",
-    "freq_pct": 1.01,
-    "mean_ws_ms": 2.65
+    "freq_pct": 0.81,
+    "mean_ws_ms": 4.31
    },
    {
     "sector": 8,
     "center_deg": 180.0,
     "label": "S",
-    "freq_pct": 0.75,
-    "mean_ws_ms": 2.66
+    "freq_pct": 1.13,
+    "mean_ws_ms": 4.13
    },
    {
     "sector": 9,
     "center_deg": 202.5,
     "label": "SSW",
-    "freq_pct": 1.24,
-    "mean_ws_ms": 3.81
+    "freq_pct": 1.38,
+    "mean_ws_ms": 4.83
    },
    {
     "sector": 10,
     "center_deg": 225.0,
     "label": "SW",
-    "freq_pct": 3.71,
-    "mean_ws_ms": 5.25
+    "freq_pct": 3.65,
+    "mean_ws_ms": 5.84
    },
    {
     "sector": 11,
     "center_deg": 247.5,
     "label": "WSW",
-    "freq_pct": 15.1,
-    "mean_ws_ms": 6.05
+    "freq_pct": 25.46,
+    "mean_ws_ms": 12.18
    },
    {
     "sector": 12,
     "center_deg": 270.0,
     "label": "W",
-    "freq_pct": 14.21,
-    "mean_ws_ms": 5.07
+    "freq_pct": 34.76,
+    "mean_ws_ms": 13.25
    },
    {
     "sector": 13,
     "center_deg": 292.5,
     "label": "WNW",
-    "freq_pct": 12.69,
-    "mean_ws_ms": 3.71
+    "freq_pct": 8.75,
+    "mean_ws_ms": 10.66
    },
    {
     "sector": 14,
     "center_deg": 315.0,
     "label": "NW",
-    "freq_pct": 8.22,
-    "mean_ws_ms": 2.78
+    "freq_pct": 2.42,
+    "mean_ws_ms": 6.9
    },
    {
     "sector": 15,
     "center_deg": 337.5,
     "label": "NNW",
-    "freq_pct": 5.2,
-    "mean_ws_ms": 2.26
+    "freq_pct": 1.54,
+    "mean_ws_ms": 5.06
    }
   ],
   "diurnal": [
    {
     "hour": 0,
-    "mean_c": 20.71
+    "mean_c": 23.62
    },
    {
     "hour": 1,
-    "mean_c": 20.39
+    "mean_c": 23.21
    },
    {
     "hour": 2,
-    "mean_c": 20.11
+    "mean_c": 22.82
    },
    {
     "hour": 3,
-    "mean_c": 19.87
+    "mean_c": 22.48
    },
    {
     "hour": 4,
-    "mean_c": 19.66
+    "mean_c": 22.17
    },
    {
     "hour": 5,
-    "mean_c": 19.48
+    "mean_c": 22.04
    },
    {
     "hour": 6,
-    "mean_c": 19.93
+    "mean_c": 21.93
    },
    {
     "hour": 7,
-    "mean_c": 21.92
+    "mean_c": 22.6
    },
    {
     "hour": 8,
-    "mean_c": 24.34
+    "mean_c": 24.46
    },
    {
     "hour": 9,
-    "mean_c": 26.77
+    "mean_c": 26.74
    },
    {
     "hour": 10,
-    "mean_c": 28.5
+    "mean_c": 28.82
    },
    {
     "hour": 11,
-    "mean_c": 29.6
+    "mean_c": 30.06
    },
    {
     "hour": 12,
-    "mean_c": 30.26
+    "mean_c": 31.2
    },
    {
     "hour": 13,
-    "mean_c": 30.49
+    "mean_c": 31.75
    },
    {
     "hour": 14,
-    "mean_c": 30.26
+    "mean_c": 31.77
    },
    {
     "hour": 15,
-    "mean_c": 29.62
+    "mean_c": 31.35
    },
    {
     "hour": 16,
-    "mean_c": 28.47
+    "mean_c": 30.6
    },
    {
     "hour": 17,
-    "mean_c": 26.34
+    "mean_c": 29.93
    },
    {
     "hour": 18,
-    "mean_c": 24.48
+    "mean_c": 28.49
    },
    {
     "hour": 19,
-    "mean_c": 23.4
+    "mean_c": 27.06
    },
    {
     "hour": 20,
-    "mean_c": 22.59
+    "mean_c": 26.01
    },
    {
     "hour": 21,
-    "mean_c": 21.96
+    "mean_c": 25.21
    },
    {
     "hour": 22,
-    "mean_c": 21.46
+    "mean_c": 24.59
    },
    {
     "hour": 23,
-    "mean_c": 21.06
+    "mean_c": 24.1
    }
   ],
   "guidance": [
-   "Shade every glazed opening \u2014 direct sun is the main heat source",
-   "Maximise cross-ventilation; keep ACH high (moisture + heat removal)",
-   "Moderate insulation only \u2014 avoid trapping humidity with heavy mass",
-   "Ventilated / elevated roof construction to shed solar gain",
-   "Light-coloured, reflective exterior surfaces"
+   "South-facing glazing to harvest winter solar gain",
+   "Moderate insulation; lightweight construction is acceptable",
+   "Shade summer sun with fixed overhangs sized for the season",
+   "Small diurnal range \u2014 thermal mass matters less than solar control"
   ],
   "latitude": 18.5204,
   "longitude": 73.8567
@@ -2371,228 +2616,229 @@
  "Leh": {
   "zone": "cold",
   "zone_name": "COLD",
-  "n_hours": 8784,
-  "t_mean_c": -2.67,
-  "t_hottest_month_c": 10.48,
-  "t_coldest_month_c": -17.98,
-  "diurnal_range_c": 12.91,
-  "hdd18": 7572.6,
-  "cdd18": 9.1,
-  "rh_mean_pct": 57.1,
-  "ghi_mean_w_m2": 221.9,
-  "wind_mean_ms": 2.55,
-  "wet_hours_pct": 29.5,
-  "monsoon_share_pct": 55.6,
+  "zone_basis": "selected-period",
+  "n_hours": 6024,
+  "t_mean_c": 5.24,
+  "t_hottest_month_c": 16.54,
+  "t_coldest_month_c": -8.15,
+  "diurnal_range_c": 10.21,
+  "hdd18": 3268.7,
+  "cdd18": 66.5,
+  "rh_mean_pct": 47.1,
+  "ghi_mean_w_m2": 257.7,
+  "wind_mean_ms": 3.8,
+  "wet_hours_pct": 9.8,
+  "monsoon_share_pct": 62.9,
   "wind_rose": [
    {
     "sector": 0,
     "center_deg": 0.0,
     "label": "N",
-    "freq_pct": 0.94,
-    "mean_ws_ms": 1.18
+    "freq_pct": 11.3,
+    "mean_ws_ms": 3.79
    },
    {
     "sector": 1,
     "center_deg": 22.5,
     "label": "NNE",
-    "freq_pct": 0.59,
-    "mean_ws_ms": 1.1
+    "freq_pct": 19.37,
+    "mean_ws_ms": 4.43
    },
    {
     "sector": 2,
     "center_deg": 45.0,
     "label": "NE",
-    "freq_pct": 0.61,
-    "mean_ws_ms": 1.01
+    "freq_pct": 12.2,
+    "mean_ws_ms": 3.69
    },
    {
     "sector": 3,
     "center_deg": 67.5,
     "label": "ENE",
-    "freq_pct": 0.64,
-    "mean_ws_ms": 1.19
+    "freq_pct": 2.97,
+    "mean_ws_ms": 2.89
    },
    {
     "sector": 4,
     "center_deg": 90.0,
     "label": "E",
-    "freq_pct": 0.83,
-    "mean_ws_ms": 1.35
+    "freq_pct": 2.44,
+    "mean_ws_ms": 3.12
    },
    {
     "sector": 5,
     "center_deg": 112.5,
     "label": "ESE",
-    "freq_pct": 2.66,
-    "mean_ws_ms": 1.84
+    "freq_pct": 2.32,
+    "mean_ws_ms": 3.66
    },
    {
     "sector": 6,
     "center_deg": 135.0,
     "label": "SE",
-    "freq_pct": 5.7,
-    "mean_ws_ms": 2.17
+    "freq_pct": 2.89,
+    "mean_ws_ms": 3.0
    },
    {
     "sector": 7,
     "center_deg": 157.5,
     "label": "SSE",
-    "freq_pct": 5.89,
-    "mean_ws_ms": 1.94
+    "freq_pct": 3.5,
+    "mean_ws_ms": 3.06
    },
    {
     "sector": 8,
     "center_deg": 180.0,
     "label": "S",
-    "freq_pct": 7.93,
-    "mean_ws_ms": 1.86
+    "freq_pct": 4.73,
+    "mean_ws_ms": 2.74
    },
    {
     "sector": 9,
     "center_deg": 202.5,
     "label": "SSW",
-    "freq_pct": 10.97,
-    "mean_ws_ms": 2.4
+    "freq_pct": 5.31,
+    "mean_ws_ms": 2.84
    },
    {
     "sector": 10,
     "center_deg": 225.0,
     "label": "SW",
-    "freq_pct": 15.12,
-    "mean_ws_ms": 2.79
+    "freq_pct": 6.11,
+    "mean_ws_ms": 3.34
    },
    {
     "sector": 11,
     "center_deg": 247.5,
     "label": "WSW",
-    "freq_pct": 19.51,
-    "mean_ws_ms": 3.24
+    "freq_pct": 5.16,
+    "mean_ws_ms": 3.77
    },
    {
     "sector": 12,
     "center_deg": 270.0,
     "label": "W",
-    "freq_pct": 14.97,
-    "mean_ws_ms": 2.99
+    "freq_pct": 5.51,
+    "mean_ws_ms": 4.19
    },
    {
     "sector": 13,
     "center_deg": 292.5,
     "label": "WNW",
-    "freq_pct": 7.74,
-    "mean_ws_ms": 2.59
+    "freq_pct": 5.03,
+    "mean_ws_ms": 4.75
    },
    {
     "sector": 14,
     "center_deg": 315.0,
     "label": "NW",
-    "freq_pct": 3.86,
-    "mean_ws_ms": 2.0
+    "freq_pct": 4.9,
+    "mean_ws_ms": 4.43
    },
    {
     "sector": 15,
     "center_deg": 337.5,
     "label": "NNW",
-    "freq_pct": 2.02,
-    "mean_ws_ms": 1.65
+    "freq_pct": 6.24,
+    "mean_ws_ms": 4.08
    }
   ],
   "diurnal": [
    {
     "hour": 0,
-    "mean_c": -6.15
+    "mean_c": 2.31
    },
    {
     "hour": 1,
-    "mean_c": -6.75
+    "mean_c": 1.89
    },
    {
     "hour": 2,
-    "mean_c": -7.29
+    "mean_c": 1.58
    },
    {
     "hour": 3,
-    "mean_c": -7.82
+    "mean_c": 1.35
    },
    {
     "hour": 4,
-    "mean_c": -8.29
+    "mean_c": 1.1
    },
    {
     "hour": 5,
-    "mean_c": -8.42
+    "mean_c": 1.33
    },
    {
     "hour": 6,
-    "mean_c": -7.59
+    "mean_c": 1.67
    },
    {
     "hour": 7,
-    "mean_c": -5.62
+    "mean_c": 3.09
    },
    {
     "hour": 8,
-    "mean_c": -2.95
+    "mean_c": 4.5
    },
    {
     "hour": 9,
-    "mean_c": -0.51
+    "mean_c": 6.04
    },
    {
     "hour": 10,
-    "mean_c": 1.38
+    "mean_c": 7.49
    },
    {
     "hour": 11,
-    "mean_c": 2.72
+    "mean_c": 8.32
    },
    {
     "hour": 12,
-    "mean_c": 3.53
+    "mean_c": 9.38
    },
    {
     "hour": 13,
-    "mean_c": 3.8
+    "mean_c": 9.92
    },
    {
     "hour": 14,
-    "mean_c": 3.64
+    "mean_c": 10.2
    },
    {
     "hour": 15,
-    "mean_c": 3.05
+    "mean_c": 10.15
    },
    {
     "hour": 16,
-    "mean_c": 1.82
+    "mean_c": 9.56
    },
    {
     "hour": 17,
-    "mean_c": 0.04
+    "mean_c": 8.66
    },
    {
     "hour": 18,
-    "mean_c": -1.64
+    "mean_c": 7.03
    },
    {
     "hour": 19,
-    "mean_c": -2.76
+    "mean_c": 5.5
    },
    {
     "hour": 20,
-    "mean_c": -3.51
+    "mean_c": 4.61
    },
    {
     "hour": 21,
-    "mean_c": -4.21
+    "mean_c": 3.84
    },
    {
     "hour": 22,
-    "mean_c": -4.9
+    "mean_c": 3.16
    },
    {
     "hour": 23,
-    "mean_c": -5.55
+    "mean_c": 3.14
    }
   ],
   "guidance": [
@@ -2607,228 +2853,229 @@
  "Srinagar": {
   "zone": "cold",
   "zone_name": "COLD",
-  "n_hours": 8784,
-  "t_mean_c": 9.68,
-  "t_hottest_month_c": 20.28,
-  "t_coldest_month_c": -3.16,
-  "diurnal_range_c": 10.87,
-  "hdd18": 3329.5,
-  "cdd18": 283.2,
-  "rh_mean_pct": 57.7,
-  "ghi_mean_w_m2": 196.5,
-  "wind_mean_ms": 2.11,
-  "wet_hours_pct": 36.4,
-  "monsoon_share_pct": 54.5,
+  "zone_basis": "selected-period",
+  "n_hours": 6024,
+  "t_mean_c": 13.83,
+  "t_hottest_month_c": 23.93,
+  "t_coldest_month_c": -0.75,
+  "diurnal_range_c": 11.75,
+  "hdd18": 1615.1,
+  "cdd18": 567.8,
+  "rh_mean_pct": 71.0,
+  "ghi_mean_w_m2": 222.2,
+  "wind_mean_ms": 3.57,
+  "wet_hours_pct": 14.1,
+  "monsoon_share_pct": 39.0,
   "wind_rose": [
    {
     "sector": 0,
     "center_deg": 0.0,
     "label": "N",
-    "freq_pct": 0.82,
-    "mean_ws_ms": 0.75
+    "freq_pct": 3.8,
+    "mean_ws_ms": 2.79
    },
    {
     "sector": 1,
     "center_deg": 22.5,
     "label": "NNE",
-    "freq_pct": 1.2,
-    "mean_ws_ms": 0.82
+    "freq_pct": 3.77,
+    "mean_ws_ms": 2.77
    },
    {
     "sector": 2,
     "center_deg": 45.0,
     "label": "NE",
-    "freq_pct": 3.93,
-    "mean_ws_ms": 1.35
+    "freq_pct": 6.76,
+    "mean_ws_ms": 1.88
    },
    {
     "sector": 3,
     "center_deg": 67.5,
     "label": "ENE",
-    "freq_pct": 19.26,
-    "mean_ws_ms": 1.94
+    "freq_pct": 8.05,
+    "mean_ws_ms": 2.44
    },
    {
     "sector": 4,
     "center_deg": 90.0,
     "label": "E",
-    "freq_pct": 11.13,
-    "mean_ws_ms": 1.65
+    "freq_pct": 10.33,
+    "mean_ws_ms": 2.61
    },
    {
     "sector": 5,
     "center_deg": 112.5,
     "label": "ESE",
-    "freq_pct": 6.06,
-    "mean_ws_ms": 1.5
+    "freq_pct": 7.64,
+    "mean_ws_ms": 2.91
    },
    {
     "sector": 6,
     "center_deg": 135.0,
     "label": "SE",
-    "freq_pct": 4.13,
-    "mean_ws_ms": 1.76
+    "freq_pct": 5.83,
+    "mean_ws_ms": 3.09
    },
    {
     "sector": 7,
     "center_deg": 157.5,
     "label": "SSE",
-    "freq_pct": 4.75,
-    "mean_ws_ms": 2.52
+    "freq_pct": 3.82,
+    "mean_ws_ms": 3.42
    },
    {
     "sector": 8,
     "center_deg": 180.0,
     "label": "S",
-    "freq_pct": 5.74,
-    "mean_ws_ms": 2.7
+    "freq_pct": 3.87,
+    "mean_ws_ms": 3.14
    },
    {
     "sector": 9,
     "center_deg": 202.5,
     "label": "SSW",
-    "freq_pct": 7.18,
-    "mean_ws_ms": 2.47
+    "freq_pct": 4.37,
+    "mean_ws_ms": 3.45
    },
    {
     "sector": 10,
     "center_deg": 225.0,
     "label": "SW",
-    "freq_pct": 10.02,
-    "mean_ws_ms": 2.54
+    "freq_pct": 7.02,
+    "mean_ws_ms": 3.83
    },
    {
     "sector": 11,
     "center_deg": 247.5,
     "label": "WSW",
-    "freq_pct": 15.93,
-    "mean_ws_ms": 2.77
+    "freq_pct": 9.38,
+    "mean_ws_ms": 4.59
    },
    {
     "sector": 12,
     "center_deg": 270.0,
     "label": "W",
-    "freq_pct": 5.89,
-    "mean_ws_ms": 2.07
+    "freq_pct": 9.89,
+    "mean_ws_ms": 5.01
    },
    {
     "sector": 13,
     "center_deg": 292.5,
     "label": "WNW",
-    "freq_pct": 2.2,
-    "mean_ws_ms": 1.26
+    "freq_pct": 7.39,
+    "mean_ws_ms": 5.45
    },
    {
     "sector": 14,
     "center_deg": 315.0,
     "label": "NW",
-    "freq_pct": 1.0,
-    "mean_ws_ms": 0.92
+    "freq_pct": 4.63,
+    "mean_ws_ms": 4.9
    },
    {
     "sector": 15,
     "center_deg": 337.5,
     "label": "NNW",
-    "freq_pct": 0.77,
-    "mean_ws_ms": 0.75
+    "freq_pct": 3.47,
+    "mean_ws_ms": 3.93
    }
   ],
   "diurnal": [
    {
     "hour": 0,
-    "mean_c": 6.15
+    "mean_c": 11.06
    },
    {
     "hour": 1,
-    "mean_c": 5.75
+    "mean_c": 10.23
    },
    {
     "hour": 2,
-    "mean_c": 5.45
+    "mean_c": 9.58
    },
    {
     "hour": 3,
-    "mean_c": 5.23
+    "mean_c": 9.08
    },
    {
     "hour": 4,
-    "mean_c": 5.05
+    "mean_c": 8.68
    },
    {
     "hour": 5,
-    "mean_c": 5.09
+    "mean_c": 9.29
    },
    {
     "hour": 6,
-    "mean_c": 6.13
+    "mean_c": 9.06
    },
    {
     "hour": 7,
-    "mean_c": 8.18
+    "mean_c": 9.99
    },
    {
     "hour": 8,
-    "mean_c": 10.74
+    "mean_c": 11.67
    },
    {
     "hour": 9,
-    "mean_c": 12.88
+    "mean_c": 13.82
    },
    {
     "hour": 10,
-    "mean_c": 14.24
+    "mean_c": 15.65
    },
    {
     "hour": 11,
-    "mean_c": 15.0
+    "mean_c": 17.08
    },
    {
     "hour": 12,
-    "mean_c": 15.31
+    "mean_c": 18.19
    },
    {
     "hour": 13,
-    "mean_c": 15.25
+    "mean_c": 19.09
    },
    {
     "hour": 14,
-    "mean_c": 14.89
+    "mean_c": 19.57
    },
    {
     "hour": 15,
-    "mean_c": 14.18
+    "mean_c": 19.57
    },
    {
     "hour": 16,
-    "mean_c": 12.85
+    "mean_c": 19.03
    },
    {
     "hour": 17,
-    "mean_c": 11.3
+    "mean_c": 18.26
    },
    {
     "hour": 18,
-    "mean_c": 9.93
+    "mean_c": 16.65
    },
    {
     "hour": 19,
-    "mean_c": 8.99
+    "mean_c": 15.19
    },
    {
     "hour": 20,
-    "mean_c": 8.32
+    "mean_c": 14.05
    },
    {
     "hour": 21,
-    "mean_c": 7.68
+    "mean_c": 12.97
    },
    {
     "hour": 22,
-    "mean_c": 7.09
+    "mean_c": 11.95
    },
    {
     "hour": 23,
-    "mean_c": 6.58
+    "mean_c": 12.17
    }
   ],
   "guidance": [
@@ -2843,228 +3090,229 @@
  "Kargil": {
   "zone": "cold",
   "zone_name": "COLD",
-  "n_hours": 8784,
-  "t_mean_c": -0.53,
-  "t_hottest_month_c": 11.87,
-  "t_coldest_month_c": -15.04,
-  "diurnal_range_c": 11.89,
-  "hdd18": 6798.5,
-  "cdd18": 16.5,
-  "rh_mean_pct": 59.3,
-  "ghi_mean_w_m2": 223.0,
-  "wind_mean_ms": 2.08,
-  "wet_hours_pct": 30.8,
-  "monsoon_share_pct": 52.0,
+  "zone_basis": "selected-period",
+  "n_hours": 6024,
+  "t_mean_c": 7.25,
+  "t_hottest_month_c": 20.29,
+  "t_coldest_month_c": -10.84,
+  "diurnal_range_c": 11.82,
+  "hdd18": 2910.6,
+  "cdd18": 212.4,
+  "rh_mean_pct": 62.1,
+  "ghi_mean_w_m2": 255.7,
+  "wind_mean_ms": 2.93,
+  "wet_hours_pct": 10.0,
+  "monsoon_share_pct": 39.8,
   "wind_rose": [
    {
     "sector": 0,
     "center_deg": 0.0,
     "label": "N",
-    "freq_pct": 0.72,
-    "mean_ws_ms": 0.96
+    "freq_pct": 6.46,
+    "mean_ws_ms": 3.7
    },
    {
     "sector": 1,
     "center_deg": 22.5,
     "label": "NNE",
-    "freq_pct": 0.58,
-    "mean_ws_ms": 1.06
+    "freq_pct": 3.85,
+    "mean_ws_ms": 3.58
    },
    {
     "sector": 2,
     "center_deg": 45.0,
     "label": "NE",
-    "freq_pct": 0.51,
-    "mean_ws_ms": 0.92
+    "freq_pct": 2.95,
+    "mean_ws_ms": 2.06
    },
    {
     "sector": 3,
     "center_deg": 67.5,
     "label": "ENE",
-    "freq_pct": 0.49,
-    "mean_ws_ms": 1.26
+    "freq_pct": 1.91,
+    "mean_ws_ms": 1.78
    },
    {
     "sector": 4,
     "center_deg": 90.0,
     "label": "E",
-    "freq_pct": 0.84,
-    "mean_ws_ms": 1.05
+    "freq_pct": 3.54,
+    "mean_ws_ms": 1.82
    },
    {
     "sector": 5,
     "center_deg": 112.5,
     "label": "ESE",
-    "freq_pct": 1.81,
-    "mean_ws_ms": 1.63
+    "freq_pct": 4.52,
+    "mean_ws_ms": 2.12
    },
    {
     "sector": 6,
     "center_deg": 135.0,
     "label": "SE",
-    "freq_pct": 7.43,
-    "mean_ws_ms": 1.87
+    "freq_pct": 15.26,
+    "mean_ws_ms": 2.71
    },
    {
     "sector": 7,
     "center_deg": 157.5,
     "label": "SSE",
-    "freq_pct": 9.35,
-    "mean_ws_ms": 1.59
+    "freq_pct": 15.89,
+    "mean_ws_ms": 3.15
    },
    {
     "sector": 8,
     "center_deg": 180.0,
     "label": "S",
-    "freq_pct": 11.17,
-    "mean_ws_ms": 1.59
+    "freq_pct": 7.84,
+    "mean_ws_ms": 1.57
    },
    {
     "sector": 9,
     "center_deg": 202.5,
     "label": "SSW",
-    "freq_pct": 12.18,
-    "mean_ws_ms": 2.03
+    "freq_pct": 6.46,
+    "mean_ws_ms": 2.3
    },
    {
     "sector": 10,
     "center_deg": 225.0,
     "label": "SW",
-    "freq_pct": 15.26,
-    "mean_ws_ms": 2.21
+    "freq_pct": 5.84,
+    "mean_ws_ms": 2.63
    },
    {
     "sector": 11,
     "center_deg": 247.5,
     "label": "WSW",
-    "freq_pct": 17.45,
-    "mean_ws_ms": 2.67
+    "freq_pct": 5.25,
+    "mean_ws_ms": 3.85
    },
    {
     "sector": 12,
     "center_deg": 270.0,
     "label": "W",
-    "freq_pct": 11.33,
-    "mean_ws_ms": 2.52
+    "freq_pct": 6.97,
+    "mean_ws_ms": 3.87
    },
    {
     "sector": 13,
     "center_deg": 292.5,
     "label": "WNW",
-    "freq_pct": 5.87,
-    "mean_ws_ms": 2.19
+    "freq_pct": 4.38,
+    "mean_ws_ms": 4.06
    },
    {
     "sector": 14,
     "center_deg": 315.0,
     "label": "NW",
-    "freq_pct": 3.53,
-    "mean_ws_ms": 2.01
+    "freq_pct": 4.03,
+    "mean_ws_ms": 3.24
    },
    {
     "sector": 15,
     "center_deg": 337.5,
     "label": "NNW",
-    "freq_pct": 1.48,
-    "mean_ws_ms": 1.37
+    "freq_pct": 4.86,
+    "mean_ws_ms": 3.71
    }
   ],
   "diurnal": [
    {
     "hour": 0,
-    "mean_c": -3.9
+    "mean_c": 4.32
    },
    {
     "hour": 1,
-    "mean_c": -4.42
+    "mean_c": 3.74
    },
    {
     "hour": 2,
-    "mean_c": -4.86
+    "mean_c": 3.24
    },
    {
     "hour": 3,
-    "mean_c": -5.25
+    "mean_c": 2.73
    },
    {
     "hour": 4,
-    "mean_c": -5.62
+    "mean_c": 2.28
    },
    {
     "hour": 5,
-    "mean_c": -5.73
+    "mean_c": 2.45
    },
    {
     "hour": 6,
-    "mean_c": -4.96
+    "mean_c": 2.49
    },
    {
     "hour": 7,
-    "mean_c": -3.09
+    "mean_c": 3.47
    },
    {
     "hour": 8,
-    "mean_c": -0.57
+    "mean_c": 5.28
    },
    {
     "hour": 9,
-    "mean_c": 1.76
+    "mean_c": 7.37
    },
    {
     "hour": 10,
-    "mean_c": 3.55
+    "mean_c": 9.35
    },
    {
     "hour": 11,
-    "mean_c": 4.73
+    "mean_c": 10.48
    },
    {
     "hour": 12,
-    "mean_c": 5.39
+    "mean_c": 11.76
    },
    {
     "hour": 13,
-    "mean_c": 5.54
+    "mean_c": 12.55
    },
    {
     "hour": 14,
-    "mean_c": 5.26
+    "mean_c": 12.93
    },
    {
     "hour": 15,
-    "mean_c": 4.59
+    "mean_c": 12.94
    },
    {
     "hour": 16,
-    "mean_c": 3.37
+    "mean_c": 12.43
    },
    {
     "hour": 17,
-    "mean_c": 1.75
+    "mean_c": 11.58
    },
    {
     "hour": 18,
-    "mean_c": 0.28
+    "mean_c": 10.01
    },
    {
     "hour": 19,
-    "mean_c": -0.75
+    "mean_c": 8.35
    },
    {
     "hour": 20,
-    "mean_c": -1.46
+    "mean_c": 7.26
    },
    {
     "hour": 21,
-    "mean_c": -2.14
+    "mean_c": 6.31
    },
    {
     "hour": 22,
-    "mean_c": -2.79
+    "mean_c": 5.47
    },
    {
     "hour": 23,
-    "mean_c": -3.38
+    "mean_c": 5.2
    }
   ],
   "guidance": [
@@ -3079,228 +3327,229 @@
  "Dras": {
   "zone": "cold",
   "zone_name": "COLD",
-  "n_hours": 8784,
-  "t_mean_c": -0.88,
-  "t_hottest_month_c": 10.89,
-  "t_coldest_month_c": -14.7,
-  "diurnal_range_c": 10.8,
-  "hdd18": 6918.0,
-  "cdd18": 7.1,
-  "rh_mean_pct": 69.8,
-  "ghi_mean_w_m2": 206.6,
-  "wind_mean_ms": 2.36,
-  "wet_hours_pct": 30.4,
-  "monsoon_share_pct": 48.4,
+  "zone_basis": "selected-period",
+  "n_hours": 6024,
+  "t_mean_c": 4.09,
+  "t_hottest_month_c": 16.03,
+  "t_coldest_month_c": -10.58,
+  "diurnal_range_c": 12.56,
+  "hdd18": 3575.0,
+  "cdd18": 83.5,
+  "rh_mean_pct": 73.6,
+  "ghi_mean_w_m2": 266.7,
+  "wind_mean_ms": 3.09,
+  "wet_hours_pct": 14.9,
+  "monsoon_share_pct": 43.5,
   "wind_rose": [
    {
     "sector": 0,
     "center_deg": 0.0,
     "label": "N",
-    "freq_pct": 1.2,
-    "mean_ws_ms": 0.98
+    "freq_pct": 5.74,
+    "mean_ws_ms": 1.18
    },
    {
     "sector": 1,
     "center_deg": 22.5,
     "label": "NNE",
-    "freq_pct": 1.76,
-    "mean_ws_ms": 1.04
+    "freq_pct": 8.43,
+    "mean_ws_ms": 1.73
    },
    {
     "sector": 2,
     "center_deg": 45.0,
     "label": "NE",
-    "freq_pct": 2.28,
-    "mean_ws_ms": 1.27
+    "freq_pct": 14.79,
+    "mean_ws_ms": 2.09
    },
    {
     "sector": 3,
     "center_deg": 67.5,
     "label": "ENE",
-    "freq_pct": 3.86,
-    "mean_ws_ms": 1.82
+    "freq_pct": 8.73,
+    "mean_ws_ms": 2.62
    },
    {
     "sector": 4,
     "center_deg": 90.0,
     "label": "E",
-    "freq_pct": 4.9,
-    "mean_ws_ms": 1.53
+    "freq_pct": 7.87,
+    "mean_ws_ms": 2.88
    },
    {
     "sector": 5,
     "center_deg": 112.5,
     "label": "ESE",
-    "freq_pct": 3.69,
-    "mean_ws_ms": 1.09
+    "freq_pct": 2.95,
+    "mean_ws_ms": 2.76
    },
    {
     "sector": 6,
     "center_deg": 135.0,
     "label": "SE",
-    "freq_pct": 3.31,
-    "mean_ws_ms": 1.01
+    "freq_pct": 2.54,
+    "mean_ws_ms": 1.97
    },
    {
     "sector": 7,
     "center_deg": 157.5,
     "label": "SSE",
-    "freq_pct": 3.64,
-    "mean_ws_ms": 1.09
+    "freq_pct": 1.39,
+    "mean_ws_ms": 2.07
    },
    {
     "sector": 8,
     "center_deg": 180.0,
     "label": "S",
-    "freq_pct": 5.93,
-    "mean_ws_ms": 1.6
+    "freq_pct": 2.29,
+    "mean_ws_ms": 1.97
    },
    {
     "sector": 9,
     "center_deg": 202.5,
     "label": "SSW",
-    "freq_pct": 14.45,
-    "mean_ws_ms": 2.52
+    "freq_pct": 3.98,
+    "mean_ws_ms": 2.72
    },
    {
     "sector": 10,
     "center_deg": 225.0,
     "label": "SW",
-    "freq_pct": 23.02,
-    "mean_ws_ms": 3.26
+    "freq_pct": 11.67,
+    "mean_ws_ms": 5.11
    },
    {
     "sector": 11,
     "center_deg": 247.5,
     "label": "WSW",
-    "freq_pct": 20.53,
-    "mean_ws_ms": 3.06
+    "freq_pct": 12.62,
+    "mean_ws_ms": 5.9
    },
    {
     "sector": 12,
     "center_deg": 270.0,
     "label": "W",
-    "freq_pct": 6.83,
-    "mean_ws_ms": 2.1
+    "freq_pct": 6.56,
+    "mean_ws_ms": 3.65
    },
    {
     "sector": 13,
     "center_deg": 292.5,
     "label": "WNW",
-    "freq_pct": 1.97,
-    "mean_ws_ms": 1.53
+    "freq_pct": 3.82,
+    "mean_ws_ms": 2.74
    },
    {
     "sector": 14,
     "center_deg": 315.0,
     "label": "NW",
-    "freq_pct": 1.56,
-    "mean_ws_ms": 1.15
+    "freq_pct": 3.74,
+    "mean_ws_ms": 1.83
    },
    {
     "sector": 15,
     "center_deg": 337.5,
     "label": "NNW",
-    "freq_pct": 1.08,
-    "mean_ws_ms": 0.95
+    "freq_pct": 2.87,
+    "mean_ws_ms": 1.5
    }
   ],
   "diurnal": [
    {
     "hour": 0,
-    "mean_c": -4.13
+    "mean_c": 0.65
    },
    {
     "hour": 1,
-    "mean_c": -4.49
+    "mean_c": -0.07
    },
    {
     "hour": 2,
-    "mean_c": -4.77
+    "mean_c": -0.59
    },
    {
     "hour": 3,
-    "mean_c": -5.02
+    "mean_c": -0.95
    },
    {
     "hour": 4,
-    "mean_c": -5.28
+    "mean_c": -1.23
    },
    {
     "hour": 5,
-    "mean_c": -5.35
+    "mean_c": -0.97
    },
    {
     "hour": 6,
-    "mean_c": -4.63
+    "mean_c": -0.88
    },
    {
     "hour": 7,
-    "mean_c": -2.84
+    "mean_c": 0.52
    },
    {
     "hour": 8,
-    "mean_c": -0.39
+    "mean_c": 2.68
    },
    {
     "hour": 9,
-    "mean_c": 1.78
+    "mean_c": 5.04
    },
    {
     "hour": 10,
-    "mean_c": 3.36
+    "mean_c": 7.02
    },
    {
     "hour": 11,
-    "mean_c": 4.3
+    "mean_c": 8.22
    },
    {
     "hour": 12,
-    "mean_c": 4.69
+    "mean_c": 9.11
    },
    {
     "hour": 13,
-    "mean_c": 4.64
+    "mean_c": 9.66
    },
    {
     "hour": 14,
-    "mean_c": 4.25
+    "mean_c": 9.78
    },
    {
     "hour": 15,
-    "mean_c": 3.56
+    "mean_c": 9.62
    },
    {
     "hour": 16,
-    "mean_c": 2.37
+    "mean_c": 9.16
    },
    {
     "hour": 17,
-    "mean_c": 0.8
+    "mean_c": 8.34
    },
    {
     "hour": 18,
-    "mean_c": -0.58
+    "mean_c": 6.77
    },
    {
     "hour": 19,
-    "mean_c": -1.52
+    "mean_c": 5.19
    },
    {
     "hour": 20,
-    "mean_c": -2.16
+    "mean_c": 4.1
    },
    {
     "hour": 21,
-    "mean_c": -2.75
+    "mean_c": 3.1
    },
    {
     "hour": 22,
-    "mean_c": -3.28
+    "mean_c": 2.16
    },
    {
     "hour": 23,
-    "mean_c": -3.74
+    "mean_c": 1.73
    }
   ],
   "guidance": [
