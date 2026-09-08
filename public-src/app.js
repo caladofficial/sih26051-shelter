@@ -4,15 +4,53 @@
 const $ = (id) => document.getElementById(id);
 
 /* ---------- api (auth-aware; falls back to plain fetch if auth.js absent) ---------- */
+/* Requests get an explicit deadline. Without one a stalled call just hangs
+   and the page looks frozen — which is exactly how "sweep/optimize are not
+   responding" presented. Vercel caps the function at 60 s, so 90 s is past
+   any legitimate response and a timeout here means something is genuinely
+   wrong. */
+const API_TIMEOUT_MS = 90000;
+
 async function api(path, options) {
   if (window.SHI && SHI.apiFetch) return SHI.apiFetch(path, options);
-  const res = await fetch(path, options);
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), API_TIMEOUT_MS);
+  let res;
+  try {
+    res = await fetch(path, { ...(options || {}), signal: ctl.signal });
+  } catch (e) {
+    if (e.name === "AbortError") {
+      throw new Error(`timed out after ${API_TIMEOUT_MS / 1000}s — the server did not respond`);
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
   if (!res.ok) {
     let msg = `${res.status}`;
     try { msg = (await res.json()).detail || msg; } catch (_) {}
     throw new Error(msg);
   }
   return res.json();
+}
+
+/* Live elapsed-time readout for anything that can take more than a moment.
+   A static "running…" gives the user no way to tell progress from a hang; the
+   first request for an unseen location legitimately takes ~15 s while a year
+   of weather is downloaded and cached, so say so instead of looking stuck. */
+function startProgress(el, label) {
+  if (!el) return () => {};
+  const t0 = Date.now();
+  const tick = () => {
+    const s = (Date.now() - t0) / 1000;
+    let note = "";
+    if (s > 25) note = " · still working, almost there";
+    else if (s > 8) note = " · first run for this site downloads a year of weather (cached after this)";
+    el.textContent = `${label} ${s.toFixed(0)}s${note}`;
+  };
+  tick();
+  const id = setInterval(tick, 500);
+  return () => clearInterval(id);
 }
 
 const fmt = (v, d = 1) => {
@@ -431,6 +469,143 @@ function designPayload() {
   };
 }
 
+
+/* ---------- thermal chart (SEC/04) ----------
+   The old chart was two raw lines over 168 unlabelled hours: correct, but it
+   made the reader do the work of finding the peak, judging comfort and
+   spotting the day/night rhythm. These render the same engine output so those
+   things are visible directly. */
+
+const COMFORT_LO = 18, COMFORT_HI = 32;
+
+/* Night bands (18:00-06:00) — makes the diurnal swing, and how far the
+   building lags the outdoor peak, readable at a glance. */
+function nightBands(ts) {
+  const shapes = [];
+  let start = null;
+  for (let i = 0; i < ts.length; i++) {
+    const h = parseInt(String(ts[i]).slice(11, 13), 10);
+    const isNight = h >= 18 || h < 6;
+    if (isNight && start === null) start = ts[i];
+    if ((!isNight || i === ts.length - 1) && start !== null) {
+      shapes.push({ type: "rect", xref: "x", yref: "paper", x0: start, x1: ts[i],
+                    y0: 0, y1: 1, fillcolor: "rgba(120,140,170,0.10)",
+                    line: { width: 0 }, layer: "below" });
+      start = null;
+    }
+  }
+  return shapes;
+}
+
+function renderThermalChart(s, m) {
+  const iMax = s.indoor_t_c.indexOf(Math.max(...s.indoor_t_c));
+  const iMin = s.indoor_t_c.indexOf(Math.min(...s.indoor_t_c));
+
+  const shapes = nightBands(s.ts);
+  // the comfort band is the whole point of the chart — draw it, don't imply it
+  shapes.push({ type: "rect", xref: "paper", yref: "y", x0: 0, x1: 1,
+                y0: COMFORT_LO, y1: COMFORT_HI,
+                fillcolor: "rgba(95,208,138,0.14)",
+                line: { width: 0 }, layer: "below" });
+
+  plot($("chartSim"), [
+    { x: s.ts, y: s.outdoor_t_c, type: "scatter", name: "Outdoor",
+      line: { color: "#98a1ab", width: 1.5, dash: "dot" },
+      hovertemplate: "Outdoor %{y:.1f} °C<extra></extra>" },
+    { x: s.ts, y: s.indoor_t_c, type: "scatter", name: "Indoor",
+      line: { color: "#6ab7ff", width: 3, shape: "spline" },
+      hovertemplate: "<b>Indoor %{y:.1f} °C</b><extra></extra>" },
+    { x: [s.ts[iMax]], y: [s.indoor_t_c[iMax]], type: "scatter", mode: "markers+text",
+      name: "peak", showlegend: false, text: [`peak ${s.indoor_t_c[iMax].toFixed(1)}°`],
+      textposition: "top center", textfont: { size: 10, color: "#ff5d5d" },
+      marker: { size: 9, color: "#ff5d5d", symbol: "triangle-up" },
+      hoverinfo: "skip" },
+    { x: [s.ts[iMin]], y: [s.indoor_t_c[iMin]], type: "scatter", mode: "markers+text",
+      name: "low", showlegend: false, text: [`low ${s.indoor_t_c[iMin].toFixed(1)}°`],
+      textposition: "bottom center", textfont: { size: 10, color: "#4ac2e0" },
+      marker: { size: 9, color: "#4ac2e0", symbol: "triangle-down" },
+      hoverinfo: "skip" },
+  ], {
+    title: { text: "INDOOR vs OUTDOOR · GREEN BAND = COMFORTABLE 18–32 °C · GREY = NIGHT",
+             font: { size: 11 } },
+    shapes,
+    hovermode: "x unified",
+    yaxis: { title: "°C", zeroline: false },
+    xaxis: { tickformat: "%a %d %b<br>%H:%M", nticks: 8, tickangle: 0 },
+    legend: { orientation: "h", y: -0.24, x: 0.5, xanchor: "center",
+              font: { size: 10 } },
+    margin: { l: 54, r: 24, t: 44, b: 70 }, height: 340,
+  });
+
+  renderThermalVerdict(s, m);
+}
+
+/* Plain-English summary. A designer should not have to read a chart to learn
+   the shelter is 15 °C too hot. */
+function renderThermalVerdict(s, m) {
+  const el = $("simVerdict");
+  if (!el) return;
+  const peak = m.max_indoor_c, low = m.min_indoor_c;
+  const pct = Math.round((m.comfort_fraction || 0) * 100);
+  const hrs = m.comfort_hours ?? 0;
+  const total = s.ts.length;
+  const outMax = Math.max(...s.outdoor_t_c);
+  const damping = outMax - peak;
+
+  let cls = "bad", headline;
+  if (pct >= 70) { cls = "good"; headline = `Comfortable for ${pct}% of the week.`; }
+  else if (pct >= 30) { cls = "warn"; headline = `Marginal — comfortable only ${pct}% of the week.`; }
+  else if (peak > COMFORT_HI) {
+    headline = `Too hot. Peaks at ${peak.toFixed(1)} °C, ${(peak - COMFORT_HI).toFixed(1)} °C above the 32 °C ceiling.`;
+  } else {
+    headline = `Too cold. Drops to ${low.toFixed(1)} °C, ${(COMFORT_LO - low).toFixed(1)} °C below the 18 °C floor.`;
+  }
+
+  const parts = [
+    `<b>${hrs} of ${total} hours</b> inside 18–32 °C`,
+    `indoor swing <b>${(peak - low).toFixed(1)} °C</b>`,
+    damping > 0.3
+      ? `envelope holds the peak <b>${damping.toFixed(1)} °C below</b> outdoor`
+      : `<b>no useful damping</b> — indoor tracks outdoor`,
+  ];
+  el.className = `verdict ${cls}`;
+  el.innerHTML = `<b>${headline}</b><span>${parts.join(" · ")}</span>`;
+}
+
+/* Heat flow as a stacked area, not three crossing lines: the reader wants to
+   know which path dominates and whether the net is into or out of the shelter. */
+function renderHeatFlowChart(s) {
+  if (!s.q_solar_w) return;
+  const net = s.q_solar_w.map((v, i) => v + s.q_conduct_w[i] + s.q_vent_w[i]);
+  plot($("chartHeat"), [
+    { x: s.ts, y: s.q_solar_w, type: "scatter", name: "Solar",
+      stackgroup: "in", line: { width: 0 }, fillcolor: "rgba(255,178,94,0.75)",
+      hovertemplate: "Solar %{y:.0f} W<extra></extra>" },
+    { x: s.ts, y: s.q_conduct_w, type: "scatter", name: "Conduction",
+      stackgroup: "in", line: { width: 0 }, fillcolor: "rgba(255,93,93,0.65)",
+      hovertemplate: "Conduction %{y:.0f} W<extra></extra>" },
+    { x: s.ts, y: s.q_vent_w, type: "scatter", name: "Vent",
+      stackgroup: "in", line: { width: 0 }, fillcolor: "rgba(94,234,141,0.65)",
+      hovertemplate: "Ventilation %{y:.0f} W<extra></extra>" },
+    // NET must read against BOTH themes — a near-white line vanished on light
+    { x: s.ts, y: net, type: "scatter", name: "NET",
+      line: { color: currentTheme() === "light" ? "#2b2f36" : "#e8eaed", width: 2.2 },
+      hovertemplate: "<b>Net %{y:.0f} W</b><extra></extra>" },
+  ], {
+    title: { text: "HEAT FLOW · ABOVE ZERO = HEAT ENTERING · BELOW = LEAVING",
+             font: { size: 11 } },
+    shapes: nightBands(s.ts).concat([{ type: "line", xref: "paper", yref: "y",
+      x0: 0, x1: 1, y0: 0, y1: 0,
+      line: { color: "rgba(150,150,150,0.7)", width: 1, dash: "dash" } }]),
+    hovermode: "x unified",
+    yaxis: { title: "watts" },
+    xaxis: { tickformat: "%a %H:%M", nticks: 8 },
+    legend: { orientation: "h", y: -0.24, x: 0.5, xanchor: "center",
+              font: { size: 9 }, itemsizing: "constant" },
+    margin: { l: 60, r: 30, t: 44, b: 74 }, height: 330,
+  });
+}
+
 async function runSimulate() {
   const sel = $("location").selectedOptions[0];
   const body = { lat: parseFloat(sel.dataset.lat), lon: parseFloat(sel.dataset.lon),
@@ -452,20 +627,8 @@ async function runSimulate() {
                 metric(`${Math.round(m.comfort_fraction * 100)}%`, "comfort hours"),
                 metric(fmt(m.solar_gain_kwh, 0), "solar gain kWh"));
     const s = data.series;
-    plot($("chartSim"), [
-      { x: s.ts, y: s.outdoor_t_c, type: "scatter", name: "OUTDOOR",
-        line: { color: "#98a1ab", width: 1.5 } },
-      { x: s.ts, y: s.indoor_t_c, type: "scatter", name: "INDOOR",
-        line: { color: "#6ab7ff", width: 2.5 } },
-    ], { title: "INDOOR VS OUTDOOR TEMPERATURE · °C",
-         xaxis: { tickangle: -30 } });
-    if (s.q_solar_w) {
-      plot($("chartHeat"), [
-        { x: s.ts, y: s.q_solar_w, type: "scatter", name: "SOLAR", line: { color: "#ffb25e", width: 2 } },
-        { x: s.ts, y: s.q_conduct_w, type: "scatter", name: "CONDUCTION", line: { color: "#ff5d5d", width: 2 } },
-        { x: s.ts, y: s.q_vent_w, type: "scatter", name: "VENTILATION", line: { color: "#5eea8d", width: 2 } },
-      ], { title: "HEAT FLOW BUDGET · W (+ INTO SHELTER)" });
-    }
+    renderThermalChart(s, m);
+    renderHeatFlowChart(s);
     if (data.metrics.monthly_comfort && typeof Plotly !== "undefined") {
       $("monthlyWrap").hidden = false;
       const mc = data.metrics.monthly_comfort;
@@ -494,8 +657,8 @@ async function runOptimize() {
   const btn = $("optimize");
   btn.disabled = true; btn.classList.add("busy");
   const st = $("optStatus");
-  st.textContent = `running ${n} trials… (≈${Math.ceil(n / 8)} s)`;
   st.classList.remove("err");
+  const stopProgress = startProgress(st, `running ${n} trials…`);
   try {
     const data = await api("/api/optimize", {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -504,6 +667,7 @@ async function runOptimize() {
                              year: climateYear(),
                              climate_period: climatePeriod(), n_trials: n }),
     });
+    stopProgress();
     st.textContent = `BEST TPI ${data.best.tpi.toFixed(3)} — ${data.best.design.wall_material} / ${data.best.design.roof_material}`;
     const b = data.best.design;
     $("bestCard").innerHTML = `<h4>★ Best design — TPI ${data.best.tpi.toFixed(3)}</h4>` +
@@ -532,6 +696,7 @@ async function runOptimize() {
     });
     $("optSection").hidden = false;
   } catch (err) {
+    stopProgress();
     st.textContent = `FAILED: ${err.message}`;
     st.classList.add("err");
   } finally {
@@ -1549,7 +1714,8 @@ async function runSweep() {
   const btn = $("sweepBtn");
   btn.classList.add("busy"); btn.disabled = true;
   const st = $("sweepStatus");
-  st.textContent = `running ${grid.length} points…`;
+  st.classList.remove("err");
+  const stopProgress = startProgress(st, `running ${grid.length} points…`);
   try {
     const j = await api("/api/sweep", {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -1565,8 +1731,10 @@ async function runSweep() {
         marker: { size: 6, color: "#ff5d5d" } },
     ], { title: `INSULATION SWEEP · ${j.insulation_material.toUpperCase()} · HOT WEEK` });
     const b = j.best;
+    stopProgress();
     st.textContent = `best ${b.thickness_mm} mm → mean ${b.mean_indoor_c.toFixed(1)}°C · max ${b.max_indoor_c.toFixed(1)}°C`;
   } catch (err) {
+    stopProgress();
     st.textContent = `SWEEP FAILED: ${err.message}`;
     st.classList.add("err");
   } finally {

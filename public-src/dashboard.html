@@ -360,13 +360,25 @@
           <h2>Thermal Telemetry</h2>
           <span class="code">ENGINE: <span id="simEngine" class="tag">—</span></span>
         </div>
+        <div id="simVerdict" class="verdict"></div>
         <div class="mod">
           <div class="mod-hd"><i></i>MOD·04A — INDOOR / OUTDOOR TEMPERATURE</div>
           <div id="chartSim" class="chart"></div>
+          <p class="hint chart-legend-note">
+            The <b>green band</b> is the 18–32 °C comfort range — wherever the blue
+            indoor line sits inside it, the shelter is liveable. <b>Grey columns</b>
+            are night (18:00–06:00). The gap between the dotted outdoor line and the
+            solid indoor line is what the envelope is buying you.
+          </p>
         </div>
         <div class="mod">
           <div class="mod-hd"><i></i>MOD·04B — HEAT FLOW BUDGET</div>
           <div id="chartHeat" class="chart"></div>
+          <p class="hint chart-legend-note">
+            Stacked by path, so height = total load. <b>Above the dashed zero line</b>
+            heat is flowing <b>into</b> the shelter; below it, the shelter is losing
+            heat. The bold <b>NET</b> line is the sum the thermal mass has to absorb.
+          </p>
         </div>
         <div class="mod">
           <div class="mod-hd"><i></i>MOD·04C — INSULATION SENSITIVITY SWEEP · HOT WEEK</div>

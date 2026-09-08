@@ -1186,3 +1186,23 @@ body { overflow-x: clip; }
                             display: inline-block; }
 #sec10 #trendNote { font-style: italic; opacity: 0.85; }
 #sec10 .metrics { margin: 14px 0 6px; }
+
+/* ---------------- SEC/04 plain-language verdict ---------------- */
+/* The charts are correct but slow to read; this states the conclusion. */
+.verdict {
+  display: none; margin: 14px 0 4px; padding: 12px 16px;
+  border-left: 4px solid var(--mut); background: var(--m2);
+  font-size: 0.86rem; line-height: 1.6;
+}
+.verdict.good { display: block; border-left-color: var(--okc, #5fd08a); }
+.verdict.warn { display: block; border-left-color: var(--saff, #ff9933); }
+.verdict.bad  { display: block; border-left-color: var(--red, #e2564a); }
+/* direct child only: the detail line has inline <b> highlights inside a span */
+.verdict > b { display: block; font-size: 0.98rem; margin-bottom: 4px; }
+.verdict span b { color: inherit; font-weight: 700; }
+.verdict span { color: var(--mut); font-family: var(--mono); font-size: 0.72rem;
+                letter-spacing: 0.3px; }
+.verdict.good > b { color: var(--okc, #5fd08a); }
+.verdict.warn > b { color: var(--saff, #ff9933); }
+.verdict.bad  > b { color: var(--red, #e2564a); }
+.chart-legend-note { margin: 6px 12px 12px; font-size: 0.72rem; line-height: 1.65; }

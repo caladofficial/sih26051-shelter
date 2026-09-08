@@ -361,8 +361,15 @@ class Store:
                 row["data_status"] = data_status
             rows.append(row)
         if self._rest:
-            for i in range(0, len(rows), 500):
-                batch = rows[i:i + 500]
+            # Batch size matters far more than it looks: writing a year of
+            # hourly weather in 500-row chunks is 18 round trips to Supabase,
+            # which from a Vercel function in another region dominated the
+            # whole request (7.3 s of a ~15 s first-visit response). 5000-row
+            # chunks do it in two (2.0 s) with a payload PostgREST accepts
+            # comfortably.
+            batch_size = int(os.getenv("SUPABASE_WRITE_BATCH", "5000"))
+            for i in range(0, len(rows), batch_size):
+                batch = rows[i:i + batch_size]
                 written = self._pg(
                     "POST", "weather",
                     params={"on_conflict": "location_id,ts_utc"},

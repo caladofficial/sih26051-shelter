@@ -617,6 +617,24 @@ def locations():
         })
         known.add(key)
 
+    # The dropdown lists CURATED sites only. Every custom pin (and every
+    # "detect my location" hit) is cached as a locations row so its weather
+    # can be reused — but those are one user's ad-hoc coordinates, not part of
+    # the project's reference set, and letting them accumulate turned a 15-site
+    # selector into a 22-and-growing list of "Custom location" entries for
+    # everybody. Curated = the multi-year archive plus the preset library.
+    curated = {n.strip().lower()
+               for n in climate_archive.load_index().get("sites", {})}
+    try:
+        curated |= {n.strip().lower() for n in
+                    json.loads(PRESETS_FILE.read_text(encoding="utf-8"))
+                    .get("sites", {})}
+    except Exception:                                       # noqa: BLE001
+        pass
+    if curated:
+        rows = [r for r in rows
+                if str(r.get("name", "")).strip().lower() in curated]
+
     out = _pick_locations(rows)
     out.sort(key=lambda r: r.get("name", ""))
     if out:
