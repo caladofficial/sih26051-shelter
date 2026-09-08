@@ -1423,6 +1423,24 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
     document.querySelectorAll(".nlp-eg").forEach((b) =>
       b.addEventListener("click", () => runNlp(b.textContent.trim())));
+
+    /* Hero ask-bar: the same assistant, reachable without scrolling past ten
+       other sections. It delegates to runNlp() rather than duplicating it, so
+       there is exactly one code path and one place results can appear. */
+    const heroAsk = $("heroAsk");
+    const heroGo = (t) => {
+      const text = (t || (heroAsk && heroAsk.value) || "").trim();
+      if (!text) { toast("Describe what you need first", true); return; }
+      const sec = document.getElementById("sec11");
+      if (sec) sec.scrollIntoView({ behavior: "smooth", block: "start" });
+      runNlp(text);
+    };
+    if (heroAsk) {
+      $("heroAskBtn").addEventListener("click", () => heroGo());
+      heroAsk.addEventListener("keydown", (e) => { if (e.key === "Enter") heroGo(); });
+      document.querySelectorAll(".askbar-eg .eg").forEach((b) =>
+        b.addEventListener("click", () => { heroAsk.value = b.textContent.trim(); heroGo(); }));
+    }
     $("nlpApply").addEventListener("click", applyNlpDesign);
     loadNlpInfo();
   }

@@ -1232,3 +1232,71 @@ body { overflow-x: clip; }
 .nlp-understood { display: flex; gap: 7px; flex-wrap: wrap; margin: 14px 0 6px; }
 #sec11 .rec-table td { font-size: 0.76rem; }
 #sec11 .rec-table td.k { color: var(--mut); }
+
+
+/* ---------------- hero ask-bar (plain-English entry point) ----------------
+   The assistant is SEC/11 of 11. Nobody scrolls that far on a first visit, so
+   the same input is surfaced at the top of the console where the eye lands. */
+.askbar {
+  margin: 22px auto 6px; max-width: 780px; text-align: left;
+  background: var(--m2); border: 1px solid var(--line);
+  border-left: 3px solid var(--saff); padding: 14px 16px 12px;
+  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px),
+                     calc(100% - 6px) 100%, 0 100%, 0 6px);
+}
+.askbar-label {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--mono); font-size: 0.68rem; letter-spacing: 1.4px;
+  text-transform: uppercase; color: var(--mut); margin-bottom: 9px;
+}
+.askbar-badge {
+  background: var(--saff); color: #12161a; font-weight: 700;
+  font-size: 0.55rem; letter-spacing: 1px; padding: 2px 6px;
+}
+.askbar-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.askbar-row input {
+  flex: 1 1 320px; min-width: 0; padding: 11px 13px;
+  font-family: inherit; font-size: 0.92rem;
+  background: var(--panel); color: var(--fg);
+  border: 1px solid var(--line);
+}
+.askbar-row input:focus {
+  outline: none; border-color: var(--saff);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--saff) 25%, transparent);
+}
+.askbar-row button { flex: 0 0 auto; }
+.askbar-eg {
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+  margin-top: 10px; font-family: var(--mono); font-size: 0.62rem;
+  letter-spacing: 1px; text-transform: uppercase; color: var(--dim);
+}
+.askbar-eg .eg {
+  background: transparent; color: var(--mut); cursor: pointer;
+  border: 1px dashed var(--line); padding: 4px 8px;
+  font-family: var(--mono); font-size: 0.6rem; text-transform: none;
+  letter-spacing: 0.3px;
+}
+.askbar-eg .eg:hover { color: var(--saff); border-color: var(--saff); }
+.askbar-note {
+  margin: 10px 0 0; font-size: 0.72rem; line-height: 1.6; color: var(--mut);
+}
+/* make the nav entry read as an action, not a noun */
+.nav-ask { color: var(--saff) !important; }
+
+
+/* The landing page also uses .hero, and its rule (display:flex, centred,
+   100svh) sits LATER in this stylesheet, so it was silently winning on the
+   dashboard too — the console hero has been laying its title, blurb and
+   stat strip out as one flex row. Give the dashboard hero its own class and
+   put it back to normal block flow. */
+.dash-hero {
+  display: block; min-height: 0; overflow: visible;
+  align-items: initial; justify-content: initial;
+}
+.dash-hero .askbar { margin-left: 0; }
+
+.hero-say {
+  max-width: 640px; margin: 0 auto 22px; color: var(--mut);
+  font-size: clamp(0.82rem, 1.6vw, 0.95rem); line-height: 1.7;
+}
+.hero-say b { color: var(--saff); }

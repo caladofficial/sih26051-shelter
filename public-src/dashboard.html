@@ -85,13 +85,39 @@
   </div>
 
   <!-- ============ HERO ============ -->
-  <section class="hero">
+  <section class="hero dash-hero">
     <p class="kicker">Command Deck · Design &amp; Analysis Console</p>
     <h1>Tactical Shelter<br /><span class="thin">Thermal Design System</span></h1>
     <div class="rule"><i></i><i></i><i></i></div>
     <p class="sub">Defence-grade, area-specific passive shelter design — site climate intake,
     <b>RC thermal core</b> (validated against EnergyPlus), parametric <b>design</b>,
     <b>simulation</b> and <b>Optuna optimization</b> for extreme-zone field comfort.</p>
+    <!-- Primary entry point. The assistant used to live only at SEC/11, at
+         the bottom of an eleven-section console, so nothing on the page told
+         a first-time user they could simply say what they wanted. -->
+    <div class="askbar">
+      <label class="askbar-label" for="heroAsk">
+        <span class="askbar-badge">NEW</span>
+        Describe the shelter you need — in plain English
+      </label>
+      <div class="askbar-row">
+        <input id="heroAsk" type="text" autocomplete="off"
+               placeholder="e.g. a cool mud-brick shelter for a family of six in Jaipur, small north windows" />
+        <button id="heroAskBtn" class="primary" type="button">✦ DESIGN IT</button>
+      </div>
+      <div class="askbar-eg">
+        <span>Try:</span>
+        <button type="button" class="eg">we need somewhere for a family of six to sleep in Leh through winter</button>
+        <button type="button" class="eg">cyclone resistant shelter for the Chennai coast</button>
+        <button type="button" class="eg">cheap rapid shelter for Kolkata after the floods</button>
+      </div>
+      <p class="askbar-note">The assistant reads your words, starts from the
+        engine-backed prescription for that climate, applies what you asked for,
+        then <b>runs the real thermal simulation</b>. Every number it shows is
+        engine output. You can keep refining — "make it bigger", "more
+        ventilation" — and it builds on what it just designed.</p>
+    </div>
+
     <div class="statstrip">
       <span>SIMULATIONS <b id="stSims">—</b></span>
       <span>OPTIMIZATIONS <b id="stOpts">—</b></span>
@@ -113,7 +139,7 @@
     <a href="#sec8"><b>08</b>Presets</a>
     <a href="#sec9"><b>09</b>AI</a>
     <a href="#sec10"><b>10</b>Trends</a>
-    <a href="#sec11"><b>11</b>Assistant</a>
+    <a href="#sec11" class="nav-ask"><b>11</b>Describe It</a>
     <a href="index.html">HOME</a>
   </nav>
 
@@ -678,7 +704,7 @@
     <section class="module" id="sec11">
       <div class="mod-head">
         <span class="sec">SEC/11</span>
-        <h2>Design Assistant</h2>
+        <h2>Describe It · Design Assistant</h2>
         <span class="code">NLP: <span id="nlpModelTag" class="tag">—</span></span>
       </div>
       <div class="loc-profile">

@@ -85,7 +85,7 @@ function check(name, ok, extra) {
     presets: document.getElementById('offPresets').textContent,
     samples: document.getElementById('offSamples').textContent,
   }));
-  check('offline: modal facts populated', facts.sites === '15' && facts.mats === '15' && facts.presets === '18' && /4[05],?000/.test(facts.samples), JSON.stringify(facts));
+  check('offline: modal facts populated', facts.sites === '15' && facts.mats === '15' && facts.presets === '18' && /(?:45|90),?000/.test(facts.samples), JSON.stringify(facts));
 
   const dlPromise = page.waitForEvent('download', { timeout: 60000 });
   await page.click('#offAsGuest');
