@@ -207,6 +207,18 @@ def _period_year(period) -> int:
     return int(period)
 
 
+#: Small LRU of hourly frames, scoped to one warm serverless instance.
+_WEATHER_MEMO: dict = {}
+_WEATHER_MEMO_MAX = 6
+
+
+def _memo(key, df, source, report):
+    if len(_WEATHER_MEMO) >= _WEATHER_MEMO_MAX:
+        _WEATHER_MEMO.pop(next(iter(_WEATHER_MEMO)))
+    _WEATHER_MEMO[key] = (df, source, report)
+    return df.copy(), source, report
+
+
 def get_weather_cached(lat: float, lon: float, year: int, timezone: str,
                        force_refresh: bool = False, period=None):
     """Hourly weather for a site and analysis period.
@@ -221,10 +233,35 @@ def get_weather_cached(lat: float, lon: float, year: int, timezone: str,
     Returns (df, source, validation_report) with a site-local tz index.
     """
     period = resolve_period(year, period)
-    location_id = f"loc_{abs(lat):.4f}_{abs(lon):.4f}"
     site = climate_archive.site_for(lat, lon)
+
+    # Snap a nearby coordinate onto the canonical site's location_id.
+    #
+    # The 502 on custom coordinates is fixed, but a point a few km off a city
+    # centre still keyed Supabase by its RAW lat/lon — a key nothing was ever
+    # stored under — so the first "detect my location" call still paid a full
+    # live fetch (~14 s) before caching itself. Since site_for() has already
+    # decided this point IS Prayagraj, read the 23,544 rows already held for
+    # Prayagraj. Also stops a near-duplicate locations row being written per
+    # distinct pin (the cause of the duplicate Leh/Dras/Kargil/Jaisalmer rows).
+    if site:
+        _m = climate_archive.load_index()["sites"][site]
+        location_id = (f"loc_{abs(float(_m['latitude'])):.4f}"
+                       f"_{abs(float(_m['longitude'])):.4f}")
+    else:
+        location_id = f"loc_{abs(lat):.4f}_{abs(lon):.4f}"
+
     start_utc, end_utc, _label = climate_archive.window_bounds(period, site)
     rolling = period == "latest"
+
+    # In-process memo: one page load fires simulate + sweep + profile + AI and
+    # each re-pulled ~8,760 rows across the network. Keyed by resolved
+    # id+period+tz so it can never serve one site's weather for another.
+    memo_key = (location_id, str(period), timezone)
+    if not force_refresh:
+        _hit = _WEATHER_MEMO.get(memo_key)
+        if _hit is not None:
+            return _hit[0].copy(), _hit[1], _hit[2]
 
     if not force_refresh:
         # -- tier 1: Supabase -------------------------------------------
@@ -246,7 +283,7 @@ def get_weather_cached(lat: float, lon: float, year: int, timezone: str,
                     # on the LOCAL year (POWER LST => :30-offset local stamps)
                     cached = cached[cached.index.year == period]
                 if len(cached) > 8000:
-                    return cached, "supabase-cache", None
+                    return _memo(memo_key, cached, "supabase-cache", None)
         except Exception:
             pass
 
@@ -259,7 +296,7 @@ def get_weather_cached(lat: float, lon: float, year: int, timezone: str,
                     if len(sub) > 8000:
                         sub = sub.copy()
                         sub.index = sub.index.tz_convert(timezone)
-                        return sub, "archive-open-meteo", None
+                        return _memo(memo_key, sub, "archive-open-meteo", None)
             except Exception:
                 pass
 
