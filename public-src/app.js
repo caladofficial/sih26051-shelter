@@ -451,10 +451,13 @@ async function runNlp(textOverride) {
         lon: sel ? parseFloat(sel.dataset.lon) : undefined,
         climate_period: climatePeriod(),
         simulate: true,
+        // carry the previous turn's design so follow-ups refine it instead
+        // of restarting: "make it bigger" only means something in context
+        context_design: state.nlpDesign || undefined,
       }),
     });
     stopProgress();
-    renderNlp(j);
+    renderNlp(j);   // renderNlp already stores j.design on state.nlpDesign
     st.textContent = j.actionable
       ? `understood as ${j.understood.intent} · ${Math.round(j.understood.confidence * 100)}% confident`
       : "not actionable";

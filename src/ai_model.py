@@ -44,6 +44,13 @@ DESIGN_FEATURES = [
     "roof_r", "roof_mass_kg_m2", "roof_abs",
     "ins_r", "win_area_m2", "win_u_w_m2k", "win_shgc",
     "orient_sin", "orient_cos",
+    # v3 — ventilation and roof geometry.
+    # ua_vent_w_k is the term that actually appears in the RC energy balance
+    # (rho*cp*V*ach/3600). Handing the model raw `ach` made it re-derive that
+    # product from height/length/width through tree splits; giving it the
+    # physical quantity directly is the same trick already used for wall_r
+    # and wall_mass rather than raw thickness.
+    "ach", "ua_vent_w_k", "log_ach", "roof_pitch_deg", "roof_area_factor",
 ]
 FEATURES = SITE_FEATURES + DESIGN_FEATURES
 
@@ -121,6 +128,12 @@ WIDTHS = [3.0]
 HEIGHTS = [2.6]
 
 
+#: air changes per hour — 0.5 sealed .. 10 fully cross-ventilated
+ACH_CHOICES = (0.5, 1.0, 2.0, 3.0, 4.0, 6.0, 8.0, 10.0)
+#: 0 = flat (the historical geometry), up to a steep shed roof
+ROOF_PITCHES = (0.0, 0.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0)
+
+
 def sample_design(rng: np.random.Generator) -> dict:
     """Draw one random flat-schema design from the training space."""
     wall_mat = rng.choice(list(WALL_CHOICES))
@@ -145,6 +158,11 @@ def sample_design(rng: np.random.Generator) -> dict:
         "window_sill_m": 0.9,
         "window_shgc": float(rng.choice(WINDOW_SHGC)),
         "window_u_w_m2k": float(rng.choice(WINDOW_U)),
+        # v3: ventilation and roof pitch. Both are real engine inputs the
+        # surrogate previously could not see — a user changing either watched
+        # the verified run move while the instant AI estimate stood still.
+        "ach": float(rng.choice(ACH_CHOICES)),
+        "roof_pitch_deg": float(rng.choice(ROOF_PITCHES)),
     }
 
 
@@ -213,6 +231,20 @@ def build_features(design: dict, profile: dict, mats: pd.DataFrame) -> list[floa
         float(design.get("window_shgc", 0.82)),
         math.sin(rad),
         math.cos(rad),
+        float(design.get("ach", 2.0) or 2.0),
+        # ventilation conductance W/K — RHO_AIR * CP_AIR * volume * ach / 3600
+        (1.2 * 1005.0
+         * float(design.get("length_m", 3.0)) * float(design.get("width_m", 3.0))
+         * float(design.get("height_m", 2.6))
+         * float(design.get("ach", 2.0) or 2.0) / 3600.0),
+        # the indoor/outdoor coupling saturates with ach, so the log is the
+        # scale on which the effect is closer to linear
+        math.log1p(float(design.get("ach", 2.0) or 2.0)),
+        float(design.get("roof_pitch_deg", 0.0) or 0.0),
+        # 1/cos(theta): how much MORE roof there is than footprint — the term
+        # that actually drives the extra conduction and solar collection
+        1.0 / math.cos(math.radians(
+            max(0.0, min(float(design.get("roof_pitch_deg", 0.0) or 0.0), 60.0)))),
     ]
     assert len(f) == len(FEATURES), (len(f), len(FEATURES))
     return f

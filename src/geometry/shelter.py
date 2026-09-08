@@ -5,6 +5,7 @@ normal points (in the shelter's rotated frame). With orientation_deg = 0 the
 "front" wall faces south (normal azimuth 180 deg). orientation_deg rotates the
 whole shelter clockwise (viewed from above).
 """
+import math
 from dataclasses import dataclass, field
 
 
@@ -49,6 +50,22 @@ class Shelter:
     door: DoorSpec | None = None
     insulation_material: str = "none"
     insulation_thickness_m: float = 0.0
+    #: Roof pitch. 0 = flat, which reproduces the previous geometry EXACTLY
+    #: (area L*W, tilt 0) so every existing design and the EnergyPlus
+    #: validation are untouched. A mono-pitch (shed) roof is modelled: the
+    #: plane rises across the LENGTH axis, from the south wall to the north.
+    roof_pitch_deg: float = 0.0
+    #: Azimuth the roof plane faces when pitched (180 = south).
+    roof_azimuth_deg: float = 180.0
+
+    @property
+    def _pitch_rad(self) -> float:
+        return math.radians(max(0.0, min(float(self.roof_pitch_deg), 60.0)))
+
+    @property
+    def roof_rise_m(self) -> float:
+        """Height gained across the length axis by the pitch."""
+        return self.length_m * math.tan(self._pitch_rad)
 
     def _wall_areas(self) -> dict:
         """area per wall: front/back walls are `width` wide, side walls `length`."""
@@ -78,6 +95,15 @@ class Shelter:
               "east": (self.wall_material, self.wall_thickness_m),
               "west": (self.wall_material, self.wall_thickness_m)}
         for wall, area in wall_areas.items():
+            # close the envelope under a pitched roof: the north (high) wall
+            # gains a full rectangle of the rise, and the two walls running
+            # along the slope gain a triangle each
+            if self._pitch_rad > 0:
+                rise = self.roof_rise_m
+                if wall == "north":
+                    area += self.width_m * rise
+                elif wall in ("east", "west"):
+                    area += 0.5 * self.length_m * rise
             mat, thick = op[wall]
             layers = [(mat, thick)]
             if self.insulation_material != "none" and self.insulation_thickness_m > 0:
@@ -111,10 +137,15 @@ class Shelter:
                     "tilt_deg": 90.0,
                     "layers": [(self.wall_material, self.wall_thickness_m)],
                 })
+        # A pitched plane is longer than its footprint by 1/cos(theta), and it
+        # sees the sun at that tilt instead of horizontally — both matter, so
+        # both are modelled rather than approximated away.
+        _pitch = self._pitch_rad
         surfaces.append({
             "name": "roof", "type": "roof",
-            "area_m2": self.length_m * self.width_m, "azimuth_deg": 180.0,
-            "tilt_deg": 0.0,
+            "area_m2": self.length_m * self.width_m / math.cos(_pitch),
+            "azimuth_deg": (self.roof_azimuth_deg if _pitch > 0 else 180.0),
+            "tilt_deg": math.degrees(_pitch),
             "layers": [(self.roof_material, self.roof_thickness_m)]
                       + ([(self.insulation_material, self.insulation_thickness_m)]
                          if self.insulation_material != "none" and self.insulation_thickness_m > 0
@@ -130,7 +161,9 @@ class Shelter:
 
     @property
     def volume_m3(self) -> float:
-        return self.length_m * self.width_m * self.height_m
+        # prism under a mono-pitch: triangular section (length x rise) / 2
+        return (self.length_m * self.width_m * self.height_m
+                + 0.5 * self.length_m * self.roof_rise_m * self.width_m)
 
     def summary(self) -> dict:
         s = self.surfaces()

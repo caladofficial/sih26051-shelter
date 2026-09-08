@@ -74,6 +74,8 @@ def _build_shelter(cfg: dict) -> Shelter:
         orientation_deg=sh["orientation_deg"],
         wall_material=sh["wall_material"], wall_thickness_m=sh["wall_thickness_m"],
         roof_material=sh["roof_material"], roof_thickness_m=sh["roof_thickness_m"],
+        roof_pitch_deg=float(sh.get("roof_pitch_deg", 0.0) or 0.0),
+        roof_azimuth_deg=float(sh.get("roof_azimuth_deg", 180.0) or 180.0),
         floor_material=sh["floor_material"], floor_thickness_m=sh["floor_thickness_m"],
         window=None if sh.get("window") is None else _win(sh["window"]),
         door=None if sh.get("door") is None else _door(sh["door"]),

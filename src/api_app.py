@@ -134,6 +134,7 @@ class SimulateRequest(BaseModel):
     wall_thickness_m: float | None = None
     roof_material: str | None = None
     roof_thickness_m: float | None = None
+    roof_pitch_deg: float | None = None
     insulation_material: str | None = None
     insulation_thickness_m: float | None = None
     window_wall: str | None = None
@@ -358,7 +359,7 @@ def _design_from_request(req: SimulateRequest) -> dict:
     design = {}
     for field in ("orientation_deg", "length_m", "width_m", "height_m",
                   "wall_material", "wall_thickness_m", "roof_material",
-                  "roof_thickness_m", "insulation_material",
+                  "roof_thickness_m", "roof_pitch_deg", "insulation_material",
                   "insulation_thickness_m", "window_wall", "window_width_m",
                   "window_height_m", "window_shgc", "window_u_w_m2k",
                   "ach"):
@@ -441,6 +442,7 @@ def _flat_design(cfg: dict) -> dict:
         "wall_thickness_m": s["wall_thickness_m"],
         "roof_material": s["roof_material"],
         "roof_thickness_m": s["roof_thickness_m"],
+        "roof_pitch_deg": s.get("roof_pitch_deg", 0.0),
         "floor_material": s.get("floor_material", "concrete"),
         "floor_thickness_m": s.get("floor_thickness_m", 0.1),
         "insulation_material": s["insulation"]["material"],
@@ -451,6 +453,10 @@ def _flat_design(cfg: dict) -> dict:
         "window_sill_m": s["window"].get("sill_height_m", 0.9),
         "window_shgc": s["window"].get("shgc", 0.82),
         "window_u_w_m2k": s["window"].get("u_w_m2k", 5.8),
+        # ventilation belongs in the design, not only in cfg["simulation"]:
+        # without it here, context_design filtering dropped ach between
+        # conversation turns and "more ventilation" had nothing to scale
+        "ach": cfg["simulation"].get("ventilation_ach", 2.0),
     }
 
 
@@ -492,7 +498,8 @@ def _design_report(flat: dict, mat: dict, comps: list[dict]) -> str:
     a(f"|---|---|")
     for k in ("length_m", "width_m", "height_m", "orientation_deg",
               "wall_material", "wall_thickness_m", "roof_material",
-              "roof_thickness_m", "floor_material", "floor_thickness_m",
+              "roof_thickness_m", "roof_pitch_deg",
+              "floor_material", "floor_thickness_m",
               "insulation_material", "insulation_thickness_m",
               "window_wall", "window_width_m", "window_height_m",
               "window_sill_m", "window_shgc", "window_u_w_m2k"):
@@ -548,7 +555,7 @@ def _design_from_flat(flat: dict) -> dict:
     return {k: v for k, v in flat.items()
             if k in ("orientation_deg", "length_m", "width_m", "height_m",
                      "wall_material", "wall_thickness_m", "roof_material",
-                     "roof_thickness_m", "insulation_material",
+                     "roof_thickness_m", "roof_pitch_deg", "insulation_material",
                      "insulation_thickness_m", "window_wall",
                      "window_width_m", "window_height_m", "window_shgc")}
 
@@ -1786,6 +1793,10 @@ class NLPRequest(BaseModel):
     timezone: str | None = None
     climate_period: str | None = None
     simulate: bool = True          # verify the proposal with the real engine
+    #: The design from the previous turn. Supplying it turns single-shot
+    #: parsing into a conversation: "make it bigger" refines what is already
+    #: on screen instead of silently restarting from the zone prescription.
+    context_design: dict | None = None
 
 
 #: below this the parse is reported as uncertain rather than acted on silently
@@ -1879,21 +1890,43 @@ def nlp_design_endpoint(req: NLPRequest):
     profile = _location_profile(weather, lat, lon)
 
     # start from the engine-backed prescription for this climate zone, then
-    # let anything the user actually said override it
+    # let anything the user actually said override it. If the caller passed
+    # the previous turn's design, continue from THAT instead — otherwise
+    # "make it bigger" would silently reset every other choice.
     base = _flat_design(CFG)
-    rec = _recommend_design(profile, mats, base)
-    design = dict(base)
-    design.update({k: v for k, v in (rec.get("design") or {}).items()
-                   if v is not None})
+    # Only CONTINUE when the user is actually refining. A fresh "design a
+    # stone hut for Leh" must start from Leh's zone prescription, not inherit
+    # whatever was on screen — otherwise the previous site's materials leak
+    # into an unrelated request.
+    # A relative change ("make it bigger") is meaningless without context, so
+    # it always continues. Otherwise continue only for a modify that does NOT
+    # name a new site: "now design a tin shed for Chennai" reads as modify to
+    # the classifier, but naming a site means a fresh brief — inheriting the
+    # previous envelope there would silently carry Leh's stone walls to the
+    # coast.
+    continued = bool(req.context_design) and (
+        bool(slots.get("relative"))
+        or (intent == "modify" and "site" not in slots))
+    if continued:
+        design = dict(base)
+        design.update({k: v for k, v in req.context_design.items()
+                       if k in base and v is not None})
+    else:
+        rec = _recommend_design(profile, mats, base)
+        design = dict(base)
+        design.update({k: v for k, v in (rec.get("design") or {}).items()
+                       if v is not None})
 
     applied, ignored = [], []
+    if continued:
+        applied.append("continuing from your previous design")
     for key in ("wall_material", "roof_material", "insulation_material",
                 "wall_thickness_m", "roof_thickness_m",
                 "insulation_thickness_m", "length_m", "width_m", "height_m",
                 "window_wall", "orientation_deg",
                 # ach is a real engine input; window size lets "no windows"
                 # and "large windows" actually change the physics
-                "ach", "window_width_m", "window_height_m"):
+                "ach", "window_width_m", "window_height_m", "roof_pitch_deg"):
         if key not in slots:
             continue
         val = slots[key]
@@ -1903,6 +1936,26 @@ def nlp_design_endpoint(req: NLPRequest):
             continue
         design[key] = val
         applied.append(f"{key} = {val}")
+
+    # ---- relative changes ("make it bigger") ------------------------------
+    rel = slots.get("relative") or {}
+    if rel and not req.context_design:
+        ignored.append("relative changes like 'bigger' need a previous design "
+                       "to modify — send context_design, or state the value")
+    for key, factor in (rel.items() if req.context_design else []):
+        if key == "size":
+            for dim in ("length_m", "width_m"):
+                design[dim] = round(min(max(float(design[dim]) * factor, 2.0), 12.0), 2)
+            applied.append(f"size x{factor} → {design['length_m']} x {design['width_m']} m")
+            continue
+        cur = design.get(key)
+        if cur is None:
+            continue
+        limits = {"wall_thickness_m": (0.05, 0.6), "insulation_thickness_m": (0.0, 0.3),
+                  "height_m": (2.0, 4.5), "ach": (0.3, 12.0)}
+        lo, hi = limits.get(key, (0.0, 1e9))
+        design[key] = round(min(max(float(cur) * factor, lo), hi), 3)
+        applied.append(f"{key} x{factor} → {design[key]}")
 
     # ---- hazards: reuse the engine-verified preset built for them --------
     # The library already contains a Cyclone-Resilient Coastal Shell and a

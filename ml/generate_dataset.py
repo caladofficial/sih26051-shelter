@@ -67,7 +67,7 @@ ROW_COLS = [
     "wall_material", "wall_thickness_m", "roof_material", "roof_thickness_m",
     "insulation_material", "insulation_thickness_m",
     "window_wall", "window_width_m", "window_height_m",
-    "window_shgc", "window_u_w_m2k",
+    "window_shgc", "window_u_w_m2k", "ach", "roof_pitch_deg",
 ] + [
     "hot_mean_c", "hot_max_c", "hot_comfort_fraction",
     "cold_min_c", "cold_mean_c", "cold_comfort_fraction",
@@ -123,6 +123,7 @@ def generate_site(site, n_designs, profile, mats):
             d["insulation_material"], d["insulation_thickness_m"],
             d["window_wall"], d["window_width_m"], d["window_height_m"],
             d["window_shgc"], d["window_u_w_m2k"],
+            d["ach"], d["roof_pitch_deg"],
             hm, hx, hcf, cm, cmean, ccf,
         ])
         if (i + 1) % 200 == 0:

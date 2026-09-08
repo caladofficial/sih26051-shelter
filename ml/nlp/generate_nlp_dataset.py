@@ -65,6 +65,14 @@ MODIFY_VERBS = ["make", "change", "increase", "decrease", "reduce", "raise",
                 "lower", "swap", "replace", "set", "adjust", "add", "remove",
                 "use", "switch to", "bump up", "thicken", "thin out"]
 
+OPTIMIZE_EXTRA = ["search the design space", "explore the design space",
+                  "what is the optimal", "what's the optimal",
+                  "find the optimal", "work out the optimal",
+                  "sweep the options", "try every combination",
+                  "tune it for", "solve for the best"]
+SWAP_VERBS = ["swap the", "replace the", "switch the", "change the",
+              "substitute the"]
+
 OPTIMIZE_WORDS = ["optimize", "optimise", "find the best", "best possible",
                   "tune", "search for the optimal", "what is the optimal",
                   "give me the best", "maximise comfort", "minimise heat",
@@ -376,11 +384,40 @@ def gen_design_bare(rng) -> str:
     return s
 
 
+def gen_optimize_extra(rng) -> str:
+    """'search the design space', 'what is the optimal wall thickness'.
+
+    These read as questions or commands with no optimise/best keyword, so
+    they were landing in design/modify at ~0.5 confidence.
+    """
+    s = _p(rng, OPTIMIZE_EXTRA)
+    if "optimal" in s:
+        s += " " + _p(rng, ["wall thickness", "insulation thickness",
+                            "orientation", "window size", "roof material",
+                            "combination", "envelope"])
+    if rng.random() < 0.7:
+        s += " " + _p(rng, ["for", "in", "at"]) + " " + _p(rng, SITES)
+    return s
+
+
+def gen_modify_swap(rng) -> str:
+    """'swap the brick for rammed earth' — a replacement, not a new design."""
+    a, b = rng.sample(WALL_WORDS, 2)
+    verb = _p(rng, SWAP_VERBS)
+    joiner = _p(rng, [" for ", " with ", " to "])
+    s = f"{verb} {a}{joiner}{b}"
+    if rng.random() < 0.35:
+        s += " " + _p(rng, ["please", "instead", "this time"])
+    return s
+
+
 GENERATORS = {
     "design": _mix(gen_design, gen_design, gen_design_indirect,
                    gen_design_bare, gen_design_bare),
-    "modify": _mix(gen_modify, gen_modify_indirect, gen_modify_indirect),
-    "optimize": _mix(gen_optimize, gen_optimize_indirect),
+    "modify": _mix(gen_modify, gen_modify_indirect, gen_modify_indirect,
+                   gen_modify_swap),
+    "optimize": _mix(gen_optimize, gen_optimize_indirect, gen_optimize_extra,
+                     gen_optimize_extra),
     "explain": _mix(gen_explain, gen_explain_yesno),
     "compare": _mix(gen_compare, gen_compare_indirect, gen_compare_indirect),
     "unknown": _mix(gen_unknown, gen_unknown_extra),

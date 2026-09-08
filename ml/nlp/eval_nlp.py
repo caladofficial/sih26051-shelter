@@ -74,7 +74,48 @@ HELD_OUT = [
     ("what's for lunch", "unknown"),
     ("thanks that's great", "unknown"),
     ("nevermind", "unknown"),
+    # --- v3 additions: phrasings that previously failed, plus new ground ----
+    # verb-less noun phrases (these used to land in `explain`)
+    ("bamboo hut in Kolkata", "design"),
+    ("three by four metres unit in Pune", "design"),
+    ("CGI sheet roof over brick walls in Pune", "design"),
+    ("mud house Jaisalmer", "design"),
+    ("a 5x4 stone block for Kargil", "design"),
+    # hazard-led
+    ("needs to handle heavy snow load in Dras", "design"),
+    ("must withstand a cyclone on the Chennai coast", "design"),
+    ("something that can take the monsoon in Mumbai", "design"),
+    ("has to survive waterlogging in Kolkata", "design"),
+    # ventilation-led
+    ("shelter with cross ventilation for Chennai", "design"),
+    ("a well ventilated room in Hyderabad", "design"),
+    # relative / follow-up turns
+    ("make it bigger", "modify"),
+    ("add more insulation please", "modify"),
+    ("thinner walls this time", "modify"),
+    ("can you give it a taller ceiling", "modify"),
+    ("swap the roof to concrete", "modify"),
+    ("bump the insulation to 150mm", "modify"),
+    # optimisation phrasing
+    ("find me the best combination for Delhi", "optimize"),
+    ("what is the optimal wall thickness in Leh", "optimize"),
+    ("tune it for the lowest peak temperature", "optimize"),
+    # explain
+    ("is Chennai humid all year", "explain"),
+    ("what is the coldest month in Srinagar", "explain"),
+    ("tell me about the climate in Pune", "explain"),
+    ("how many hours go above 35 in Jaisalmer", "explain"),
+    # compare
+    ("brick versus rammed earth in Jaipur", "compare"),
+    ("which performs better, EPS or mineral wool", "compare"),
+    # out of scope / nonsense — must NOT be confidently designed
+    ("what is the capital of France", "unknown"),
+    ("book me a flight to Delhi", "unknown"),
+    ("asdkjh qwe zxc", "unknown"),
 ]
+
+# (utterance, {slot: expected value}) — slot extraction is rule-based, so it
+# should be exactly right on these or honestly absent
 
 # (utterance, {slot: expected value}) — slot extraction is rule-based, so it
 # should be exactly right on these or honestly absent
@@ -91,6 +132,31 @@ SLOT_CASES = [
     ("shelter for 6 people in Dras, no insulation",
      {"site": "Dras", "occupants": 6, "insulation_material": "none"}),
     ("something for Bombay", {"site": "Mumbai"}),
+    # --- v3 slots: each of these used to extract nothing ---------------------
+    ("we need shelter for a family of six in Leh",
+     {"site": "Leh", "occupants": 6}),
+    ("three by four metres unit in Pune", {"length_m": 3.0, "width_m": 4.0}),
+    ("well ventilated shelter for Chennai", {"site": "Chennai", "ach": 6.0}),
+    ("sealed airtight cabin in Leh", {"site": "Leh", "ach": 0.5}),
+    ("cyclone resistant shelter for Chennai", {"hazards": ["cyclone"]}),
+    ("cheap shelter for Kolkata after the floods", {"hazards": ["flood"]}),
+    ("needs to handle heavy snow load in Dras", {"hazards": ["snow"]}),
+    ("shelter with no windows for Leh", {"no_windows": True}),
+    ("large windows facing south in Delhi",
+     {"window_wall": "south", "window_width_m": 1.8}),
+    ("bamboo hut in Kolkata", {"unsupported_materials": ["bamboo"]}),
+    ("something for my village near Varanasi", {"unknown_place": "varanasi"}),
+    ("budget under 50000 rupees for Delhi", {"budget_mentioned": True}),
+    ("sloped roof for monsoon in Mumbai", {"roof_pitch_deg": 20.0}),
+    ("30 degree pitch roof in Leh", {"roof_pitch_deg": 30.0}),
+    ("flat roof shelter for Delhi", {"roof_pitch_deg": 0.0}),
+    ("a mud brick shelter for Jaipur with a sloped roof",
+     {"wall_material": "mud_brick", "roof_pitch_deg": 20.0}),
+    ("stone shelter with GI sheet roof in Leh",
+     {"wall_material": "stone", "roof_material": "gi_sheet"}),
+    ("make it bigger and add more insulation",
+     {"relative": {"size": 1.25, "insulation_thickness_m": 1.6}}),
+
     ("cheap rapid shelter for Calcutta",
      {"site": "Kolkata", "goals": ["low_cost", "rapid"]}),
 ]

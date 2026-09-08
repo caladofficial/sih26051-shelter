@@ -34,8 +34,11 @@ DATA_DIR = os.path.join(REPO, "ml", "data")
 MODEL_PATH = os.path.join(REPO, "src", "data", "ai_model.json")
 SEED = 26051
 
+# v3: the design space gained two dimensions (ventilation and roof pitch), so
+# the ensemble needs more capacity and the dataset more density — with 400
+# iterations on 45k samples every metric regressed against v2.
 GB_PARAMS = dict(
-    max_iter=400, learning_rate=0.06, max_depth=7,
+    max_iter=700, learning_rate=0.06, max_depth=8,
     l2_regularization=1.0, early_stopping=True,
     validation_fraction=0.1, n_iter_no_change=25, random_state=SEED,
 )
@@ -62,11 +65,26 @@ def load_dataset():
         "roof_material", "roof_thickness_m",
         "insulation_material", "insulation_thickness_m",
         "window_wall", "window_width_m", "window_height_m",
-        "window_shgc", "window_u_w_m2k")
+        "window_shgc", "window_u_w_m2k",
+        # MUST match the columns the generator writes. Omitting these meant
+        # every training row was encoded with the DEFAULT ventilation and a
+        # flat roof while its label came from the real varied value — the
+        # model was being asked to explain a 20x swing in air changes from
+        # features that never mentioned it. That, not the wider design space,
+        # is what quadrupled cold_mean_c error in v3.
+        "ach", "roof_pitch_deg")
     for _, r in df.iterrows():
         X.append(build_features({k: r[k] for k in design_keys},
                                 profiles[r["site"]], mats))
     X = np.asarray(X, dtype=np.float64)
+    # Any dataset column that is also a design input must be encoded, or the
+    # labels carry information the features cannot see.
+    from src.ai_model import sample_design as _sd
+    import numpy as _np
+    _known = set(_sd(_np.random.default_rng(0)))
+    _missing = sorted((_known & set(df.columns)) - set(design_keys))
+    assert not _missing, (f"dataset varies {_missing} but load_dataset() does "
+                          f"not pass them to build_features()")
     for t in TARGETS:
         Y[t] = df[t].to_numpy(dtype=np.float64)
     return X, Y, df["site"].to_numpy()
@@ -227,6 +245,25 @@ def main():
     os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
     with open(MODEL_PATH, "w") as fh:
         json.dump(model, fh)
+
+    # ---- post-write guard: re-read the ARTIFACT and score it -------------
+    # The in-memory guard above compares a dict that is still in RAM. It
+    # passed at 1e-7 while the file on disk scored 4x worse on cold_mean_c,
+    # so it was checking the wrong thing. Load the JSON back the way the API
+    # will and hold it to the metrics we just published.
+    import src.ai_model as _ai
+    _ai._MODEL = None                      # drop any cached copy
+    reloaded = _ai.load_model()
+    p_disk = _ai.predict_batch(X[te], model=reloaded)
+    bad = {}
+    for t in TARGETS:
+        disk_mae = float(np.mean(np.abs(p_disk[t] - Y[t][te])))
+        claimed = model["targets"][t].get("mae_c") or model["targets"][t].get("mae_fraction")
+        if claimed and disk_mae > claimed * 1.25 + 1e-6:
+            bad[t] = (round(disk_mae, 4), claimed)
+    assert not bad, (f"ON-DISK model does not match the published metrics "
+                     f"(target: (on_disk_mae, claimed)) -> {bad}")
+    print(f"[train] on-disk artifact verified against published metrics")
     print(f"[train] model -> {MODEL_PATH} "
           f"({os.path.getsize(MODEL_PATH) / 1024:.0f} KB)")
 

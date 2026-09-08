@@ -47,6 +47,8 @@ shelter:
   wall_thickness_m: 0.2
   roof_material: rcc_slab    # dense concrete
   roof_thickness_m: 0.12
+  roof_pitch_deg: 0.0        # 0 = flat (unchanged geometry); >0 = mono-pitch
+  roof_azimuth_deg: 180.0    # direction a pitched roof faces (180 = south)
   floor_material: concrete
   floor_thickness_m: 0.1
   insulation:                # added to walls + roof; "none" = no insulation

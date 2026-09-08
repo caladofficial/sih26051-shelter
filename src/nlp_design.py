@@ -267,8 +267,16 @@ def extract_slots(text: str) -> dict:
         if r:
             slots["roof_material"] = r
     if "wall_material" not in slots:
-        w, _ = _find_alias(t, WALL_ALIASES)
-        if w and not roof_ctx:
+        # Search with the roof phrase cut out, so the roof's material cannot
+        # be mistaken for the wall's and cannot mask it either. Previously any
+        # mention of a roof suppressed this fallback entirely, so "a mud brick
+        # shelter with a sloped roof" lost the mud brick, and "stone shelter
+        # with GI sheet roof" lost the stone.
+        t_no_roof = t
+        if roof_ctx:
+            t_no_roof = (t[:roof_ctx.start()] + " " + t[roof_ctx.end():])
+        w, _ = _find_alias(t_no_roof, WALL_ALIASES)
+        if w:
             slots["wall_material"] = w
 
     ins, _ = _find_alias(t, INS_ALIASES)
@@ -342,6 +350,43 @@ def extract_slots(text: str) -> dict:
             side = round(area ** 0.5, 1)
             slots.setdefault("length_m", min(side, 6.0))
             slots.setdefault("width_m", min(side, 6.0))
+
+    # ---- roof pitch -------------------------------------------------------
+    pitch = re.search(r"(\d{1,2})\s*(?:deg|degree)s?\s*(?:pitch|slope|roof)", t)
+    if not pitch:
+        pitch = re.search(r"(?:pitch|slope)\D{0,10}(\d{1,2})\s*(?:deg|degree)", t)
+    if pitch and 0 <= int(pitch.group(1)) <= 60:
+        slots["roof_pitch_deg"] = float(pitch.group(1))
+    elif re.search(r"\b(steep(?:ly)?\s+(?:pitched|sloped|sloping)|steep roof)\b", t):
+        slots["roof_pitch_deg"] = 30.0
+    elif re.search(r"\b(sloped?|sloping|pitched|gable|shed|angled)\s+roof\b", t) \
+            or re.search(r"\broof\s+(?:that\s+)?slopes?\b", t):
+        slots["roof_pitch_deg"] = 20.0
+    elif re.search(r"\bflat\s+roof\b", t):
+        slots["roof_pitch_deg"] = 0.0
+
+    # ---- relative changes ("make it bigger") — need a prior design ---------
+    # Meaningless on their own; the endpoint applies them to the design from
+    # the previous turn, so a conversation can refine instead of restarting.
+    rel = {}
+    for pat, key, factor in (
+        (r"\b(bigger|larger|roomier|more space)\b", "size", 1.25),
+        (r"\b(smaller|tighter|more compact)\b", "size", 0.8),
+        (r"\b(thicker|beefier)\s+(?:walls?)?", "wall_thickness_m", 1.4),
+        (r"\b(thinner)\s+(?:walls?)?", "wall_thickness_m", 0.7),
+        (r"\b(more insulation|better insulated|thicker insulation)\b",
+         "insulation_thickness_m", 1.6),
+        (r"\b(less insulation|thinner insulation)\b",
+         "insulation_thickness_m", 0.6),
+        (r"\b(taller|higher ceiling)\b", "height_m", 1.15),
+        (r"\b(lower ceiling|shorter)\b", "height_m", 0.9),
+        (r"\b(more ventilation|more airflow|draughtier)\b", "ach", 1.8),
+        (r"\b(less ventilation|tighter envelope)\b", "ach", 0.6),
+    ):
+        if re.search(pat, t):
+            rel[key] = factor
+    if rel:
+        slots["relative"] = rel
 
     # ---- ventilation -> air changes per hour (a real engine parameter) ----
     for phrase, ach in VENT_WORDS.items():
