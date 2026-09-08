@@ -167,6 +167,10 @@ def _loc(req: BaseModel) -> dict:
     }
 
 
+#: NASA POWER publishes with a multi-day lag; never request newer than this.
+POWER_LAG_DAYS = 7
+
+
 def resolve_period(year=None, period: str | None = None):
     """Normalise the analysis-period token used across the API.
 
@@ -262,12 +266,33 @@ def get_weather_cached(lat: float, lon: float, year: int, timezone: str,
         start_d = _dt.date(y, 1, 1)
         end_d = min(_dt.date(y, 12, 31), _dt.date.today())
 
-    power = nasa_power.hourly_to_dataframe(nasa_power.fetch_hourly(
-        lat, lon, start_d.strftime("%Y%m%d"), end_d.strftime("%Y%m%d")))
+    # Open-Meteo is the PRIMARY series for arbitrary coordinates. Two reasons:
+    # it is the same source as the multi-year archive (so a custom pin is
+    # directly comparable with a canonical site instead of carrying a silent
+    # source bias), and it publishes right up to the present, which the
+    # rolling "latest" window requires.
     om = openmeteo.fetch_hourly(lat, lon, start_d.isoformat(),
                                 end_d.isoformat(), timezone="UTC")
-    report = cross_check(power, om)
-    df = power.copy()
+
+    # NASA POWER stays the independent cross-check, but it lags several days.
+    # Asking it for the last week of a rolling window returns nothing but fill
+    # values, which is exactly what used to 502 every custom coordinate — the
+    # "detect my location" button included. Clamp the request to the range
+    # POWER can actually serve, and treat its absence as a missing validation
+    # report rather than a failed request.
+    report = None
+    power = None
+    power_end = min(end_d, _dt.date.today() - _dt.timedelta(days=POWER_LAG_DAYS))
+    if power_end > start_d:
+        try:
+            power = nasa_power.hourly_to_dataframe(nasa_power.fetch_hourly(
+                lat, lon, start_d.strftime("%Y%m%d"),
+                power_end.strftime("%Y%m%d")))
+            report = cross_check(power, om)
+        except Exception as exc:                          # noqa: BLE001
+            print(f"[api] POWER cross-check unavailable: {exc}")
+
+    df = om.copy()
     df.index = df.index.tz_convert(timezone)
     try:
         STORE.upsert_location({"location_id": location_id,
@@ -276,10 +301,13 @@ def get_weather_cached(lat: float, lon: float, year: int, timezone: str,
                                "latitude": lat, "longitude": lon,
                                "elevation_m": DEFAULT_LOCATION["elevation_m"],
                                "timezone": timezone})
-        STORE.save_weather(power, location_id)      # store in UTC
+        STORE.save_weather(om, location_id,             # store in UTC
+                           source="open-meteo-archive",
+                           data_status="historical_reanalysis")
     except Exception as exc:
         print(f"[api] weather cache write skipped: {exc}")
-    return df, "live-power+openmeteo", report
+    source = "live-openmeteo" + ("+power-checked" if report else "")
+    return df, source, report
 
 
 def _design_from_request(req: SimulateRequest) -> dict:

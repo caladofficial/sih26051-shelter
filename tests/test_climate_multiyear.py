@@ -257,3 +257,54 @@ def test_bundle_builder_refuses_to_clobber_with_empty(monkeypatch, tmp_path):
 
     assert bcb.main() == 1
     assert json.loads(good.read_text())["sites"], "good bundle was clobbered"
+
+
+# ---------------------------------------------- custom-coordinate live path
+# Regression: every coordinate outside the 15-site archive returned
+#   502 "float() argument must be a string or a real number, not 'NAType'"
+# which broke the "detect my location" button and any custom pin. Cause: the
+# rolling window asks NASA POWER for dates it structurally cannot have (it
+# lags days), POWER returns its -999 fill, and replace(-999, pd.NA) promoted
+# the whole column to object dtype.
+
+def test_power_fill_values_stay_numeric():
+    """pd.NA would make the column object dtype and break .astype(float)."""
+    import numpy as np
+    from src.data import nasa_power
+
+    class _Resp:
+        status_code = 200
+        @staticmethod
+        def json():
+            return {"geometry": {"coordinates": [79.0, 21.0]},
+                    "properties": {"parameter": {
+                        "T2M": {f"20260101{h:02d}": (-999.0 if h > 20 else 25.0)
+                                for h in range(24)}}}}
+
+    df = nasa_power.hourly_to_dataframe(_Resp())
+    assert df["t2m"].dtype == np.float64, f"got {df['t2m'].dtype}, not float64"
+    df["t2m"].astype(float)                      # must not raise
+    assert df["t2m"].isna().sum() == 3
+
+
+def test_cross_check_tolerates_missing_hours():
+    from src.data.climate import cross_check
+
+    idx = pd.date_range("2026-01-01", periods=200, freq="h", tz="UTC")
+    a = pd.DataFrame({"t2m": [20.0] * 150 + [None] * 50}, index=idx, dtype=object)
+    b = pd.DataFrame({"t2m": [21.0] * 200}, index=idx)
+    rep = cross_check(a, b)                      # must not raise
+    assert rep["t2m"]["n_hours"] == 150
+    assert abs(rep["t2m"]["bias_om_minus_power"] - 1.0) < 1e-9
+
+
+def test_power_request_is_clamped_to_what_power_can_serve():
+    """Never ask POWER for the last few days — that is all fill value."""
+    import inspect
+    from src import api_app
+
+    assert api_app.POWER_LAG_DAYS >= 3
+    src_txt = inspect.getsource(api_app.get_weather_cached)
+    assert "POWER_LAG_DAYS" in src_txt, "tier-3 must clamp the POWER range"
+    # and a POWER outage must not fail the request
+    assert "cross-check unavailable" in src_txt

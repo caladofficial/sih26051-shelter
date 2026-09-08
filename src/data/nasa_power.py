@@ -9,6 +9,7 @@ Docs:     https://power.larc.nasa.gov/docs/
 """
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import requests
 
@@ -97,7 +98,11 @@ def hourly_to_dataframe(resp: requests.Response) -> pd.DataFrame:
     if not series:
         raise ValueError("POWER response contained no parseable hourly series")
     df = pd.concat(series, axis=1).sort_index()
-    df = df.replace(-999.0, pd.NA)               # POWER fill value
+    # np.nan, NOT pd.NA: pd.NA promotes the column to object dtype, and every
+    # downstream .astype(float) then dies with "float() argument must be a
+    # string or a real number, not 'NAType'". np.nan keeps the column float64.
+    df = df.replace(-999.0, np.nan)              # POWER fill value
+    df = df.apply(pd.to_numeric, errors="coerce")
     if lon is not None:
         # timestamps are Local Standard Time: LST = UTC + longitude/15
         df.index = df.index.tz_localize("UTC") - pd.Timedelta(hours=lon / 15.0)

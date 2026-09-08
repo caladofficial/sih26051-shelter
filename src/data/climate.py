@@ -33,8 +33,10 @@ def cross_check(a: pd.DataFrame, b: pd.DataFrame) -> dict:
               if c in a.columns and c in b.columns]
     out = {}
     for col in shared:
-        x = a[col].astype(float)
-        y = b[col].astype(float)
+        # to_numeric(coerce), not astype(float): a source with missing hours
+        # (NASA POWER lags several days) can arrive as object dtype
+        x = pd.to_numeric(a[col], errors="coerce")
+        y = pd.to_numeric(b[col], errors="coerce")
         mask = x.notna() & y.notna()
         xm, ym = x[mask], y[mask]
         if len(xm) < 100:
