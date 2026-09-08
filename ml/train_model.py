@@ -27,7 +27,7 @@ sys.path.insert(0, REPO)
 
 from sklearn.ensemble import HistGradientBoostingRegressor  # noqa: E402
 
-from src.ai_model import FEATURES, TARGETS  # noqa: E402
+from src.ai_model import FEATURES, TARGETS, RESIDUAL_BASE  # noqa: E402
 from src.thermal.rc_model import load_materials  # noqa: E402
 
 DATA_DIR = os.path.join(REPO, "ml", "data")
@@ -109,18 +109,30 @@ def _export_trees(model) -> list[dict]:
 
 
 def train_target(name, y, X, tr, te, site_folds):
-    """site_folds: list of (site, X_tr, y_tr, X_te, y_te)."""
+    """site_folds: list of (site, X_tr, y_tr, X_te, y_te).
+
+    For residual targets the model learns (y - outdoor baseline); metrics are
+    still reported on the reconstructed ABSOLUTE value so they stay
+    comparable with v1 and honest about what the user sees.
+    """
     t0 = time.time()
+    base_feat = RESIDUAL_BASE.get(name)
+    bi = FEATURES.index(base_feat) if base_feat else None
+
+    # fit on the residual, but ALWAYS score against the absolute value the
+    # user is shown — otherwise R2 flatters itself on a smaller variance
+    y_fit = (y - X[:, bi]) if base_feat else y
     gb = HistGradientBoostingRegressor(**GB_PARAMS)
-    gb.fit(X[tr], y[tr])
-    p_te = gb.predict(X[te])
+    gb.fit(X[tr], y_fit[tr])
+    p_te = gb.predict(X[te]) + (X[te][:, bi] if base_feat else 0.0)
     mae, r2 = _mae_r2(y[te], p_te)
 
     site_maes = {}
     for site, X_tr, y_tr, X_te, y_te in site_folds:
         g2 = HistGradientBoostingRegressor(**GB_PARAMS)
-        g2.fit(X_tr, y_tr)
-        smae, _ = _mae_r2(y_te, g2.predict(X_te))
+        g2.fit(X_tr, (y_tr - X_tr[:, bi]) if base_feat else y_tr)
+        p_site = g2.predict(X_te) + (X_te[:, bi] if base_feat else 0.0)
+        smae, _ = _mae_r2(y_te, p_site)
         site_maes[site] = round(smae, 3)
 
     frac = name == "hot_comfort_fraction"
@@ -155,7 +167,10 @@ def main():
         mask = sites == site
         site_folds[site] = (X[~mask], None, X[mask], None)
 
-    model = {"schema_version": 1, "features": FEATURES, "targets": {},
+    # residual_base is TOP-LEVEL: predict_batch() reads it to add the outdoor
+    # baseline back, so it must sit beside "features", not inside "metadata".
+    model = {"schema_version": 2, "features": FEATURES, "targets": {},
+             "residual_base": RESIDUAL_BASE,
              "metrics": {}, "metadata": {}}
     for t in TARGETS:
         folds = [(s, Xf, Y[t][sites != s], Xt, Y[t][sites == s])
@@ -179,6 +194,7 @@ def main():
         "sites": sorted(set(sites)),
         "n_trees": GB_PARAMS["max_iter"],
         "targets": TARGETS,
+        "residual_base": RESIDUAL_BASE,
         "trained_on": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%MZ"),
         "disclaimer": "Estimates from a surrogate trained on the sourced "
                       "RC engine; the engine remains the source of truth.",
@@ -188,12 +204,19 @@ def main():
     # Runs BEFORE the model file is written so a drift can never leave a
     # silently-bad model on disk.
     from src.ai_model import predict_batch
-    chk = np.asarray([X[i] for i in rng.choice(te, size=400, replace=False)])
+    chk_idx = rng.choice(te, size=400, replace=False)
+    chk = np.asarray([X[i] for i in chk_idx])
     p_np = predict_batch(chk, model=model)
     worst = {}
     for t in TARGETS:
-        gb = HistGradientBoostingRegressor(**GB_PARAMS).fit(X[tr], Y[t][tr])
-        p_sk = gb.predict(chk)
+        # the reference must be trained on the SAME quantity the exported
+        # model learned (residual where applicable) and reconstructed the
+        # same way, or the guard compares two different things
+        bf = RESIDUAL_BASE.get(t)
+        bi = FEATURES.index(bf) if bf else None
+        y_fit = (Y[t] - X[:, bi]) if bf else Y[t]
+        gb = HistGradientBoostingRegressor(**GB_PARAMS).fit(X[tr], y_fit[tr])
+        p_sk = gb.predict(chk) + (chk[:, bi] if bf else 0.0)
         worst[t] = float(np.max(np.abs(p_np[t] - p_sk)))
     # HARD GUARD: if the export or the NumPy inference ever drifts from
     # sklearn beyond tolerance, refuse to produce a model file.

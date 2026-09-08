@@ -33,6 +33,10 @@ MODEL_FILE = Path(__file__).resolve().parent / "data" / "ai_model.json"
 SITE_FEATURES = [
     "t_hottest_month_c", "t_coldest_month_c", "diurnal_range_c",
     "rh_mean_pct", "cdd18", "hdd18", "ghi_mean_w_m2", "wind_mean_ms",
+    # v2: outdoor extremes + altitude. The targets are extremes, so a model
+    # given only monthly means had to memorise each site to predict them and
+    # could not transfer to an unseen one.
+    "t_min_c", "t_max_c", "elevation_m",
 ]
 DESIGN_FEATURES = [
     "length_m", "width_m", "height_m",
@@ -48,6 +52,26 @@ FEATURES = SITE_FEATURES + DESIGN_FEATURES
 # — Leh, Dras, Kargil and Srinagar are designed against the cold week.
 TARGETS = ["hot_mean_c", "hot_max_c", "hot_comfort_fraction",
            "cold_min_c", "cold_mean_c", "cold_comfort_fraction"]
+
+#: Physics-informed residual targets (v2).
+#:
+#: Indoor extremes track the OUTDOOR extreme plus an envelope-dependent
+#: offset. Fitting the absolute value made the trees span a 44.9 C range
+#: across sites, and gradient-boosted trees cannot extrapolate: a site colder
+#: than anything in training got clamped to the nearest leaf, which is why
+#: leave-one-site-out MAE for cold_min_c was 11.5 C on Srinagar even though
+#: the random holdout scored R2 = 1.0000.
+#:
+#: Fitting `indoor - outdoor` instead collapses that 44.9 C span to 2.5-13.4 C,
+#: and an unseen site's offset lands INSIDE the range other sites already
+#: cover — interpolation rather than extrapolation. The baseline is a feature
+#: the model already receives, so inference just adds it back.
+RESIDUAL_BASE = {
+    "cold_min_c": "t_min_c",
+    "cold_mean_c": "t_min_c",
+    "hot_max_c": "t_max_c",
+    "hot_mean_c": "t_max_c",
+}
 
 # --------------------------------------------------------------------------
 # design space used for dataset generation AND for the AI suggestion search
@@ -167,6 +191,13 @@ def build_features(design: dict, profile: dict, mats: pd.DataFrame) -> list[floa
         float(profile["hdd18"]),
         float(profile["ghi_mean_w_m2"]),
         float(profile["wind_mean_ms"]),
+        # fall back to the monthly means when an older profile lacks the v2
+        # keys, so stale cached profiles degrade instead of crashing
+        float(profile.get("t_min_c") if profile.get("t_min_c") is not None
+              else profile["t_coldest_month_c"]),
+        float(profile.get("t_max_c") if profile.get("t_max_c") is not None
+              else profile["t_hottest_month_c"]),
+        float(profile.get("elevation_m") or 0.0),
         float(design.get("length_m", 3.0)),
         float(design.get("width_m", 3.0)),
         float(design.get("height_m", 2.6)),
@@ -254,6 +285,7 @@ def predict_batch(X: np.ndarray, model: dict | None = None) -> dict[str, np.ndar
     on-disk model.
     """
     model = load_model(model)
+    bases = model.get("residual_base", {})
     out = {}
     for target, spec in model["targets"].items():
         init = float(spec.get("init", 0.0))
@@ -262,6 +294,11 @@ def predict_batch(X: np.ndarray, model: dict | None = None) -> dict[str, np.ndar
             # sklearn >= 1.6 shrinks leaf values by learning_rate at fit
             # time, so inference must NOT multiply again.
             pred += _walk_tree(tree, X, None)
+        # residual targets are learned as (indoor - outdoor); restore the
+        # absolute value using the same feature the trainer subtracted
+        base_feat = bases.get(target)
+        if base_feat:
+            pred = pred + X[:, model["features"].index(base_feat)]
         out[target] = pred
     return out
 

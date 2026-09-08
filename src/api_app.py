@@ -1429,10 +1429,27 @@ def _location_profile(weather: pd.DataFrame, lat: float | None = None,
             diurnal_curve.append({"hour": h,
                                   "mean_c": round(float(by_hour.get(h, float("nan"))), 2)})
 
+    # Outdoor EXTREMES, not just monthly means. The surrogate predicts
+    # cold_min_c / hot_max_c — quantities driven by how cold or hot it
+    # actually gets — yet its only temperature inputs were monthly averages.
+    # For a site it had seen it could memorise the gap; for an unseen one it
+    # could not, which is why leave-one-site-out MAE for cold_min_c reached
+    # 11.5 C on Srinagar while the random holdout showed R2 = 1.0000.
+    _t_ext = df["t2m"].dropna() if "t2m" in df else pd.Series(dtype=float)
+    _elev = 0.0
+    if lat is not None and lon is not None:
+        _st = climate_archive.site_for(lat, lon)
+        if _st:
+            _elev = float(climate_archive.load_index()["sites"][_st]
+                          .get("elevation_m", 0) or 0)
+
     return {
         "zone": zone,
         "zone_name": _ZONE_NAMES[zone],
         "zone_basis": zone_basis,
+        "t_min_c": round(float(_t_ext.min()), 2) if len(_t_ext) else None,
+        "t_max_c": round(float(_t_ext.max()), 2) if len(_t_ext) else None,
+        "elevation_m": _elev,
         "n_hours": int(len(df)),
         "t_mean_c": round(float(t.mean()), 2) if len(t) else None,
         "t_hottest_month_c": round(t_hot, 2),

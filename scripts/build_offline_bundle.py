@@ -139,6 +139,12 @@ def main() -> None:
             "profile": {
                 "t_hottest_month_c": prof["t_hottest_month_c"],
                 "t_coldest_month_c": prof["t_coldest_month_c"],
+                # v2 AI features — without these the offline edition falls
+                # back to monthly means and predicts different numbers than
+                # the online model for the same design
+                "t_min_c": prof.get("t_min_c"),
+                "t_max_c": prof.get("t_max_c"),
+                "elevation_m": prof.get("elevation_m"),
                 "diurnal_range_c": prof["diurnal_range_c"],
                 "rh_mean_pct": prof["rh_mean_pct"],
                 "cdd18": prof["cdd18"], "hdd18": prof["hdd18"],

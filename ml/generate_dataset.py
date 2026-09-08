@@ -152,9 +152,15 @@ def main():
     # site climate profiles (real weather) — saved once for the trainer
     profiles = {}
     for name, lat, lon in todo:
+        # SAME window and SAME zone basis the targets are generated from.
+        # Without period=PERIOD this read the calendar-2026 slice (Jan-Sep
+        # only) while generate_site() used the rolling 12 months, so the
+        # site FEATURES the model learns from described a different climate
+        # than the LABELS it was fitted against.
         weather, _, _ = get_weather_cached(lat, lon, YEAR,
-                                           CFG["location"]["timezone"])
-        profiles[name] = _location_profile(weather)
+                                           CFG["location"]["timezone"],
+                                           period=PERIOD)
+        profiles[name] = _location_profile(weather, lat, lon)
         profiles[name]["latitude"] = lat
         profiles[name]["longitude"] = lon
     with open(os.path.join(OUT_DIR, "site_profiles.json"), "w") as fh:
