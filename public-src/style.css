@@ -284,19 +284,20 @@ body {
 .navbar a:hover b, .navbar a.active b { color: #111; }
 
 /* ---------------- main layout ---------------- */
-main { max-width: 1240px; margin: 0 auto; padding: 4px 32px 40px; }
+main { max-width: 1240px; margin: 0 auto; padding: 8px 32px 60px; }
 
 /* ---------------- module frames ---------------- */
 .module {
   position: relative;
   background: var(--m1);
   border: 1px solid var(--line);
+  border-top: 2px solid var(--saff);   /* each cabinet opens on a clean top rule */
   padding: 30px 34px 34px;
-  margin: 46px 0;                 /* each cabinet gets clear separation */
+  margin: 64px 0;                 /* generous, unmissable separation between cabinets */
   clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px));
   box-shadow: var(--shadow);
 }
-.module:first-of-type { margin-top: 30px; }
+.module:first-of-type { margin-top: 40px; }
 /* HUD corner brackets */
 .module::before, .module::after {
   content: ""; position: absolute; width: 16px; height: 16px; pointer-events: none;
@@ -304,17 +305,35 @@ main { max-width: 1240px; margin: 0 auto; padding: 4px 32px 40px; }
 .module::before { top: 8px; left: 8px; border-top: 2px solid var(--saff); border-left: 2px solid var(--saff); }
 .module::after  { bottom: 8px; right: 8px; border-bottom: 2px solid var(--saff); border-right: 2px solid var(--saff); }
 
-.mod-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 22px; }
+/* Section header: number · title · one-line "what this does" · meta. The
+   description is the organisational spine — every cabinet tells the reader
+   what it is for before they meet its controls. */
+.mod-head {
+  display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap;
+  margin-bottom: 26px; padding-bottom: 20px;
+  border-bottom: 1px solid var(--line-soft);
+}
 .mod-head .sec {
-  font-family: var(--mono); font-size: 0.62rem; letter-spacing: 3px; color: #111;
-  background: var(--saff); padding: 3px 10px; font-weight: 700;
+  flex: 0 0 auto; margin-top: 3px;
+  font-family: var(--mono); font-size: 0.66rem; letter-spacing: 3px; color: #111;
+  background: var(--saff); padding: 5px 12px; font-weight: 700;
   clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
 }
+.mod-title { display: flex; flex-direction: column; gap: 7px; min-width: 0; flex: 1 1 420px; }
 .mod-head h2 {
   font-family: var(--disp); font-weight: 800; text-transform: uppercase;
-  letter-spacing: var(--ls-kicker); font-size: 1.25rem; margin: 0; color: var(--txt);
+  letter-spacing: var(--ls-kicker); font-size: 1.4rem; line-height: 1.08;
+  margin: 0; color: var(--txt);
 }
-.mod-head .code { font-family: var(--mono); font-size: 0.62rem; color: var(--dim); letter-spacing: 2px; }
+.mod-desc {
+  margin: 0; max-width: 720px;
+  font-family: var(--body); font-size: 0.84rem; line-height: 1.55;
+  color: var(--mut); letter-spacing: 0.2px;
+}
+.mod-head .code {
+  font-family: var(--mono); font-size: 0.62rem; color: var(--dim);
+  letter-spacing: 2px; padding-top: 10px; margin-left: auto; text-align: right;
+}
 .mod-head .grow { flex: 1; }
 h3 {
   font-family: var(--disp); font-weight: 700; text-transform: uppercase;
@@ -428,11 +447,11 @@ button.busy::after {
 .status.err { color: var(--red); }
 
 /* ---------------- charts ---------------- */
-.mod { background: var(--m2); border: 1px solid var(--line-soft); margin: 22px 0; }
+.mod { background: var(--m2); border: 1px solid var(--line-soft); margin: 28px 0; }
 .mod-hd {
   display: flex; align-items: center; gap: 10px;
   font-family: var(--mono); font-size: 0.6rem; letter-spacing: 2.5px; text-transform: uppercase;
-  color: var(--dim); padding: 11px 16px; border-bottom: 1px solid var(--line-soft);
+  color: var(--dim); padding: 12px 18px; border-bottom: 1px solid var(--line-soft);
 }
 .mod-hd i { width: 7px; height: 7px; background: var(--saff); transform: rotate(45deg); flex: 0 0 auto; }
 .chart {

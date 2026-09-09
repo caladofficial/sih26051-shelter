@@ -164,8 +164,11 @@
     <section class="module" id="sec1">
       <div class="mod-head">
         <span class="sec">SEC/01</span>
-        <h2>Site &amp; Climate Intake</h2>
-        <span class="code">MODULE: ENV-INT</span>
+        <div class="mod-title">
+          <h2>Site &amp; Climate Intake</h2>
+          <p class="mod-desc">Pick the site and analysis window — every result further down the page runs on this climate data.</p>
+        </div>
+        <span class="code">ENV-INT</span>
         <span class="grow"></span>
         <span class="fresh-badge" id="dataFresh" title="Climate archive freshness">DATA CURRENT THROUGH —</span>
       </div>
@@ -191,7 +194,10 @@
       <div class="module" id="climateSection" hidden>
         <div class="mod-head">
           <span class="sec">SEC/02</span>
-          <h2>Climate Recon</h2>
+          <div class="mod-title">
+            <h2>Climate Recon</h2>
+            <p class="mod-desc">Read the climate you just loaded — temperature, solar, wind — and generate a site-adapted starting design.</p>
+          </div>
           <span class="code">SOURCE: <span id="climateSource" class="tag">—</span></span>
         </div>
         <div class="grid2">
@@ -272,8 +278,11 @@
     <section class="module" id="sec3">
       <div class="mod-head">
         <span class="sec">SEC/03</span>
-        <h2>Shelter Design Matrix</h2>
-        <span class="code">MODULE: CONFIG-3D + DIGITAL STRUCTURE</span>
+        <div class="mod-title">
+          <h2>Shelter Design Matrix</h2>
+          <p class="mod-desc">Build the shelter: geometry, materials, openings and ventilation — the 3D model updates as you type.</p>
+        </div>
+        <span class="code">CONFIG-3D · DIGITAL STRUCTURE</span>
       </div>
       <div class="design-split">
         <div class="design-inputs">
@@ -462,7 +471,10 @@
       <div class="module" id="simSection" hidden>
         <div class="mod-head">
           <span class="sec">SEC/04</span>
-          <h2>Thermal Telemetry</h2>
+          <div class="mod-title">
+            <h2>Thermal Telemetry</h2>
+            <p class="mod-desc">Run the RC engine to see indoor comfort, the heat-flow budget, and an insulation sweep.</p>
+          </div>
           <span class="code">ENGINE: <span id="simEngine" class="tag">—</span></span>
         </div>
         <div id="simVerdict" class="verdict"></div>
@@ -506,8 +518,11 @@
     <section class="module" id="sec5">
       <div class="mod-head">
         <span class="sec">SEC/05</span>
-        <h2>Optimization Campaign</h2>
-        <span class="code">MODULE: OPTUNA-TPE</span>
+        <div class="mod-title">
+          <h2>Optimization Campaign</h2>
+          <p class="mod-desc">Let Optuna search geometry × materials × openings × ventilation for the best thermal performance.</p>
+        </div>
+        <span class="code">OPTUNA-TPE</span>
       </div>
       <div class="row">
         <label class="ctl">Trials <em>5–60</em><input id="trials" type="number" min="5" max="60" value="30" /></label>
@@ -539,8 +554,11 @@
     <section class="module" id="sec6">
       <div class="mod-head">
         <span class="sec">SEC/06</span>
-        <h2>Design Library &amp; Records</h2>
-        <span class="code">MODULE: HIST-DB · SUPABASE</span>
+        <div class="mod-title">
+          <h2>Design Library &amp; Records</h2>
+          <p class="mod-desc">Save, reload and compare your designs — kept per account so nothing is lost.</p>
+        </div>
+        <span class="code">HIST-DB · SUPABASE</span>
       </div>
       <div class="row">
         <label class="ctl">Design name <em>saved to library</em>
@@ -573,7 +591,10 @@
     <section class="module" id="sec7">
       <div class="mod-head">
         <span class="sec">SEC/07</span>
-        <h2>Shelter Fleet Management</h2>
+        <div class="mod-title">
+          <h2>Shelter Fleet Management</h2>
+          <p class="mod-desc">Track the shelters you've deployed — locations, build records and status.</p>
+        </div>
         <span class="tag" id="fleetStatus">FLEET · 0</span>
       </div>
       <div class="fleet-summary" id="fleetSummary">
@@ -612,8 +633,11 @@
     <section class="module" id="sec8">
       <div class="mod-head">
         <span class="sec">SEC/08</span>
-        <h2>Pre-Designed Shelters</h2>
-        <span class="code">ENGINE-VERIFIED STARTING DESIGNS · ONE-CLICK LOAD</span>
+        <div class="mod-title">
+          <h2>Pre-Designed Shelters</h2>
+          <p class="mod-desc">Load an engine-verified starting design for your climate zone, then tune it in SEC/03.</p>
+        </div>
+        <span class="code">ENGINE-VERIFIED · ONE-CLICK LOAD</span>
       </div>
       <p class="hint">Presets matched to this location's climate zone
         (<b id="presetZoneName">—</b>) appear first — every number is computed by the real RC
@@ -650,7 +674,10 @@
     <section class="module" id="sec9">
       <div class="mod-head">
         <span class="sec">SEC/09</span>
-        <h2>AI Design Assistant</h2>
+        <div class="mod-title">
+          <h2>AI Design Assistant</h2>
+          <p class="mod-desc">Instant estimates from the trained surrogate model — always re-verify with the real engine.</p>
+        </div>
         <span class="code">OPTIONAL · ESTIMATES, NOT REPLACEMENTS</span>
       </div>
       <div class="ai-panel">
@@ -702,7 +729,10 @@
     <section class="module" id="sec10">
       <div class="mod-head">
         <span class="sec">SEC/10</span>
-        <h2>Climate Trends</h2>
+        <div class="mod-title">
+          <h2>Climate Trends</h2>
+          <p class="mod-desc">Multi-year temperature and rainfall trends per site — the archive refreshes itself daily.</p>
+        </div>
         <span class="code">SOURCE: <span id="trendSource" class="tag">—</span></span>
       </div>
       <div class="loc-profile">
@@ -783,7 +813,10 @@
     <section class="module" id="sec11">
       <div class="mod-head">
         <span class="sec">SEC/11</span>
-        <h2>Describe It · Design Assistant</h2>
+        <div class="mod-title">
+          <h2>Describe It · Design Assistant</h2>
+          <p class="mod-desc">Say what you need in plain English and get an engine-verified design — then keep refining it.</p>
+        </div>
         <span class="code">NLP: <span id="nlpModelTag" class="tag">—</span></span>
       </div>
       <div class="loc-profile">

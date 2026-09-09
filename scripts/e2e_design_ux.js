@@ -62,6 +62,14 @@ function check(name, ok, extra) {
     gap.gap >= 14 && gap.border !== '0px' && parseFloat(gap.moduleGap) >= 30,
     JSON.stringify(gap));
 
+  // U2b: every section cabinet explains itself — the organisational spine
+  const descs = await page.evaluate(() => {
+    const heads = [...document.querySelectorAll('main .mod-head')];
+    return heads.map((h) => (h.querySelector('.mod-desc') ? (h.querySelector('.mod-desc').textContent || '').trim().length : 0));
+  });
+  check('U2b: all 11 section cabinets carry a plain-English description',
+    descs.length === 11 && descs.every((n) => n > 10), descs.join(','));
+
   // U3: roof pitch + ventilation controls exist with the expected choices
   const ctl = await page.evaluate(() => ({
     pitch: [...document.getElementById('roofPitch').options].map((o) => o.value),
