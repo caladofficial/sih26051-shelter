@@ -3,11 +3,12 @@ const fs = require('fs');
 function resolveChrome() {
   if (process.env.CHROME) return process.env.CHROME;
   const cands = [
+    '/home/user/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome',
     '/home/user/.cache/ms-playwright/chromium-1169/chrome-linux/chrome',
     '/home/user/.local/share/choreographer/deps/chrome-linux64/chrome',
   ];
   for (const p of cands) if (fs.existsSync(p)) return p;
-  const shell = '/home/user/.cache/ms-playwright/chromium_headless_shell-1148/chrome-linux/headless_shell';
+  const shell = '/home/user/.cache/ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell';
   if (fs.existsSync(shell)) return shell;
   return null;
 }

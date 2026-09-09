@@ -129,18 +129,33 @@
 
   <!-- ============ NAV ============ -->
   <nav class="navbar" id="navbar">
-    <a href="#sec1"><b>01</b>Site</a>
-    <a href="#sec2"><b>02</b>Climate</a>
-    <a href="#sec3"><b>03</b>Design</a>
-    <a href="#sec4"><b>04</b>Simulate</a>
-    <a href="#sec5"><b>05</b>Optimize</a>
-    <a href="#sec6"><b>06</b>Library</a>
-    <a href="#sec7"><b>07</b>Fleet</a>
-    <a href="#sec8"><b>08</b>Presets</a>
-    <a href="#sec9"><b>09</b>AI</a>
-    <a href="#sec10"><b>10</b>Trends</a>
-    <a href="#sec11" class="nav-ask"><b>11</b>Describe It</a>
-    <a href="index.html">HOME</a>
+    <span class="nav-cluster">
+      <span class="nav-group-label">PREP</span>
+      <a href="#sec1"><b>01</b>Site</a>
+      <a href="#sec2"><b>02</b>Climate</a>
+    </span>
+    <span class="nav-sep"></span>
+    <span class="nav-cluster">
+      <span class="nav-group-label">DESIGN</span>
+      <a href="#sec3"><b>03</b>Design</a>
+      <a href="#sec4"><b>04</b>Simulate</a>
+      <a href="#sec5"><b>05</b>Optimize</a>
+      <a href="#sec6"><b>06</b>Library</a>
+    </span>
+    <span class="nav-sep"></span>
+    <span class="nav-cluster">
+      <span class="nav-group-label">MANAGE</span>
+      <a href="#sec7"><b>07</b>Fleet</a>
+      <a href="#sec8"><b>08</b>Presets</a>
+    </span>
+    <span class="nav-sep"></span>
+    <span class="nav-cluster">
+      <span class="nav-group-label">INTELLIGENCE</span>
+      <a href="#sec9"><b>09</b>AI</a>
+      <a href="#sec10"><b>10</b>Trends</a>
+      <a href="#sec11" class="nav-ask"><b>11</b>Describe It</a>
+      <a href="index.html">HOME</a>
+    </span>
   </nav>
 
   <main>
@@ -262,30 +277,93 @@
       </div>
       <div class="design-split">
         <div class="design-inputs">
-          <div class="grid4">
-            <label class="ctl">Length <em>m · X axis</em><input id="length" type="number" step="0.5" value="3.0" /></label>
-            <label class="ctl">Width <em>m · Y axis</em><input id="width" type="number" step="0.5" value="3.0" /></label>
-            <label class="ctl">Height <em>m · Z axis</em><input id="height" type="number" step="0.1" value="2.6" /></label>
-            <label class="ctl">Orientation <em>deg · azimuth</em><input id="orientation" type="number" step="15" value="0" /></label>
-            <label class="ctl">Wall material <em>sourced table</em><select id="wallMat"></select></label>
-            <label class="ctl">Wall thickness <em>m</em><input id="wallThick" type="number" step="0.01" value="0.2" /></label>
-            <label class="ctl">Roof material <em>sourced table</em><select id="roofMat"></select></label>
-            <label class="ctl">Roof thickness <em>m</em><input id="roofThick" type="number" step="0.01" value="0.12" /></label>
-            <label class="ctl">Insulation <em>class</em><select id="insMat"><option value="none">none</option></select></label>
-            <label class="ctl">Insulation <em>mm</em><input id="insThick" type="number" step="5" value="0" /></label>
-            <label class="ctl">Window wall <em>facing</em><select id="winWall"><option>south</option><option>east</option><option>west</option><option>north</option></select></label>
-            <label class="ctl">Window W × H <em>m</em><input id="winSize" type="text" value="1.2 × 1.2" /></label>
-            <label class="ctl">Window SHGC <em>0–1</em><input id="winShgc" type="number" min="0.2" max="0.9" step="0.05" value="0.82" /></label>
-            <label class="ctl">Window U <em>W/m²K</em><input id="winU" type="number" min="0.8" max="7" step="0.1" value="5.8" /></label>
-            <label class="ctl">Period <em>analysis window</em>
-              <select id="period">
-                <option value="hot_week">Hottest week</option>
-                <option value="cold_week">Coldest week</option>
-                <option value="full_year">Full year</option>
-              </select>
-            </label>
-            <button id="simulate" class="primary">▶ Run Simulation</button>
-          </div>
+          <fieldset class="ctl-group">
+            <legend>Shell geometry</legend>
+            <div class="grid4">
+              <label class="ctl">Length <em>m · X axis</em><input id="length" type="number" step="0.5" value="3.0" /></label>
+              <label class="ctl">Width <em>m · Y axis</em><input id="width" type="number" step="0.5" value="3.0" /></label>
+              <label class="ctl">Height <em>m · Z axis</em><input id="height" type="number" step="0.1" value="2.6" /></label>
+              <label class="ctl">Orientation <em>deg · azimuth</em><input id="orientation" type="number" step="15" value="0" /></label>
+            </div>
+          </fieldset>
+
+          <fieldset class="ctl-group">
+            <legend>Wall assembly</legend>
+            <div class="grid2">
+              <label class="ctl">Wall material <em>sourced table</em><select id="wallMat"></select></label>
+              <label class="ctl">Wall thickness <em>m</em><input id="wallThick" type="number" step="0.01" value="0.2" /></label>
+            </div>
+          </fieldset>
+
+          <fieldset class="ctl-group">
+            <legend>Roof assembly</legend>
+            <div class="grid3">
+              <label class="ctl">Roof material <em>sourced table</em><select id="roofMat"></select></label>
+              <label class="ctl">Roof thickness <em>m</em><input id="roofThick" type="number" step="0.01" value="0.12" /></label>
+              <label class="ctl">Roof pitch <em>deg · 0 = flat</em>
+                <select id="roofPitch">
+                  <option value="0" selected>0° — flat</option>
+                  <option value="5">5° — slight fall</option>
+                  <option value="10">10°</option>
+                  <option value="15">15°</option>
+                  <option value="20">20° — monsoon slope</option>
+                  <option value="25">25°</option>
+                  <option value="30">30° — steep</option>
+                </select>
+              </label>
+            </div>
+            <p class="group-note">A pitched roof sheds monsoon rain and changes the
+              roof's solar load — the engine models the full sloped area, gable
+              walls and extra volume. (The 3D preview stays a flat-slab
+              schematic; the physics does not.)</p>
+          </fieldset>
+
+          <fieldset class="ctl-group">
+            <legend>Insulation</legend>
+            <div class="grid2">
+              <label class="ctl">Insulation <em>class</em><select id="insMat"><option value="none">none</option></select></label>
+              <label class="ctl">Insulation <em>mm</em><input id="insThick" type="number" step="5" value="0" /></label>
+            </div>
+          </fieldset>
+
+          <fieldset class="ctl-group">
+            <legend>Openings &amp; ventilation</legend>
+            <div class="grid4">
+              <label class="ctl">Window wall <em>facing</em><select id="winWall"><option>south</option><option>east</option><option>west</option><option>north</option></select></label>
+              <label class="ctl">Window W × H <em>m</em><input id="winSize" type="text" value="1.2 × 1.2" /></label>
+              <label class="ctl">Window SHGC <em>0–1</em><input id="winShgc" type="number" min="0.2" max="0.9" step="0.05" value="0.82" /></label>
+              <label class="ctl">Window U <em>W/m²K</em><input id="winU" type="number" min="0.8" max="7" step="0.1" value="5.8" /></label>
+              <label class="ctl">Ventilation <em>air changes / hour</em>
+                <select id="ventAch">
+                  <option value="0.5">0.5 — sealed / airtight</option>
+                  <option value="1">1 — very still</option>
+                  <option value="2" selected>2 — still interior</option>
+                  <option value="3">3 — light breeze</option>
+                  <option value="4">4 — moderate</option>
+                  <option value="6">6 — well ventilated</option>
+                  <option value="8">8 — cross-ventilated</option>
+                  <option value="10">10 — open / draughty</option>
+                </select>
+              </label>
+            </div>
+            <p class="group-note">Ventilation is a real engine input: higher ACH
+              dumps hot-day gains but leaks heat on cold nights — exactly what
+              the simulation will show.</p>
+          </fieldset>
+
+          <fieldset class="ctl-group run-group">
+            <legend>Analysis</legend>
+            <div class="row">
+              <label class="ctl">Period <em>analysis window</em>
+                <select id="period">
+                  <option value="hot_week">Hottest week</option>
+                  <option value="cold_week">Coldest week</option>
+                  <option value="full_year">Full year</option>
+                </select>
+              </label>
+              <button id="simulate" class="primary">▶ Run Simulation</button>
+            </div>
+          </fieldset>
           <div id="simMetrics" class="metrics"></div>
         </div>
 
@@ -449,6 +527,7 @@
           <table id="optTable">
             <thead><tr>
               <th>#</th><th>TPI</th><th>Orient.</th><th>Wall</th><th>Roof</th>
+              <th>Pitch</th><th>Vent</th>
               <th>Insulation</th><th>Window</th>
             </tr></thead>
             <tbody></tbody>
@@ -762,6 +841,22 @@
           <div class="adapt-actions">
             <button id="nlpApply" class="primary">APPLY TO STUDIO →</button>
             <span id="nlpApplyStatus" class="tag"></span>
+          </div>
+          <div class="nlp-feedback" id="nlpFeedback">
+            <div class="fb-row">
+              <span class="fb-q">Did I understand you correctly?</span>
+              <button id="nlpFbYes" type="button" class="fb-btn">✓ Yes, that's it</button>
+              <button id="nlpFbNo" type="button" class="fb-btn">✗ Not quite</button>
+              <span id="nlpFbStatus" class="tag"></span>
+            </div>
+            <div class="fb-fix" id="nlpFbFix" hidden>
+              <input id="nlpFbCorrection" type="text" autocomplete="off"
+                     placeholder="What did you actually mean? (optional — your words train the next model)" />
+              <button id="nlpFbSend" type="button" class="fb-btn">SEND</button>
+            </div>
+            <p class="fb-note">Your sentence and verdict are stored anonymously and
+              used to retrain this assistant — real user phrasings teach it more
+              than synthetic examples ever will.</p>
           </div>
         </div>
       </div>

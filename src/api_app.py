@@ -2055,6 +2055,37 @@ def nlp_design_endpoint(req: NLPRequest):
     return out
 
 
+class NLPFeedbackRequest(BaseModel):
+    """The user's verdict on one plain-English answer (migration 0007).
+
+    Rows are the real-phrasing corpus: the assistant was trained on synthetic
+    templates, so every genuine sentence — especially the ones it got wrong —
+    is worth more than another thousand generated ones."""
+    text: str = Field(..., min_length=1, max_length=600)
+    intent: str | None = None
+    confidence: float | None = None
+    slots: dict | None = None
+    design: dict | None = None
+    correct: bool
+    correction: str | None = Field(default=None, max_length=600)
+
+
+@app.post("/api/nlp/feedback")
+def nlp_feedback_endpoint(req: NLPFeedbackRequest):
+    """Store one "did I understand you correctly?" verdict.
+
+    Storing must never break the UI flow: a database hiccup is logged and
+    reported as stored=False rather than raised to the user, whose feedback
+    click should feel fire-and-forget.
+    """
+    try:
+        STORE.save_nlp_feedback(req.model_dump())
+    except Exception as exc:                            # noqa: BLE001
+        print(f"[api] nlp feedback save failed: {exc}")
+        return {"ok": False, "stored": False}
+    return {"ok": True, "stored": True}
+
+
 def _nlp_message(intent: str, confidence: float, site: str | None,
                  slots: dict) -> str:
     """Say plainly what was understood — including when it wasn't."""

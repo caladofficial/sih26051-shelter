@@ -162,6 +162,52 @@ SLOT_CASES = [
 ]
 
 
+def eval_feedback_csv(path: Path) -> None:
+    """Score the exported /api/nlp/feedback rows (real user phrasings).
+
+    Reported for information only — this set grows with site usage and must
+    not gate CI. Two numbers matter:
+
+      user-confirmed   — share of sentences users marked "understood right"
+      intent re-check  — re-running the CURRENT classifier on those same
+                         sentences: does it still read them the way the
+                         stored verdict assumed? Drift here after a retrain
+                         flags regressions on real phrasings directly.
+    """
+    import csv
+    rows = []
+    with path.open(newline="", encoding="utf-8") as fh:
+        for r in csv.DictReader(fh):
+            if (r.get("text") or "").strip():
+                rows.append(r)
+    if not rows:
+        print(f"\n=== REAL USER FEEDBACK ({path.name}) ===")
+        print("  no rows yet — collect feedback on the site first")
+        return
+    confirmed = sum(1 for r in rows if (r.get("correct") or "").lower()
+                    in ("true", "1", "t"))
+    print(f"\n=== REAL USER FEEDBACK ({path.name}, {len(rows)} rows) ===")
+    print(f"  user-confirmed understood : {confirmed}/{len(rows)} = "
+          f"{confirmed / len(rows):.3f}")
+    agree = total = 0
+    for r in rows:
+        stored = (r.get("intent") or "").strip()
+        if not stored:
+            continue
+        total += 1
+        got, conf, _ = classify(r["text"])
+        if got == stored:
+            agree += 1
+        elif (r.get("correct") or "").lower() in ("true", "1", "t"):
+            # retrain regression: a sentence the user CONFIRMED is now read
+            # differently — list it loudly
+            print(f"   DRIFT confirmed-as-{stored:<8s} now={got:<9s}"
+          f" ({conf:.2f})  {r['text']}")
+    if total:
+        print(f"  intent re-check agrees    : {agree}/{total} = "
+              f"{agree / total:.3f}")
+
+
 def main() -> int:
     ok = 0
     print("=== INTENT (hand-written, never trained on) ===")
@@ -188,6 +234,19 @@ def main() -> int:
             else:
                 print(f"   MISS  {k}: want {v!r} got {got.get(k)!r}   <- {text}")
     print(f"  slots {slot_ok}/{slot_total} = {slot_ok / slot_total:.3f}")
+
+    # optional: real user feedback exported by ml/nlp/import_feedback.py
+    extra = None
+    if "--extra" in sys.argv:
+        i = sys.argv.index("--extra")
+        if i + 1 < len(sys.argv):
+            extra = Path(sys.argv[i + 1])
+    if extra is None:
+        default = REPO / "ml" / "nlp" / "data" / "real_user_feedback.csv"
+        extra = default if default.exists() else None
+    if extra is not None:
+        eval_feedback_csv(extra)
+
     return 0 if (acc >= 0.80 and slot_ok / slot_total >= 0.85) else 1
 
 

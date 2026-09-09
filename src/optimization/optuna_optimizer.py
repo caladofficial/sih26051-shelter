@@ -12,6 +12,15 @@ Search space (kept deliberately small, per the project plan §41):
     window wall            south / east / west / north
     window size            0.5–2.5 m²
     window SHGC            0.3–0.85
+    roof pitch             0–30° (0 = flat; >0 = mono-pitch, engine-modelled)
+    ventilation            0.5–10 ACH
+
+The last two were added after the surrogate-AI retrain showed both move the
+thermal result materially (ACH shifts hot-week peak ~0.4 °C per doubling in
+Chennai; a mono-pitch roof cuts the peak by up to 0.6 °C in Mumbai). Keeping
+them out of the search space meant the optimiser could never *discover* them.
+The categorical choices match src.ai_model.ACH_CHOICES / ROOF_PITCHES so the
+optimizer and the surrogate explore the same space.
 """
 from __future__ import annotations
 
@@ -28,6 +37,10 @@ WALL_MATERIALS = ["brick", "concrete", "stone", "rammed_earth",
 ROOF_MATERIALS = ["rcc_slab", "timber", "gi_sheet", "puf_sandwich_panel"]
 INSULATIONS = ["none", "eps", "xps", "mineral_wool"]
 WALLS = ["south", "east", "west", "north"]
+# kept in sync with src.ai_model.ACH_CHOICES / ROOF_PITCHES (duplicated on
+# purpose: the optimizer must not import the surrogate module to run)
+ACH_CHOICES = [0.5, 1.0, 2.0, 3.0, 4.0, 6.0, 8.0, 10.0]
+ROOF_PITCHES = [0.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0]
 
 
 def suggest_design(trial: optuna.Trial) -> dict:
@@ -47,6 +60,9 @@ def suggest_design(trial: optuna.Trial) -> dict:
         "window_width_m": trial.suggest_float("window_width_m", 0.7, 1.8),
         "window_height_m": trial.suggest_float("window_height_m", 0.7, 1.4),
         "window_shgc": trial.suggest_float("window_shgc", 0.30, 0.85),
+        "roof_pitch_deg": trial.suggest_categorical("roof_pitch_deg",
+                                                    ROOF_PITCHES),
+        "ach": trial.suggest_categorical("ach", ACH_CHOICES),
     }
     return design
 

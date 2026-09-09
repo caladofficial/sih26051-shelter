@@ -39,14 +39,19 @@ def evaluate_design(cfg: dict, weather, materials, design: dict) -> dict:
 
     design keys (all optional):
         orientation_deg, wall_material, wall_thickness_m, roof_material,
-        roof_thickness_m, insulation_material, insulation_thickness_m,
-        window_wall, window_width_m, window_height_m, window_shgc, door_wall
+        roof_thickness_m, roof_pitch_deg, insulation_material,
+        insulation_thickness_m, window_wall, window_width_m, window_height_m,
+        window_shgc, door_wall, ach
+    `ach` maps to cfg["simulation"]["ventilation_ach"] (same convention as
+    the API's design override path); everything else is a shelter key.
     Returns a dict of metrics incl. thermal_performance_index (TPI).
     """
     cfg = copy.deepcopy(cfg)
     for k, v in design.items():
         if k in ("window", "door", "insulation"):
             cfg["shelter"][k].update(v)
+        elif k == "ach":
+            cfg.setdefault("simulation", {})["ventilation_ach"] = v
         else:
             cfg["shelter"][k] = v
 

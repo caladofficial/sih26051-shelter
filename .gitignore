@@ -43,3 +43,6 @@ uv.lock
 data/climate/hourly/
 data/climate/refresh_log.json
 .env*
+
+# Real user feedback export — contains genuine user sentences, never commit
+ml/nlp/data/real_user_feedback.csv

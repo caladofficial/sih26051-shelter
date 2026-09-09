@@ -234,7 +234,7 @@ body {
 @keyframes tick { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
 
 /* ---------------- hero ---------------- */
-.hero { padding: 34px 32px 18px; position: relative; }
+.hero { padding: 46px 34px 26px; position: relative; }
 .hero .kicker {
   font-family: var(--mono); font-size: 0.68rem; letter-spacing: 5px;
   color: var(--saff); text-transform: uppercase; margin: 0 0 10px;
@@ -256,7 +256,21 @@ body {
 .hero .sub b { color: var(--txt); }
 
 /* ---------------- nav tabs ---------------- */
-.navbar { position: sticky; top: 65px; z-index: 40; display: flex; gap: 6px; padding: 0 32px 14px; flex-wrap: wrap; }
+.navbar { position: sticky; top: 65px; z-index: 40; display: flex; gap: 10px; padding: 0 34px 18px; flex-wrap: wrap; align-items: center; }
+/* grouped labels make the 11 tabs read as four clusters, not one wall.
+   Each cluster is its own wrapping unit so a label never strands away from
+   its tabs when the bar breaks onto two rows. */
+.nav-cluster { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; }
+.nav-group-label {
+  font-family: var(--mono); font-size: 0.55rem; letter-spacing: 2.5px;
+  color: var(--dim); text-transform: uppercase; user-select: none;
+}
+.nav-sep { width: 1px; height: 24px; background: var(--line); }
+@media (max-width: 980px) { .nav-sep { display: none; } .navbar { row-gap: 12px; } }
+@media (max-width: 760px) {
+  .nav-cluster { flex-wrap: wrap; }
+  .nav-group-label { flex-basis: 100%; }
+}
 .navbar a {
   font-family: var(--body); font-size: 0.7rem; font-weight: 600;
   letter-spacing: 3px; text-transform: uppercase; text-decoration: none;
@@ -277,11 +291,12 @@ main { max-width: 1240px; margin: 0 auto; padding: 4px 32px 40px; }
   position: relative;
   background: var(--m1);
   border: 1px solid var(--line);
-  padding: 22px 26px 26px;
-  margin: 26px 0;
+  padding: 30px 34px 34px;
+  margin: 46px 0;                 /* each cabinet gets clear separation */
   clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px));
   box-shadow: var(--shadow);
 }
+.module:first-of-type { margin-top: 30px; }
 /* HUD corner brackets */
 .module::before, .module::after {
   content: ""; position: absolute; width: 16px; height: 16px; pointer-events: none;
@@ -289,7 +304,7 @@ main { max-width: 1240px; margin: 0 auto; padding: 4px 32px 40px; }
 .module::before { top: 8px; left: 8px; border-top: 2px solid var(--saff); border-left: 2px solid var(--saff); }
 .module::after  { bottom: 8px; right: 8px; border-bottom: 2px solid var(--saff); border-right: 2px solid var(--saff); }
 
-.mod-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 16px; }
+.mod-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 22px; }
 .mod-head .sec {
   font-family: var(--mono); font-size: 0.62rem; letter-spacing: 3px; color: #111;
   background: var(--saff); padding: 3px 10px; font-weight: 700;
@@ -303,24 +318,52 @@ main { max-width: 1240px; margin: 0 auto; padding: 4px 32px 40px; }
 .mod-head .grow { flex: 1; }
 h3 {
   font-family: var(--disp); font-weight: 700; text-transform: uppercase;
-  letter-spacing: var(--ls-head); font-size: 0.85rem; margin: 22px 0 10px; color: var(--mut);
+  letter-spacing: var(--ls-head); font-size: 0.85rem; margin: 32px 0 14px; color: var(--mut);
 }
 h3::before { content: "// "; color: var(--saff); }
 
 /* ---------------- controls ---------------- */
-.row { display: flex; gap: 14px; align-items: end; flex-wrap: wrap; }
-.grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
-.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.grid4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.row { display: flex; gap: 20px; align-items: end; flex-wrap: wrap; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 26px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.grid4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
 @media (max-width: 980px) { .grid2, .grid4 { grid-template-columns: minmax(0, 1fr); } .grid3 { grid-template-columns: minmax(0, 1fr); } }
 
-label.ctl { display: flex; flex-direction: column; gap: 5px; font-family: var(--mono); font-size: 0.62rem; letter-spacing: 2px; text-transform: uppercase; color: var(--mut); }
+label.ctl { display: flex; flex-direction: column; gap: 8px; font-family: var(--mono); font-size: 0.62rem; letter-spacing: 2px; text-transform: uppercase; color: var(--mut); }
+
+/* Option groups — each family of controls sits in its own bordered cabinet
+   with clear distancing, instead of one undifferentiated wall of inputs. */
+.ctl-group {
+  border: 1px solid var(--line-soft);
+  background: color-mix(in srgb, var(--m2) 40%, transparent);
+  padding: 20px 22px 22px;
+  margin: 0 0 20px;
+  min-width: 0;
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%);
+}
+.ctl-group > legend {
+  font-family: var(--mono); font-size: 0.64rem; font-weight: 600;
+  letter-spacing: 2.5px; text-transform: uppercase; color: var(--txt);
+  padding: 4px 12px; margin-left: -8px;
+  background: var(--m2); border: 1px solid var(--line);
+}
+.ctl-group > legend::before { content: "// "; color: var(--saff); }
+.ctl-group:last-of-type { margin-bottom: 0; }
+.ctl-group .row { align-items: end; }
+.group-note {
+  margin: 14px 0 0; font-size: 0.7rem; line-height: 1.5;
+  color: var(--dim); font-family: var(--mono); letter-spacing: 0.4px;
+  text-transform: none;
+}
+.ctl-group.run-group {
+  border-color: color-mix(in srgb, var(--saff) 40%, var(--line-soft));
+}
 label.ctl em { font-style: normal; color: var(--dim); letter-spacing: 1px; }
 
 input, select {
   background: var(--m2); color: var(--txt);
   border: 1px solid var(--line); border-radius: 0;
-  padding: 9px 11px; font-size: 0.9rem; font-family: var(--mono);
+  padding: 11px 13px; font-size: 0.9rem; font-family: var(--mono);
   max-width: 100%; box-sizing: border-box;
   clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -361,7 +404,7 @@ button.busy::after {
 @keyframes sweep { to { transform: rotate(360deg); } }
 
 /* ---------------- metrics / instrument readouts ---------------- */
-.metrics { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+.metrics { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 22px; }
 .metric {
   position: relative; flex: 1 1 150px; max-width: 240px;
   background: var(--m2); border: 1px solid var(--line);
@@ -385,11 +428,11 @@ button.busy::after {
 .status.err { color: var(--red); }
 
 /* ---------------- charts ---------------- */
-.mod { background: var(--m2); border: 1px solid var(--line-soft); margin: 14px 0; }
+.mod { background: var(--m2); border: 1px solid var(--line-soft); margin: 22px 0; }
 .mod-hd {
   display: flex; align-items: center; gap: 10px;
   font-family: var(--mono); font-size: 0.6rem; letter-spacing: 2.5px; text-transform: uppercase;
-  color: var(--dim); padding: 8px 14px; border-bottom: 1px solid var(--line-soft);
+  color: var(--dim); padding: 11px 16px; border-bottom: 1px solid var(--line-soft);
 }
 .mod-hd i { width: 7px; height: 7px; background: var(--saff); transform: rotate(45deg); flex: 0 0 auto; }
 .chart {
@@ -419,7 +462,7 @@ button.busy::after {
 /* ---------------- table ---------------- */
 .tblwrap { overflow-x: auto; border: 1px solid var(--line-soft); }
 table { width: 100%; border-collapse: collapse; font-size: 0.8rem; letter-spacing: 0.3px; }
-th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line-soft); font-family: var(--mono); letter-spacing: 0.3px; }
+th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line-soft); font-family: var(--mono); letter-spacing: 0.3px; }
 thead th {
   color: var(--mut); font-weight: 600; font-size: 0.62rem; letter-spacing: 2.2px; text-transform: uppercase;
   background: var(--m2); border-bottom: 1px solid var(--line);
@@ -462,10 +505,10 @@ footer .fbody .warn { color: var(--amber); }
 /* ---------------- design split (inputs + digital structure) ---------------- */
 .design-split {
   display: grid; grid-template-columns: minmax(0, 1.02fr) minmax(0, 0.98fr);
-  gap: 20px; align-items: start;
+  gap: 30px; align-items: start;
 }
 .design-inputs { min-width: 0; }
-.design-3d { min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+.design-3d { min-width: 0; display: flex; flex-direction: column; gap: 20px; }
 .design-3d .mod { margin: 0; }
 
 /* ---------------- 3D viewport ---------------- */
@@ -580,7 +623,9 @@ a { color: var(--saff); }
   .navbar { top: 0; padding: 10px 14px; background: var(--navbar-mobile-bg); }
   main { padding: 0 14px 30px; }
   .hero { padding: 22px 14px 10px; }
-  .module { padding: 18px 14px 20px; }
+  .module { padding: 20px 16px 22px; margin: 34px 0; }
+  .ctl-group { padding: 16px 14px 18px; margin-bottom: 16px; }
+  .grid2 { gap: 20px; }
   .metric { max-width: none; flex: 1 1 130px; }
   .view3d { height: 320px; }
   .cad-recent { max-height: 150px; overflow-y: auto; }
@@ -1232,6 +1277,29 @@ body { overflow-x: clip; }
 .nlp-understood { display: flex; gap: 7px; flex-wrap: wrap; margin: 14px 0 6px; }
 #sec11 .rec-table td { font-size: 0.76rem; }
 #sec11 .rec-table td.k { color: var(--mut); }
+
+/* "did I understand you correctly?" — the real-phrasing feedback loop.
+   Kept visually quiet so it reads as a follow-up question, not a form. */
+.nlp-feedback {
+  border-top: 1px dashed var(--line); margin-top: 24px; padding-top: 20px;
+}
+.fb-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.fb-q {
+  font-family: var(--mono); font-size: 0.7rem; letter-spacing: 1.5px;
+  color: var(--txt); text-transform: uppercase;
+}
+.fb-btn { padding: 8px 16px; font-size: 0.66rem; }
+#nlpFbYes:hover { border-color: var(--green); color: var(--green); }
+#nlpFbNo:hover { border-color: var(--red); color: var(--red); }
+.fb-fix { display: flex; gap: 12px; margin-top: 14px; flex-wrap: wrap; }
+.fb-fix input {
+  flex: 1 1 320px; min-width: 240px;
+  font-family: var(--mono); font-size: 0.82rem;
+}
+.fb-note {
+  margin: 14px 0 0; font-size: 0.66rem; line-height: 1.55;
+  color: var(--dim); font-family: var(--mono); letter-spacing: 0.4px;
+}
 
 
 /* ---------------- hero ask-bar (plain-English entry point) ----------------

@@ -77,3 +77,10 @@ def test_optimize_small():
     assert d["best"]["tpi"] > 0
     assert len(d["top10"]) <= 8
     assert "wall_material" in d["best"]["design"]
+    # the search space covers ventilation + roof pitch (see
+    # tests/test_optimizer_space.py) and they must surface in results
+    assert "roof_pitch_deg" in d["best"]["design"]
+    assert "ach" in d["best"]["design"]
+    p0 = d["top10"][0]["params"]
+    assert 0.0 <= p0["roof_pitch_deg"] <= 30.0
+    assert 0.5 <= p0["ach"] <= 10.0

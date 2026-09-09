@@ -137,6 +137,18 @@ CREATE TABLE IF NOT EXISTS optimization_trials (
   params TEXT,
   PRIMARY KEY (run_id, trial_no)
 );
+
+CREATE TABLE IF NOT EXISTS nlp_feedback (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  created_at TEXT NOT NULL,
+  text TEXT NOT NULL,
+  intent TEXT,
+  confidence REAL,
+  slots TEXT,
+  design TEXT,
+  correct INTEGER NOT NULL,
+  correction TEXT
+);
 """
 
 
@@ -613,6 +625,58 @@ class Store:
                 self._conn.commit()
             except sqlite3.OperationalError:
                 pass
+
+    # ------------------------------------------------------- nlp feedback
+    def save_nlp_feedback(self, record: dict) -> None:
+        """One user verdict on a plain-English answer (migration 0007).
+
+        These rows are the real-phrasing corpus used to re-evaluate and
+        retrain the assistant — see ml/nlp/import_feedback.py."""
+        row = {"created_at": _now(),
+               "text": record.get("text", ""),
+               "intent": record.get("intent"),
+               "confidence": record.get("confidence"),
+               "slots": record.get("slots") or {},
+               "design": record.get("design") or {},
+               "correct": bool(record.get("correct")),
+               "correction": record.get("correction")}
+        if self._rest:
+            self._pg("POST", "nlp_feedback", body=row)
+        else:
+            try:
+                self._conn.execute(
+                    """INSERT INTO nlp_feedback
+                       (created_at, text, intent, confidence, slots, design,
+                        correct, correction) VALUES (?,?,?,?,?,?,?,?)""",
+                    (row["created_at"], row["text"], row["intent"],
+                     row["confidence"], _j(row["slots"]), _j(row["design"]),
+                     1 if row["correct"] else 0, row["correction"]))
+                self._conn.commit()
+            except sqlite3.OperationalError:
+                pass
+
+    def list_nlp_feedback(self, limit: int = 1000) -> list[dict]:
+        if self._rest:
+            res = self._pg("GET", "nlp_feedback",
+                           params={"select": "*", "order": "created_at.desc",
+                                   "limit": str(limit)})
+            for r in res:
+                r["slots"] = _maybe_json(r.get("slots")) or {}
+                r["design"] = _maybe_json(r.get("design")) or {}
+            return res
+        rows = self._conn.execute(
+            "SELECT * FROM nlp_feedback ORDER BY created_at DESC LIMIT ?",
+            (limit,)).fetchall()
+        cols = [c[0] for c in
+                self._conn.execute("SELECT * FROM nlp_feedback").description]
+        out = []
+        for r in rows:
+            d = dict(zip(cols, r))
+            d["correct"] = bool(d["correct"])
+            d["slots"] = _maybe_json(d.get("slots")) or {}
+            d["design"] = _maybe_json(d.get("design")) or {}
+            out.append(d)
+        return out
 
     # ------------------------------------------------------------ designs
     def save_design(self, record: dict, user_id: str | None = None) -> None:

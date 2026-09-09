@@ -2,15 +2,16 @@
 const { chromium } = require('/tmp/pw/node_modules/playwright-core');
 const fs = require('fs');
 
-const BASE = 'http://localhost:8010';
+const BASE = process.env.BASE || 'http://localhost:8010';
 function resolveChrome() {
   if (process.env.CHROME) return process.env.CHROME;
   const cands = [
+    '/home/user/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome',
     '/home/user/.cache/ms-playwright/chromium-1169/chrome-linux/chrome',
     '/home/user/.local/share/choreographer/deps/chrome-linux64/chrome',
   ];
   for (const p of cands) if (fs.existsSync(p)) return p;
-  const shell = '/home/user/.cache/ms-playwright/chromium_headless_shell-1148/chrome-linux/headless_shell';
+  const shell = '/home/user/.cache/ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell';
   if (fs.existsSync(shell)) return shell;
   return null;
 }
@@ -102,11 +103,11 @@ function check(name, ok, extra) {
   /* ---------- 4. login-mode download ---------- */
   // create an account via API then set the token in localStorage
   const uname = 'e2e_user_' + Date.now();
-  const signup = await fetch('http://localhost:8000/api/auth/signup', {
+  const signup = await fetch('http://localhost:8010/api/auth/signup', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username: uname, password: 'secret123' }),
   });
-  const login = await fetch('http://localhost:8000/api/auth/login', {
+  const login = await fetch('http://localhost:8010/api/auth/login', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username: uname, password: 'secret123' }),
   });

@@ -144,7 +144,8 @@ function metric(value, label) {
 
 /* ---------- state ---------- */
 const state = { locations: [], materials: [], climate: null,
-                coverage: null, trends: null, nlpDesign: null };
+                coverage: null, trends: null, nlpDesign: null,
+                lastNlp: null };
 
 /* ---------- 1 · locations ---------- */
 async function loadLocations() {
@@ -458,6 +459,13 @@ async function runNlp(textOverride) {
     });
     stopProgress();
     renderNlp(j);   // renderNlp already stores j.design on state.nlpDesign
+    // remember the exchange so the feedback buttons can report on it
+    state.lastNlp = { text,
+                      intent: (j.understood || {}).intent,
+                      confidence: (j.understood || {}).confidence,
+                      slots: (j.understood || {}).slots || null,
+                      design: j.design || null };
+    resetNlpFeedback();
     st.textContent = j.actionable
       ? `understood as ${j.understood.intent} · ${Math.round(j.understood.confidence * 100)}% confident`
       : "not actionable";
@@ -532,6 +540,9 @@ function renderNlp(j) {
     ["Height", `${fmt(d.height_m, 1)} m`],
     ["Walls", `${d.wall_material} · ${fmt(d.wall_thickness_m * 1000, 0)} mm`],
     ["Roof", `${d.roof_material} · ${fmt(d.roof_thickness_m * 1000, 0)} mm`],
+    ["Roof pitch", d.roof_pitch_deg ? `${fmt(d.roof_pitch_deg, 0)}° — sloped`
+      : "0° — flat"],
+    ["Ventilation", d.ach != null ? `${fmt(d.ach, 1)} ACH` : "—"],
     ["Insulation", d.insulation_material === "none" ? "none"
       : `${d.insulation_material} · ${fmt(d.insulation_thickness_m * 1000, 0)} mm`],
     ["Window", `${d.window_wall} · ${fmt(d.window_width_m, 1)} × ${fmt(d.window_height_m, 1)} m`],
@@ -557,13 +568,77 @@ function applyNlpDesign() {
   set("insMat", d.insulation_material);
   set("insThick", Math.round((d.insulation_thickness_m || 0) * 1000));
   set("winWall", d.window_wall);
+  if (typeof d.roof_pitch_deg === "number")
+    set("roofPitch", String(Number(d.roof_pitch_deg)));
+  if (typeof d.ach === "number")
+    set("ventAch", String(Number(d.ach)));
   ["length", "width", "height", "orientation", "wallMat", "wallThick",
-   "roofMat", "roofThick", "insMat", "insThick", "winWall"].forEach((id) => {
+   "roofMat", "roofThick", "roofPitch", "insMat", "insThick", "winWall",
+   "ventAch"].forEach((id) => {
     const e = $(id);
     if (e) e.dispatchEvent(new Event("change", { bubbles: true }));
   });
   $("nlpApplyStatus").textContent = "applied to the studio — run SEC/04 to re-verify";
   toast("Design applied to the studio");
+}
+
+/* ---------- "did I understand you correctly?" — the feedback loop ----------
+   The assistant was trained on synthetic templates; real user sentences are
+   the scarcest, most valuable training data. Each verdict posts one row to
+   /api/nlp/feedback (Supabase table nlp_feedback), which
+   ml/nlp/import_feedback.py exports for evaluation + retraining. */
+function resetNlpFeedback() {
+  const st = $("nlpFbStatus"), fix = $("nlpFbFix");
+  const yes = $("nlpFbYes"), no = $("nlpFbNo");
+  if (!st) return;
+  st.textContent = "";
+  if (fix) fix.hidden = true;
+  if (yes) { yes.disabled = false; yes.classList.remove("busy"); }
+  if (no) { no.disabled = false; no.classList.remove("busy"); }
+  const corr = $("nlpFbCorrection");
+  if (corr) corr.value = "";
+}
+
+async function sendNlpFeedback(correct) {
+  const ctx = state.lastNlp;
+  const st = $("nlpFbStatus");
+  if (!ctx) { toast("Ask the assistant something first", true); return; }
+  const correction = correct ? undefined
+    : (($("nlpFbCorrection").value || "").trim() || undefined);
+  const yes = $("nlpFbYes"), no = $("nlpFbNo");
+  yes.disabled = true; no.disabled = true;
+  st.textContent = "recording…";
+  try {
+    const j = await api("/api/nlp/feedback", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        text: ctx.text, intent: ctx.intent, confidence: ctx.confidence,
+        slots: ctx.slots || undefined, design: ctx.design || undefined,
+        correct, correction,
+      }),
+    });
+    st.textContent = j.stored
+      ? "RECORDED — thank you, this trains the next model"
+      : "noted locally (store unavailable)";
+    $("nlpFbFix").hidden = true;
+  } catch (err) {
+    yes.disabled = false; no.disabled = false;
+    st.textContent = "";
+    toast(`Feedback failed: ${err.message}`, true);
+  }
+}
+
+function initNlpFeedback() {
+  const yes = $("nlpFbYes"), no = $("nlpFbNo"), send = $("nlpFbSend");
+  if (!yes || !no) return;
+  yes.addEventListener("click", () => sendNlpFeedback(true));
+  no.addEventListener("click", () => { $("nlpFbFix").hidden = false;
+                                       $("nlpFbCorrection").focus(); });
+  if (send) send.addEventListener("click", () => sendNlpFeedback(false));
+  const corr = $("nlpFbCorrection");
+  if (corr) corr.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") sendNlpFeedback(false);
+  });
 }
 
 /* ---------- 2 · climate ---------- */
@@ -619,6 +694,9 @@ function designPayload() {
     window_wall: $("winWall").value, window_width_m: ww, window_height_m: wh,
     window_shgc: parseFloat($("winShgc").value),
     window_u_w_m2k: parseFloat($("winU").value),
+    // both are first-class engine inputs; the form now exposes them too
+    roof_pitch_deg: parseFloat($("roofPitch").value || "0"),
+    ach: parseFloat($("ventAch").value || "2"),
     period: $("period").value,
   };
 }
@@ -827,7 +905,9 @@ async function runOptimize() {
     $("bestCard").innerHTML = `<h4>★ Best design — TPI ${data.best.tpi.toFixed(3)}</h4>` +
       `<p>Orientation: <b>${b.orientation_deg}°</b></p>` +
       `<p>Walls: <b>${b.wall_material}</b> (${fmt(b.wall_thickness_m, 2)} m)</p>` +
-      `<p>Roof: <b>${b.roof_material}</b> (${fmt(b.roof_thickness_m, 2)} m)</p>` +
+      `<p>Roof: <b>${b.roof_material}</b> (${fmt(b.roof_thickness_m, 2)} m)` +
+      `${b.roof_pitch_deg ? ` · pitched <b>${b.roof_pitch_deg}°</b>` : " · flat"}</p>` +
+      `<p>Ventilation: <b>${b.ach != null ? b.ach + " ACH" : "—"}</b></p>` +
       `<p>Insulation: <b>${b.insulation_material}</b> ${b.insulation_material !== "none" ? fmt(b.insulation_thickness_m * 1000, 0) + " mm" : ""}</p>` +
       `<p>Window: <b>${b.window.wall}</b> ${fmt(b.window.width_m, 1)}×${fmt(b.window.height_m, 1)} m, SHGC ${fmt(b.window.shgc, 2)}</p>`;
     plot($("chartOpt"), [{
@@ -844,6 +924,8 @@ async function runOptimize() {
       tr.innerHTML = `<td>${i + 1}</td><td><b>${t.tpi.toFixed(3)}</b></td>` +
         `<td>${p.orientation_deg}°</td><td>${p.wall_material}</td>` +
         `<td>${p.roof_material}</td>` +
+        `<td>${p.roof_pitch_deg ? p.roof_pitch_deg + "°" : "flat"}</td>` +
+        `<td>${p.ach != null ? p.ach + " ACH" : "—"}</td>` +
         `<td>${p.insulation_material} ${p.insulation_material !== "none" ? (p.insulation_thickness_m * 1000).toFixed(0) + "mm" : ""}</td>` +
         `<td>${p.window_wall}</td>`;
       tb.appendChild(tr);
@@ -1442,6 +1524,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         b.addEventListener("click", () => { heroAsk.value = b.textContent.trim(); heroGo(); }));
     }
     $("nlpApply").addEventListener("click", applyNlpDesign);
+    initNlpFeedback();
     loadNlpInfo();
   }
   $("simulate").addEventListener("click", runSimulate);
@@ -1449,7 +1532,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   /* --- digital structure: live rebuild on design changes --- */
   ["length", "width", "height", "orientation", "wallMat", "wallThick",
-   "roofMat", "roofThick", "insMat", "insThick", "winWall", "winSize"]
+   "roofMat", "roofThick", "roofPitch", "insMat", "insThick",
+   "winWall", "winSize", "ventAch"]
     .forEach((id) => {
       const el = $(id);
       if (!el) return;
@@ -1791,6 +1875,11 @@ function applyDesignToForm(d) {
   opt("wallMat", d.wall_material); opt("roofMat", d.roof_material);
   opt("insMat", d.insulation_material || "none"); opt("winWall", d.window_wall);
   set("winShgc", num(d.window_shgc)); set("winU", num(d.window_u_w_m2k));
+  // select values are strings; engine numbers like 20.0 → "20"
+  if (num(d.roof_pitch_deg) !== null)
+    opt("roofPitch", String(Number(d.roof_pitch_deg)));
+  if (num(d.ach) !== null)
+    opt("ventAch", String(Number(d.ach)));
 }
 
 function currentFlatDesign() {
@@ -2608,7 +2697,8 @@ function initAi() {
   if ($("aiVerifyBtn")) $("aiVerifyBtn").addEventListener("click", aiVerify);
   if ($("location")) $("location").addEventListener("change", scheduleAiPredict);
   ["length", "width", "height", "orientation", "wallMat", "wallThick",
-   "roofMat", "roofThick", "insMat", "insThick", "winWall", "winSize"]
+   "roofMat", "roofThick", "roofPitch", "insMat", "insThick",
+   "winWall", "winSize", "ventAch"]
     .forEach((id) => { const el = $(id); if (el) el.addEventListener("input", scheduleAiPredict); });
   (async () => {
     try {
