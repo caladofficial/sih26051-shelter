@@ -49,6 +49,26 @@ def _client():
 
 
 # ---------------------------------------------------------------- structure
+def test_material_colors_are_distinct():
+    """The 3D view must visually distinguish materials — "change the walls to
+    plywood" has to look different from brick, or the change is invisible."""
+    assert model.material_color("plywood", "wall") != model.material_color("brick", "wall")
+    assert model.material_color("gi_sheet", "roof") != model.material_color("rcc_slab", "roof")
+    assert model.material_color("stone", "wall") != model.material_color("timber", "wall")
+    # windows keep their glass-blue role colour (not wall-tinted)
+    assert model.material_color("glass", "window") == model.component_color("window")
+
+
+def test_wall_material_changes_component_color():
+    ply = model.build_components({**DESIGN, "wall_material": "plywood"}, {})
+    brk = model.build_components({**DESIGN, "wall_material": "brick"}, {})
+    ply_wall = next(c for c in ply if c["type"] == "wall")
+    brk_wall = next(c for c in brk if c["type"] == "wall")
+    assert ply_wall["material"] == "plywood"
+    assert ply_wall["color"] == model.MATERIAL_COLORS["plywood"]
+    assert ply_wall["color"] != brk_wall["color"]
+
+
 def test_components_basic(materials):
     comps = model.build_components(DESIGN, materials)
     types = [c["type"] for c in comps]

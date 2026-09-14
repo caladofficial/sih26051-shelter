@@ -452,9 +452,11 @@ async function runNlp(textOverride) {
         lon: sel ? parseFloat(sel.dataset.lon) : undefined,
         climate_period: climatePeriod(),
         simulate: true,
-        // carry the previous turn's design so follow-ups refine it instead
-        // of restarting: "make it bigger" only means something in context
-        context_design: state.nlpDesign || undefined,
+        // carry context so "change the walls to plywood" actually changes the
+        // design on screen. Priority: the previous NLP turn (conversation
+        // continuity), then the studio's current design (so a first request
+        // modifies what the user already built rather than a blank default).
+        context_design: state.nlpDesign || currentFlatDesign() || undefined,
       }),
     });
     stopProgress();
@@ -466,6 +468,12 @@ async function runNlp(textOverride) {
                       slots: (j.understood || {}).slots || null,
                       design: j.design || null };
     resetNlpFeedback();
+    if (j.actionable && j.design) {
+      // the whole point: say it, and the CAD design changes — immediately
+      applyStudioDesign(j.design);
+      $("nlpApplyStatus").textContent = "auto-applied — 3D updated";
+      toast("Applied to your design — 3D updated");
+    }
     st.textContent = j.actionable
       ? `understood as ${j.understood.intent} · ${Math.round(j.understood.confidence * 100)}% confident`
       : "not actionable";
@@ -555,31 +563,29 @@ function renderNlp(j) {
   });
 }
 
-/* Push the assistant's design into the studio controls so the user can keep
-   working on it with the normal tools. */
-function applyNlpDesign() {
-  const d = state.nlpDesign;
+/* Push a design into the studio controls AND rebuild the 3D/CAD view, so a
+   plain-English request changes the digital structure directly — no separate
+   "apply" click. Mirrors the preset loader (applyDesignToForm) and then
+   forces the same live-rebuild path that typing in a field triggers. */
+function applyStudioDesign(d) {
   if (!d) return;
-  const set = (id, v) => { const e = $(id); if (e && v !== undefined && v !== null) e.value = v; };
-  set("length", d.length_m); set("width", d.width_m); set("height", d.height_m);
-  set("orientation", d.orientation_deg);
-  set("wallMat", d.wall_material); set("wallThick", d.wall_thickness_m);
-  set("roofMat", d.roof_material); set("roofThick", d.roof_thickness_m);
-  set("insMat", d.insulation_material);
-  set("insThick", Math.round((d.insulation_thickness_m || 0) * 1000));
-  set("winWall", d.window_wall);
-  if (typeof d.roof_pitch_deg === "number")
-    set("roofPitch", String(Number(d.roof_pitch_deg)));
-  if (typeof d.ach === "number")
-    set("ventAch", String(Number(d.ach)));
+  applyDesignToForm(d);
   ["length", "width", "height", "orientation", "wallMat", "wallThick",
    "roofMat", "roofThick", "roofPitch", "insMat", "insThick", "winWall",
-   "ventAch"].forEach((id) => {
+   "winSize", "winShgc", "winU", "ventAch"].forEach((id) => {
     const e = $(id);
     if (e) e.dispatchEvent(new Event("change", { bubbles: true }));
   });
-  $("nlpApplyStatus").textContent = "applied to the studio — run SEC/04 to re-verify";
-  toast("Design applied to the studio");
+  scheduleStructure();          // immediate 3D rebuild
+  scheduleAiPredict();          // keep the instant estimate in step too
+}
+
+/* The assistant now applies itself; the button's job is just to take the user
+   back up to the 3D viewport so they can see what changed. */
+function applyNlpDesign() {
+  applyStudioDesign(state.nlpDesign);
+  document.getElementById("sec3").scrollIntoView({ behavior: "smooth", block: "start" });
+  toast("Applied — showing it in the 3D view");
 }
 
 /* ---------- "did I understand you correctly?" — the feedback loop ----------
@@ -1786,14 +1792,22 @@ function setMeasure(on) {
 function renderLegend() {
   const wrap = $("structLegend");
   if (!wrap || !struct.data) return;
+  wrap.innerHTML = "";
   const seen = {};
   for (const c of struct.data.components) {
-    if (!seen[c.type]) {
-      seen[c.type] = c.color;
-      const s = document.createElement("span");
-      s.innerHTML = `<i style="background:${c.color}"></i>${c.type.toUpperCase()}`;
-      wrap.appendChild(s);
-    }
+    // label structural parts by their actual material so "change the walls
+    // to plywood" shows PLYWOOD in the legend, not a generic "wall"
+    const key = (c.type === "wall" || c.type === "roof" || c.type === "floor")
+      ? c.type + ":" + (c.material || c.type)
+      : c.type;
+    if (seen[key]) continue;
+    seen[key] = true;
+    const label = (c.type === "wall" || c.type === "roof" || c.type === "floor")
+      ? `${c.type.toUpperCase()} · ${(c.material || "").toUpperCase()}`
+      : c.type.toUpperCase();
+    const s = document.createElement("span");
+    s.innerHTML = `<i style="background:${c.color}"></i>${label}`;
+    wrap.appendChild(s);
   }
 }
 

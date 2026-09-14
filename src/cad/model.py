@@ -31,8 +31,41 @@ ROLE_COLORS = {
     "door": "#6e6358",
 }
 
+# The 3D view must actually SHOW what a material is, or "change the walls to
+# plywood" looks like nothing happened. Each sourced material gets its own
+# tone so the CAD view reads as the real assembly, not a generic box.
+MATERIAL_COLORS = {
+    "brick": "#b0784a",            # terracotta
+    "mud_brick": "#9a7b4f",        # earth brown
+    "rammed_earth": "#b98d5f",     # tan
+    "stone": "#8a8f96",            # grey
+    "concrete": "#9aa0a6",         # grey
+    "rcc_slab": "#8f9aa6",         # grey (roof slab)
+    "timber": "#c08a4b",           # warm wood
+    "plywood": "#e0b478",          # light ply
+    "aerated_concrete": "#cfd4d9", # pale AAC
+    "gi_sheet": "#aeb9c3",         # galvanised steel
+    "puf_sandwich_panel": "#d5dce3",  # white steel-skin panel
+    "eps": "#f2c14e",              # amber (insulation)
+    "xps": "#e7a93f",
+    "mineral_wool": "#f2c14e",
+    "sheep_wool": "#e8c98a",
+    "glass": "#5ab8d8",
+}
+
 
 def component_color(role: str) -> str:
+    return ROLE_COLORS.get(role, "#9aa3ad")
+
+
+def material_color(material: str | None, role: str) -> str:
+    """Colour a component by its actual material, falling back to its role.
+
+    Structural materials (walls/roof/floor) read as their material; glazing,
+    doors and the insulation stay on their role colour so the assembly stays
+    legible."""
+    if material in MATERIAL_COLORS and role in ("wall", "roof", "floor"):
+        return MATERIAL_COLORS[material]
     return ROLE_COLORS.get(role, "#9aa3ad")
 
 
@@ -83,7 +116,8 @@ def build_components(design: dict, materials: dict[str, dict] | None = None) -> 
     comps.append({
         "id": "floor", "name": "Floor slab", "type": "floor",
         "material": design.get("floor_material", "concrete"),
-        "thickness_m": tf, "color": ROLE_COLORS["floor"],
+        "thickness_m": tf, "color": material_color(
+            design.get("floor_material", "concrete"), "floor"),
         "box": _box(-hx, -hy, 0.0, hx, hy, tf),
         "properties": prop(design.get("floor_material", "concrete")),
     })
@@ -103,7 +137,8 @@ def build_components(design: dict, materials: dict[str, dict] | None = None) -> 
         comps.append({
             "id": f"wall_{name}", "name": f"{name.title()} wall",
             "type": "wall", "material": design.get("wall_material", "brick"),
-            "thickness_m": tw, "color": ROLE_COLORS["wall"], "box": bx,
+            "thickness_m": tw, "color": material_color(
+                design.get("wall_material", "brick"), "wall"), "box": bx,
             "properties": prop(design.get("wall_material", "brick")),
         })
         if has_ins:
@@ -127,7 +162,8 @@ def build_components(design: dict, materials: dict[str, dict] | None = None) -> 
     comps.append({
         "id": "roof", "name": "Roof slab", "type": "roof",
         "material": design.get("roof_material", "rcc_slab"),
-        "thickness_m": tr, "color": ROLE_COLORS["roof"],
+        "thickness_m": tr, "color": material_color(
+            design.get("roof_material", "rcc_slab"), "roof"),
         "box": _box(-hx, -hy, H + tf, hx, hy, H + tf + tr),
         "properties": prop(design.get("roof_material", "rcc_slab")),
     })
