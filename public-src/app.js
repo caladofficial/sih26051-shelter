@@ -489,12 +489,62 @@ async function runNlp(textOverride) {
 function renderNlp(j) {
   const wrap = $("nlpResult");
   const u = j.understood || {};
-  $("nlpIntent").textContent = `INTENT: ${u.intent || "?"}`;
+  $("nlpIntent").textContent = `INTENT: ${u.intent || "?"}`
+    + (u.read_by && u.read_by !== "model" ? ` · via ${u.read_by}` : "");
   $("nlpConf").textContent = `CONFIDENCE: ${Math.round((u.confidence || 0) * 100)}%`;
   $("nlpSite").textContent = `SITE: ${j.site || "—"}`;
   $("nlpZone").textContent = j.zone_name ? `ZONE: ${j.zone_name}` : "ZONE: —";
 
   const verdict = $("nlpVerdict");
+
+  if (j.kind === "compare") {
+    // the assistant ACTS on comparisons now: engine/cache numbers for both
+    // sides, winner marked — not a pointer to a menu
+    wrap.hidden = false;
+    $("nlpApply").hidden = true;
+    $("nlpMetrics").innerHTML = "";
+    $("nlpDesign").innerHTML = "";
+    const rows = $("nlpApplied");
+    rows.innerHTML = "";
+    const f1 = (v) => (v == null ? "—" : Number(v).toFixed(1));
+    const A = j.a || {}, B = j.b || {};
+    let cols;
+    if (j.mode === "climate") {
+      cols = [["zone", (x) => x.zone_name || "—"],
+              ["hottest month mean", (x) => f1(x.hottest_month_mean_c) + " °C"],
+              ["coldest month mean", (x) => f1(x.coldest_month_mean_c) + " °C"],
+              ["mean humidity", (x) => f1(x.mean_rh_pct) + " %"],
+              ["heating deg-days", (x) => f1(x.hdd18)],
+              ["cooling deg-days", (x) => f1(x.cdd18)]];
+    } else {
+      cols = [["hot week mean", (x) => f1(x.hot_mean_c) + " °C"],
+              ["hot week peak", (x) => f1(x.hot_peak_c) + " °C"],
+              ["hot comfort", (x) => f1((x.hot_comfort_pct ?? 0) * 100) + " %"],
+              ["cold week mean", (x) => f1(x.cold_mean_c) + " °C"]];
+    }
+    const head = document.createElement("tr");
+    head.innerHTML = `<td></td><td><b>${A.label || "A"}</b></td>`
+      + `<td><b>${B.label || "B"}</b></td>`;
+    rows.appendChild(head);
+    cols.forEach(([name, get]) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td style="opacity:.65">${name}</td>`
+        + `<td>${get(A)}</td><td>${get(B)}</td>`;
+      rows.appendChild(tr);
+    });
+    if (j.winner) {
+      const tr = document.createElement("tr");
+      const w = j.winner === "a" ? (A.label || "A") : (B.label || "B");
+      tr.innerHTML = `<td>winner</td><td colspan="2"><b>${w}</b>`
+        + ` <span style="opacity:.7">(by the metric named below — the other side`
+        + ` may still win on yours)</span></td>`;
+      rows.appendChild(tr);
+    }
+    verdict.className = "verdict good";
+    verdict.innerHTML = `<b>Compared · ${j.mode}</b><span>${j.message || ""}`
+      + (j.metrics_basis ? ` · ${j.metrics_basis}` : "") + `</span>`;
+    return;   // design untouched — conversation state stays where it was
+  }
   if (!j.actionable) {
     wrap.hidden = false;
     verdict.className = "verdict warn";
@@ -503,6 +553,13 @@ function renderNlp(j) {
     $("nlpApplied").innerHTML = "";
     $("nlpDesign").innerHTML = "";
     $("nlpApply").hidden = true;
+    if (u.read_by === "guard:prompt-injection") {
+      verdict.className = "verdict bad";
+      verdict.innerHTML = `<b>That request is out of scope</b>`
+        + `<span>The assistant designs shelters from weather and physics data`
+        + ` — it does not reveal internals, and instructions typed into it`
+        + ` carry no privileges at all.</span>`;
+    }
     return;
   }
   wrap.hidden = false;

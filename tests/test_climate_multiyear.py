@@ -21,7 +21,21 @@ from src.data import climate_archive as ca
 
 client = TestClient(app)
 
-HAS_ARCHIVE = bool(ca.load_index().get("sites"))
+def _archive_ready() -> bool:
+    """The index can survive a sandbox restore while the parquet behind it
+    does not — check that an actual read returns hours, not just metadata."""
+    idx = (ca.load_index().get("sites") or {})
+    for site in list(idx)[:1]:
+        try:
+            df = ca.read_local(site)
+        except Exception:                                # noqa: BLE001
+            df = None
+        if df is not None and len(df) > 1000:
+            return True
+    return False
+
+
+HAS_ARCHIVE = _archive_ready()
 needs_archive = pytest.mark.skipif(
     not HAS_ARCHIVE, reason="local climate archive not generated")
 

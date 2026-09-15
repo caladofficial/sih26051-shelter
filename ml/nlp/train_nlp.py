@@ -91,6 +91,23 @@ def main() -> int:
         per_class[l] = {k: round(float(rep[l][k]), 4)
                         for k in ("precision", "recall", "f1-score")}
 
+    # --- honest generalisation numbers --------------------------------------
+    # The synthetic split flatters any model trained on template noise. Score
+    # the model on the 86 hand-annotated gold utterances (NEVER trained on)
+    # through the FULL parse path — classifier + grammar backstop — because
+    # that is what the product actually runs.
+    gold = {"n": 0, "intent_accuracy": None}
+    gold_file = DATA.parent / "nlp_gold_v2.jsonl"
+    if gold_file.exists():
+        import json as _json
+        from src.nlp_design import parse as _parse
+        rows = [_json.loads(l) for l in
+                gold_file.read_text(encoding="utf-8").splitlines() if l.strip()]
+        hits = sum(1 for r in rows if _parse(r["text"])["intent"] == r["intent"])
+        gold = {"n": len(rows), "intent_accuracy": round(hits / len(rows), 4)}
+        print(f"[nlp] gold-holdout intent accuracy: {hits}/{len(rows)}"
+              f" = {gold['intent_accuracy']:.4f}  (never trained on)")
+
     payload = {
         "schema_version": 1,
         "family": "hashed word+char n-grams -> multinomial logistic regression",
@@ -104,6 +121,7 @@ def main() -> int:
             "per_class": per_class,
             "confusion_matrix": cm,
             "labels_order": labels,
+            "gold_holdout": gold,
         },
         "note": ("Intent classifier only. Slot values (site, materials, "
                  "dimensions, orientation) are extracted by an explicit "

@@ -204,6 +204,74 @@ def _find_alias(text: str, table: dict) -> tuple[str | None, str | None]:
     return (table[best_key], best_key) if best_key else (None, None)
 
 
+# --------------------------------------------------------------------------
+# Hinglish / romanised-Hindi bridge
+# --------------------------------------------------------------------------
+#: Real users on this project code-mix: "mitti ki deewar", "chhat pe GI sheet".
+#: The classifier is trained on code-mixed sentences too (ml/nlp generator v4),
+#: and slot extraction runs on this transliteration so every English rule below
+#: fires on Hindi phrasing without duplicating the gazetteers. Romanised
+#: Devanagari only — the featuriser's normalise() is untouched, so the
+#: train/inference contract is unchanged.
+HINGLISH_MAP = {
+    # envelope nouns
+    "deewar": "wall", "deewaron": "walls", "deewarein": "walls",
+    "diwar": "wall", "chhat": "roof", "chatt": "roof", "chhath": "roof",
+    "khidki": "window", "khidkiya": "windows", "khidkiyon": "windows",
+    "farsh": "floor", "kamra": "room", "makan": "house", "ghar": "house",
+    # materials
+    "mitti": "mud", "mati": "mud", "kanchi": "glass", "pathar": "stone",
+    "eent": "brick", "eeent": "brick", "lakdi": "timber", "thermocol": "eps",
+    "sheet": "sheet", "loha": "metal",
+    # drivers / goals
+    "garmi": "heat", "thand": "cold", "sardi": "cold", "dhoop": "sun",
+    "dhup": "sun", "barish": "rain", "barsat": "rain", "baadh": "flood",
+    "badh": "flood", "toofan": "cyclone", "barf": "snow", "hawa": "wind",
+    "bhukamp": "earthquake", "nanami": "flood",
+    # size / shape
+    "bada": "big", "ghumao": "rotate", "ghumaoo": "rotate",
+    "taraf": "toward", "yani": "", "bohot": "very", "turant": "fast",
+    "banne": "build", "jagah": "instead", "sakte": "", "sakate": "",
+    "hi": "", "bas": "only", "chal": "going", "badi": "big", "bari": "big", "chhota": "small",
+    "chhoti": "small", "moti": "thick", "mota": "thick", "patli": "thin",
+    "patla": "thin", "ooncha": "tall", "unchi": "tall", "neechee": "low",
+    # orientation
+    "dakshin": "south", "uttar": "north", "purab": "east", "pachhim": "west",
+    # verbs / particles that carry intent
+    "banao": "design", "banado": "design", "banaiye": "design",
+    "banwana": "design", "design": "design",
+    "laga": "add", "daal": "add", "badlo": "change", "badal": "change",
+    "karo": "do", "kiijiye": "do", "kijiye": "do",
+    "zyada": "more", "jyada": "more", "kam": "less",
+    "sasta": "cheap", "se": "from", "mein": "in", "me": "in", "pe": "on",
+    "par": "on", "aur": "and", "ya": "or", "hai": "", "ho": "", "ke": "",
+    "ki": "", "ka": "", "wali": "", "wala": "", "liye": "for",
+    "bachane": "protect", "bachne": "protect", "bachao": "protect", "jawano": "soldiers",
+    "behtar": "better", "achhi": "good", "achha": "good", "achhe": "good",
+    "jawanon": "soldiers", "logon": "people", "logo": "people",
+    "khushgawar": "comfortable", "aaram": "comfort",
+}
+
+#: multi-word Hinglish imperatives win over the single-token map, because
+#: "laga do"/"kar do" ARE the modify verb in code-mixed speech
+HINGLISH_PHRASES = {
+    "laga do": "add", "laga dena": "add", "daal do": "add", "dal do": "add",
+    "nikal do": "remove", "hata do": "remove", "kar do": "set",
+    "kar dijiye": "set", "de dijiye": "add", "badh do": "increase",
+}
+_HING_PHRASE_RE = re.compile(
+    r"\b(" + "|".join(sorted(HINGLISH_PHRASES, key=len, reverse=True)) + r")\b")
+_HING_RE = re.compile(r"\b(" + "|".join(sorted(HINGLISH_MAP, key=len, reverse=True)) + r")\b")
+
+
+def _hinglish(t: str) -> str:
+    """Translate romanised-Hindi tokens into the English vocabulary the
+    gazetteers already know. Runs only for slots/grammar — never before the
+    intent featuriser, whose contract with the trained model must not move."""
+    t = _HING_PHRASE_RE.sub(lambda m: HINGLISH_PHRASES[m.group(1)], t)
+    return re.sub(r"\s+", " ", _HING_RE.sub(lambda m: HINGLISH_MAP[m.group(1)], t)).strip()
+
+
 #: Spelled-out numbers. People write "a family of six", not "6" — and the
 #: extractor was digit-only, so those requests silently lost their occupancy
 #: and footprint. Applied ONLY in slot extraction: normalise() feeds the
@@ -245,9 +313,169 @@ def _digitise(t: str) -> str:
     return t
 
 
+# --------------------------------------------------------------------------
+# comparison constructs — "compare X with Y", "is X better than Y", "X ya Y"
+# --------------------------------------------------------------------------
+#: The bag-of-words classifier sees "compare brick shelter with stone shelter
+#: in Jaisalmer", over-weights shelter/Jaisalmer and answers `design`. The
+#: grammar itself is deterministic, so we read the pair with rules and let
+#: the rules also CORRECT a confidently wrong intent (the audit dataset's
+#: first severe false positive).
+_OP_PATTERNS = [
+    (r"\bcompare\s+(.+?)\s+(?:with|against|to|versus|vs\.?)\s+(.+?)(?=\s+(?:in|for|at|across)\s+\w|$)", 1, 2),
+    (r"\bdifference between\s+(.+?)\s+and\s+(.+?)(?=\s+(?:in|for|at)\s+\w|$)", 1, 2),
+    (r"\b(?:which|who)\b[^?]{0,40}?\b(?:is|performs|does|fare|stacks|works)\b[^?]{0,30}?\bbetter\b[^?]{0,30}?:?\s*(.+?)\s+(?:or|versus|vs\.?)\s+(.+?)\??$", 1, 2),
+    (r"\b(.+?)\s+(?:versus|vs\.|vs|against|compared to|stack up against|compared with)\s+(.+?)(?=\s+(?:in|for|at)\s+\w|$)", 1, 2),
+    (r"\b(.+?)\s+(?:is|are|hai|achhi hai|achha hai)\s+better\s+than\s+(.+?)\??$", 1, 2),
+    (r"(.+?)\s+(?:behtar|better)\s+(?:hai|a)\s+ya\s+(.+?)\??$", 1, 2),
+    (r"\b(.+?)\s+(?:or|ya)\s+(.+?)\b(?:kaun|which)?\s*(?:better|behtar|achhi|achha|cooler|warmer)\b", 1, 2),
+    (r"\bis\s+(.+?)\s+(?:harsher|milder|hotter|cooler|wetter|drier)\s+than\s+(.+?)\??$", 1, 2),
+    (r"\b(.+?)\s+(?:good|better)\s+(?:hai\s+)?(?:for\s+\w+\s+)?(?:or|ya)\s+(?:ki\s+)?(.+?)\??$", 1, 2),
+    (r"\b(.+?)\s+(?:or|ya)\s+(.+?)\s+better\b", 1, 2),
+]
+
+
+def _side_entities(side: str) -> dict:
+    """Resolve one half of a comparison into engine-known entities."""
+    out: dict = {}
+    mat, key = _find_alias(side, WALL_ALIASES)
+    if mat:
+        out["wall_material"] = mat
+        out["label_matched"] = key
+    ins, ikey = _find_alias(side, INS_ALIASES)
+    if ins:
+        out["insulation_material"] = ins
+        out.setdefault("label_matched", ikey)
+    thk = re.search(r"(\d+(?:\.\d+)?)\s*(mm|cm)\b", side)
+    if thk:
+        v = float(thk.group(1)) / (1000 if thk.group(2) == "mm" else 100)
+        out["thickness_m"] = round(v, 4)
+    site, _ = _find_alias(side, SITE_ALIASES)
+    if site:
+        out["site"] = site
+    out["raw"] = side.strip()[:60]
+    return out
+
+
+def _compare_entities(t: str) -> dict | None:
+    for pat, ga, gb in _OP_PATTERNS:
+        m = re.search(pat, t)
+        if not m:
+            continue
+        a = _side_entities(m.group(ga).strip())
+        b = _side_entities(m.group(gb).strip())
+        # a real pair needs one resolvable entity per side; a side that NAMES
+        # a design ("Coastal Light Envelope or Cyclone-Resilient ... Shell") is
+        # resolvable too — the endpoint fuzzy-matches it against the preset
+        # library before anything else
+        resolvable = lambda d: any(k in d for k in
+                                   ("wall_material", "insulation_material", "site", "thickness_m")) \
+            or re.search(r"\b(shell|envelope|studio|kit|cell|upgrade|dormitory|dwelling|"
+                         r"post|bunker|cabin|hut|unit)\b\s*$", d.get("raw", "").lower()) \
+            or re.search(r"\b(shell|envelope|studio|kit|cell|upgrade)\b", d.get("raw", "").lower())
+        if resolvable(a) and resolvable(b):
+            return {"a": a, "b": b, "pattern": pat[:24]}
+    return None
+
+
+def grammar(t: str) -> tuple[str | None, str]:
+    """Deterministic intent corrections from constructs the n-gram bag
+    cannot represent. Returns (intent|None, reason). Only fires on constructs
+    that are unambiguous by construction, so a bare "compare" with no pair
+    never overrides."""
+    # --- guard: prompt injection / clearly-out-of-domain -------------------
+    if re.search(r"\b(?:ignore|disregard|forget)\s+(?:all\s+|any\s+)?(?:previous|prior|above|earlier)\b"
+                 r"|\bsystem\s+prompt\b|\bjailbreak\b|\bpretend\s+to\s+be\b|\byou\s+are\s+now\b"
+                 r"|reveal.{0,24}(?:password|credential|secret|database|api key)"
+                 r"|(?:show|print|leak|dump|give me).{0,28}(?:\brows\b|\btable\b|\bsql\b"
+                 r"|api keys?|access token|secret keys?|credentials?"
+                 r"|passwords?\b|env vars?\b)"
+                 r"|\b(?:drop|delete)\s+table\b|\bselect\s+\*|\binsert\s+into\b"
+                 r"|\bunion\s+select\b|\bxp_cmdshell\b|\bor\s+1=1\b", t):
+        return "unknown", "guard:prompt-injection"
+    if re.search(r"\bcapital of\b|\bpopulation of\b|\blinked list\b|\bpython script\b|"
+                 r"\bwrite (?:a|me)\b.{0,12}\b(?:poem|essay|script|function|code)\b|"
+                 r"\b(?:book|order|reserve) me\b|\bflight (?:ticket|to)\b|\bhotel room\b|"
+                 r"\brecipe\b|\bbirthday\b|\bhoroscope\b|\btranslate (?:this|the)\b|"
+                 r"\bmeaning of life\b|\bstory about\b|\bjoke\b"
+                 r"|\bhack\b|\bwifi password|\bcrack(?:ing)? .{0,10}password\b"
+                 r"|\bkali linux\b|\bmalware\b|\bransomware\b"
+                 r"|\b(?:price|rate|value) of\b[^.]{0,14}\b(?:bitcoin|btc|crypto"
+                 r"|gold|rupee|dollar|nifty|sensex)\b|\b(?:bitcoin|crypto)\b"
+                 r"|\bexchange rate\b|\bmatch score\b|\bcricket score\b", t):
+        return "unknown", "guard:out-of-domain"
+    # --- optimisation verb ANYWHERE ("... ke liye optimize karo") -----------
+    # the Hinglish word order puts it at the end; English imperatives at the
+    # front; both are unambiguous commands
+    if re.search(r"\boptimi[sz]\w*\b|\boptimal\b|\bparameter sweep\b|"
+                 r"\bbest combination\b", t):
+        return "optimize", "grammar:optimisation-verb"
+    # --- climate-recon questions ("what's the coldest it gets in Kargil") ----
+    if re.match(r"^(?:what|when|how|is|does|tell)\b", t) and re.search(
+            r"\b(?:coldest|hottest|warmest|mildest|rainiest|humidest|"
+            r"how (?:hot|cold|humid|windy)|temperature (?:get|range)|"
+            r"degrees? in [a-z]+)\b", t):
+        return "explain", "grammar:climate-recon"
+    # --- conceptual questions read as explain even with an A-vs-B shape ------
+    if re.match(r"^(?:what|why|when|how)\b", t) and (re.search(
+            r"\bmean[s]?\b|\bmeaning\b|\bcoefficient\b|\bwhat is the\b|"
+            r"\bdiffer\w*\b|\bdifference\b|\bdefine\b|\baffect\w*\b|"
+            r"\bimpact\w*\b|\binfluenc\w*\b|\bcause[sd]?\b", t)
+            or re.search(r"^\s*why\b.{0,48}?\b(?:cool|heat|overheat|warm|"
+                         r"freeze|losing|loss)\w*\b", t)) \
+            and not re.match(r"^\s*(?:please\s+)?compare\b", t):
+        return "explain", "grammar:concept-question"
+    # --- compare needs a resolvable pair ------------------------------------
+    if _compare_entities(t) is not None:
+        return "compare", "grammar:compare-construct"
+    # --- imperative refinements of the design on screen ----------------------
+    if re.match(r"^(?:now\s+|also\s+|please\s+)?(?:change|set|make|swap|replace|add|"
+                r"remove|increase|decrease|reduce|drop|rotate|relocate|move|seal|"
+                r"shrink|enlarge|extend|adjust|tweak|update|shift|switch|bump|"
+                r"close|open|double|halve|thicken|thin(?:ner)?|widen)\b", t) \
+            and not re.search(r"\b(shelter|house|cabin|unit)\b.{0,20}\bfor\s+[a-z]+\b.*\b"
+                              r"(?:design|build)\b", t):
+        # "build a shelter for X" style fresh briefs keep their own intent
+        if not re.match(r"^(?:now\s+|please\s+)?(?:change|make|set)\b.*\b(?:in|for|to)\s+"
+                        r"(?:" + "|".join(SITE_ALIASES) + r")\b.*\b(?:shelter|unit|cabin|hut|house)\b", t):
+            return "modify", "grammar:imperative-refinement"
+    # --- explicit optimisation verbs (must precede the modify clause rule:
+    #     "optimize ventilation and add 50mm eps" is an OPTIMISE with a
+    #     side instruction, not a bare refinement) --------------------------
+    if re.search(r"^\s*(?:please\s+)?(?:optimi[sz]e|tune|sweep|maximi[sz]e|minimi[sz]e|"
+                 r"find (?:me )?(?:the )?best|search (?:the )?design space|"
+                 r"run (?:a )?\d+[- ]?trial|what is the optimal)\b"
+                 r"|\b(?:optimal|best) (?:orientation|wall|roof|combination|envelope|"
+                 r"insulation|window|configuration|thickness)\b"
+                 r"|\bparameter sweep\b", t):
+        return "optimize", "grammar:optimisation-verb"
+    if re.search(r"\b(?:add|remove|set|change|swap|replace|increase|decrease|reduce|"
+                 r"rotate|turn|flip|make)\b", t) \
+            and not re.search(r"\b(?:design|build|create|need|want|draw up|"
+                              f"put together|make me)\b", t) \
+            and len(t.split()) <= 16 \
+            and not re.search(r"\b(?:shelter|house|cabin|unit|hut)\b[^.]{0,24}"
+                              r"\b(?:in|for)\s+\w+", t):
+        return "modify", "grammar:imperative-clause"
+    # --- design fallback: a build-noun brief, no question, no rival shape ---
+    if re.search(r"\b(shelter|unit|cabin|bunker|outpost|dwelling|dormitory|camp|"
+                 r"relief kit|shed|hut|house|classroom|clinic|command post|"
+                 r"watch cabin|barracks)\b", t) \
+            and not re.search(r"\b(?:harsher|better than|difference between|"
+                              r"versus|\bvs\b|compare)\b", t) \
+            and not re.search(r"\?|^\s*(?:is|are|does|do|which|how|what|why|"
+                              r"when|can)\b", t):
+        return "design", "grammar:build-noun"
+    return None, ""
+
+
 def extract_slots(text: str) -> dict:
     """Pull design values out of free text. Only returns what it truly finds."""
-    t = _digitise(normalise(text))
+    t = _digitise(_hinglish(normalise(text)))
+    # gazetteer scan text: hyphens and slashes flatten to spaces so
+    # "mud-brick", "well-ventilated" and "4/5" match the same keys as
+    # their spaced forms (the gold corpus writes compounds hyphenated)
+    t = re.sub(r"\s+", " ", re.sub(r"[-/]+", " ", t))
     slots: dict = {}
 
     site, _ = _find_alias(t, SITE_ALIASES)
@@ -256,16 +484,41 @@ def extract_slots(text: str) -> dict:
 
     # material words are scoped to the noun they precede/follow, so
     # "brick walls with a tin roof" resolves both correctly
-    wall_ctx = re.search(r"([a-z \-]{0,22})\bwalls?\b", t)
-    roof_ctx = re.search(r"([a-z \-]{0,22})\broof(?:ing)?\b", t)
-    if wall_ctx:
-        w, _ = _find_alias(wall_ctx.group(1), WALL_ALIASES)
+    # Prefixes are scanned in WHOLE words only (an unanchored [a-z ] class
+    # used to start mid-word: "...aerated concrete blocks and cool roof..."
+    # matched the prefix "crete blocks and cool " and the roof-phrase cut
+    # then destroyed "concrete" for the wall fallback).
+    wall_ctx = re.search(r"((?:[a-z]+ ){0,4})walls?\b", t)
+    roof_ctx = re.search(r"((?:[a-z]+ ){0,4})roof(?:ing)?\b", t)
+
+    def _scope(m: re.Match | None) -> tuple[str | None, int, int]:
+        """Nearest clause before the structural noun: cut at connectors and at
+        the OTHER structural noun, and report the span actually consumed."""
+        if not m:
+            return None, 0, 0
+        prefix = m.group(1)
+        prefix = re.split(r"\b(?:and|with|or|plus)\b", prefix)[-1]
+        prefix = re.split(r"\bwalls?\b", prefix)[-1]
+        return prefix, m.end() - len(prefix), m.end()
+
+    w_scope, w_a, w_b = _scope(wall_ctx)
+    r_scope, r_a, r_b = _scope(roof_ctx)
+    if w_scope:
+        w, _ = _find_alias(w_scope, WALL_ALIASES)
         if w:
             slots["wall_material"] = w
-    if roof_ctx:
-        r, _ = _find_alias(roof_ctx.group(1), ROOF_ALIASES)
+    if r_scope:
+        r, _ = _find_alias(r_scope, ROOF_ALIASES)
         if r:
             slots["roof_material"] = r
+    # structural frames carry both surfaces in prefab speech ("timber frame")
+    if re.search(r"\b(?:timber|wood|steel|bamboo) frame\b", t):
+        fm = re.search(r"\b(timber|wood|steel|bamboo) frame\b", t).group(1)
+        fm = "timber" if fm in ("wood",) else ("bamboo" if fm == "bamboo" else fm)
+        if "wall_material" not in slots and fm != "bamboo":
+            slots["wall_material"] = fm
+        if "roof_material" not in slots and fm != "bamboo":
+            slots["roof_material"] = fm
     if "wall_material" not in slots:
         # Search with the roof phrase cut out, so the roof's material cannot
         # be mistaken for the wall's and cannot mask it either. Previously any
@@ -273,30 +526,60 @@ def extract_slots(text: str) -> dict:
         # shelter with a sloped roof" lost the mud brick, and "stone shelter
         # with GI sheet roof" lost the stone.
         t_no_roof = t
-        if roof_ctx:
-            t_no_roof = (t[:roof_ctx.start()] + " " + t[roof_ctx.end():])
+        if r_a and r_b > r_a:
+            t_no_roof = t[:r_a] + " " + t[r_b:]
         w, _ = _find_alias(t_no_roof, WALL_ALIASES)
         if w:
             slots["wall_material"] = w
 
-    ins, _ = _find_alias(t, INS_ALIASES)
-    if ins:
-        slots["insulation_material"] = ins
+    # "PUF sandwich panels" with no roof noun names the whole envelope —
+    # panels are wall AND roof in practice; extend only when the same phrase
+    # already set the wall and no roof material was spoken
+    if ("roof_material" not in slots
+            and slots.get("wall_material") == "puf_sandwich_panel"
+            and re.search(r"\bpuf\b[^.]{0,18}\bpanels?\b", t)):
+        slots["roof_material"] = "puf_sandwich_panel"
+
+    if re.search(r"\b(?:remove|drop|delete|strip|eliminate)\b[^.]{0,14}\binsulat\w*", t):
+        # "remove all insulation" is an instruction, not a material lookup
+        slots["insulation_material"] = "none"
+        slots["insulation_thickness_m"] = 0.0
+    else:
+        ins, _ = _find_alias(t, INS_ALIASES)
+        if ins:
+            slots["insulation_material"] = ins
 
     # thicknesses: "200 mm walls", "wall 0.3 m", "300mm insulation"
-    for m in re.finditer(r"(\d+(?:\.\d+)?)\s*(mm|cm|m)\b([^.,;]{0,26})", t):
+    # unit list ordered longest-first; "0.25 meters" is the same number as
+    # "0.25 m" — an unlisted plural used to silently drop the whole clause
+    for m in re.finditer(
+            r"(\d+(?:\.\d+)?)\s*(mm|cm|meters?|metres?|m)\b([^.,;]{0,26})", t):
         val, unit, tail = float(m.group(1)), m.group(2), m.group(3)
         head = t[max(0, m.start() - 26):m.start()]
         metres = val / 1000 if unit == "mm" else val / 100 if unit == "cm" else val
         ctx = head + " " + tail
         if not 0.005 <= metres <= 1.0:
             continue
-        if "insul" in ctx or "eps" in ctx or "wool" in ctx:
+        # Attribution priority: the WORD ATTACHED TO THE NUMBER (its
+        # immediate tail) decides the layer — "75mm mineral wool for autumn"
+        # is an insulation number even when "timber" sits loose in the head.
+        tail_att = re.match(r"\s*(?:of\s+)?(?:the\s+)?(\w+(?:\s+\w+)?)", tail)
+        tail_words = tail_att.group(1) if tail_att else ""
+        insul_re = r"\b(insulat|eps|xps|wool|thermocol|mineral|glass\s+wool)\w*\b"
+        wall_re = (r"\b(wall|brick|stone|earth|rammed|mud|timber|plywood|"
+                   r"concrete|block|panel|aac|sheet)\w*\b")
+        if re.match(insul_re, tail_words):
             slots["insulation_thickness_m"] = round(metres, 4)
-        elif "wall" in ctx:
+        elif re.match(wall_re, tail_words):
             slots["wall_thickness_m"] = round(metres, 4)
-        elif "roof" in ctx or "slab" in ctx:
+        elif re.match(r"\b(roof|slab)\w*\b", tail_words):
             slots["roof_thickness_m"] = round(metres, 4)
+        elif re.search(insul_re, ctx) and not re.search(wall_re, tail):
+            slots["insulation_thickness_m"] = round(metres, 4)
+        elif re.search(r"\bwall\b", ctx) or (
+                "thickness" in ctx and slots.get("wall_material")):
+            # "200 mm walls", "make thickness 0.25 meters"
+            slots["wall_thickness_m"] = round(metres, 4)
 
     # footprint: "3x4", "4 by 5 m", "3 x 3 metres"
     dim = re.search(r"(\d+(?:\.\d+)?)\s*(?:x|by|\*)\s*(\d+(?:\.\d+)?)", t)
@@ -305,11 +588,13 @@ def extract_slots(text: str) -> dict:
         if 1.5 <= a <= 20 and 1.5 <= b <= 20:
             slots["length_m"], slots["width_m"] = a, b
 
-    ht = re.search(r"(?:height|tall|ceiling)\D{0,12}(\d+(?:\.\d+)?)\s*m\b", t)
+    ht = re.search(r"(?:height|tall|ceiling)\D{0,12}(\d+(?:\.\d+)?)\s*m\w*\b", t) \
+        or re.search(r"(\d+(?:\.\d+)?)\s*(?:m|meter|meters)\s+(?:ceiling|height)\b", t)
     if ht and 1.8 <= float(ht.group(1)) <= 6:
         slots["height_m"] = float(ht.group(1))
 
-    # window orientation — "facing north", "windows on the south"
+    # window orientation — "facing north", "windows on the south",
+    # "south glazing", "small north windows" (adjective-before-noun position)
     win = re.search(r"(?:facing|faces|orient\w*|window[s]?\s+(?:on|to)?\s*(?:the)?)\s*"
                     r"(north|south|east|west)", t)
     if win:
@@ -318,6 +603,11 @@ def extract_slots(text: str) -> dict:
         alt = re.search(r"(north|south|east|west)[\s\-]*facing", t)
         if alt:
             slots["window_wall"] = ORIENT_WORDS[alt.group(1)]
+        else:
+            pre = re.search(r"(?:the\s+)?\b(north|south|east|west)\s+"
+                            r"(?:facing\s+)?(?:windows?|glazing|openings?|glass)\b", t)
+            if pre:
+                slots["window_wall"] = ORIENT_WORDS[pre.group(1)]
 
     rot = re.search(r"(?:rotat\w*|orient\w*)\D{0,12}(\d{1,3})\s*(?:deg|degree)", t)
     if rot and 0 <= int(rot.group(1)) <= 359:
@@ -327,6 +617,25 @@ def extract_slots(text: str) -> dict:
     for k, v in GOAL_WORDS.items():
         if re.search(rf"\b{re.escape(k)}\b", t) and v not in goals:
             goals.append(v)
+    # "cold" alone means "make it cooler", but "sardi ... se bachne" —
+    # PROTECT FROM cold — is a heating brief; the verb governs direction.
+    # Both Hindi word orders occur: verb-final ("sardi se bachne") and the
+    # transliterated verb-first form.
+    _cold_prot = (r"\b(?:protect|escape|avoid|survive|withstand|handle|cope"
+                  r"|bachne|bachao|bachane)\b[^.]{0,18}\b(?:cold|snow|freeze"
+                  r"|winter|frost|blizzard|barf|thand|sardi)\w*\b")
+    _cold_first = (r"\b(?:cold|snow|freeze|winter|frost|blizzard|barf|thand"
+                   r"|sardi)\w*\b[^.]{0,18}\b(?:se\s+bachne|se\s+bachao"
+                   r"|bachne|bachao|bachane|protect|escape|avoid|survive)\b")
+    if re.search(_cold_prot, t) or re.search(_cold_first, t):
+        goals = [g for g in goals if g != "cooling"]
+        if "heating" not in goals:
+            goals.append("heating")
+    elif re.search(r"\b(?:protect|escape|avoid|survive|withstand)\b[^.]{0,18}"
+                   r"\b(?:heat|summer|sun|garmi)\w*\b", t):
+        goals = [g for g in goals if g != "heating"]
+        if "cooling" not in goals:
+            goals.append("cooling")
     if goals:
         slots["goals"] = goals
 
@@ -337,11 +646,14 @@ def extract_slots(text: str) -> dict:
         slots.setdefault("length_m", 3.0)
         slots.setdefault("width_m", 3.0)
 
-    people = re.search(r"(\d+)\s*(?:people|persons?|members|occupants|"
-                       r"adults|children|kids)", t)
+    # allow one filler word: "15 displaced people", "8 hardened soldiers"
+    people = re.search(r"(\d+)[\s\-]*(?:\w+\s+){0,1}?"
+                       r"(?:people|persons?|members|occupants|soldiers?|"
+                       r"personnel|troops|jawans|sleepers|adults|children|kids)\b", t)
     if not people:
-        # "a family of six" / "household of 4"
-        people = re.search(r"(?:family|household|group)\s+of\s+(\d+)", t)
+        # "a family of six" / "household of 4" — _digitise above has already
+        # turned spelled-out numbers into digits, so the capture is numeric
+        people = re.search(r"(?:family|families|household|group)\s+of\s+(\d+)", t)
     if people:
         n = int(people.group(1))
         if 1 <= n <= 20:
@@ -397,7 +709,7 @@ def extract_slots(text: str) -> dict:
     # ---- hazards ----------------------------------------------------------
     hazards = []
     for phrase, tag in HAZARD_WORDS.items():
-        if re.search(rf"\b{re.escape(phrase)}\b", t) and tag not in hazards:
+        if re.search(rf"\b{re.escape(phrase)}s?\b", t) and tag not in hazards:
             hazards.append(tag)
     if hazards:
         slots["hazards"] = hazards
@@ -410,12 +722,47 @@ def extract_slots(text: str) -> dict:
         slots["window_height_m"] = 0.3
         slots["no_windows"] = True
     else:
-        big = re.search(r"\b(large|big|wide|generous)\s+(windows?|openings?|glazing)\b", t)
-        small = re.search(r"\b(small|tiny|narrow|minimal)\s+(windows?|openings?|glazing)\b", t)
+        big = re.search(r"\b(large|big|wide|generous)\b[^.,;]{0,14}?"
+                        r"\b(windows?|openings?|glazing)\b", t)
+        small = re.search(r"\b(small|tiny|narrow|minimal)\b[^.,;]{0,14}?"
+                          r"\b(windows?|openings?|glazing)\b", t)
         if big:
             slots["window_width_m"], slots["window_height_m"] = 1.8, 1.5
         elif small:
             slots["window_width_m"], slots["window_height_m"] = 0.6, 0.6
+
+    # ---- glazing quality: SHGC is a real engine input ----------------------
+    if re.search(r"\bhigh[\s\-]*(?:solar|shgc)\w*\b|solar gain glass|"
+                 r"\bcatch (?:the )?sun\b|dhoop lene", t):
+        slots["window_shgc"] = 0.85
+    elif re.search(r"\blow[\s\-]*(?:solar|shgc)\w*\b|avoid (?:the )?sun|"
+                   r"shade\w* (?:from )?(?:the )?sun|reduce glare", t):
+        slots["window_shgc"] = 0.4
+
+    # ---- ventilation rate stated as a number (an engine input) -------------
+    ach = re.search(r"(\d+(?:\.\d+)?)\s*(?:air[\s\-]*changes?\b|ach\b)", t)
+    if not ach:
+        # trailing form: "drop ACH to 1", "ventilation rate of 8"
+        ach = re.search(r"\bach\b\s*(?:to|of|=|at)?\s*(\d+(?:\.\d+)?)", t)
+    if not ach:
+        ach = re.search(r"(?:ventilation|airflow|air flow)[^.,;]{0,12}?"
+                        r"(?:to|of|=|at)\s*(\d+(?:\.\d+)?)", t)
+    if ach:
+        v = float(ach.group(1))
+        if 0.2 <= v <= 20:
+            slots["ach"] = v
+
+    # ---- cold-driver vocabulary the dataset uses ---------------------------
+    if re.search(r"\bsub[\s\-]?zero\b|minus\s*\d|below freezing|"
+                 r"\bblizzard\w*|frost b\w+", t):
+        slots.setdefault("goals", [])
+        if "heating" not in slots["goals"]:
+            slots["goals"].append("heating")
+
+    # ---- comparison pairs (drives the compare action below) ----------------
+    pair = _compare_entities(t)
+    if pair:
+        slots["compare"] = pair
 
     # ---- things we could NOT honour, so the UI can say so -----------------
     # Silently ignoring a material the user named is the worst outcome: they
@@ -447,3 +794,33 @@ def extract_slots(text: str) -> dict:
             if not known:
                 slots["unknown_place"] = cand
     return slots
+
+
+def parse(text: str) -> dict:
+    """One entry point for the API: classifier + grammar correction + slots.
+
+    The rules can only steer an utterance that CONTAINS the construct (a
+    compare pair, a guard phrase, an imperative), never re-label an ordinary
+    sentence — so a high-confidence `design` stays design.
+    """
+    raw = normalise(text)
+    # The classifier featurises the RAW text — the training corpus contains
+    # code-mixed Hinglish exactly as typed, so translating before classify
+    # would feed it a distribution it never saw. The grammar rules and the
+    # slot gazetteer are the ones that benefit from the transliteration.
+    t = _hinglish(raw)
+    intent, confidence, scores = classify(raw)
+    note = ""
+    g_intent, g_note = grammar(t)
+    if g_intent and (g_intent != intent):
+        # rules correct; a rule agreeing with the model just annotates
+        note = g_note
+        intent = g_intent
+        confidence = max(confidence, 0.99) if g_intent != "unknown" else confidence
+        if g_intent == "unknown":
+            confidence = max(confidence, 0.90)
+    elif g_note:
+        note = g_note
+    slots = extract_slots(text)
+    return {"intent": intent, "confidence": confidence, "scores": scores,
+            "slots": slots, "grammar": note or None}

@@ -34,6 +34,7 @@ import hmac
 import json
 import math
 import os
+import re
 import secrets
 import sys
 import time
@@ -1365,6 +1366,33 @@ def _zone_reference(lat: float | None, lon: float | None,
     return fallback, "selected-period"
 
 
+def _stable_zone_from_site_table(lat: float | None,
+                                 lon: float | None) -> str | None:
+    """Zone from the build-time site table (shelter_presets.json).
+
+    Every entry there was computed by scripts/build_presets.py on the FULL
+    multi-year archive before deploy, so it survives the loss of the local
+    parquet cache in a fresh sandbox/serverless container. Without it,
+    zone classification silently fell back to the selected-period window
+    and Jaisalmer flipped to "cold" — the exact knife-edge failure
+    _zone_reference was written to prevent.
+    """
+    if lat is None or lon is None:
+        return None
+    try:
+        data = json.loads(PRESETS_FILE.read_text(encoding="utf-8"))
+    except Exception:                                    # noqa: BLE001
+        return None
+    for _name, row in (data.get("sites") or {}).items():
+        try:
+            if (abs(float(row["latitude"]) - float(lat)) <= 0.05
+                    and abs(float(row["longitude"]) - float(lon)) <= 0.05):
+                return row.get("zone")
+        except (KeyError, TypeError, ValueError):
+            continue
+    return None
+
+
 def _location_profile(weather: pd.DataFrame, lat: float | None = None,
                       lon: float | None = None) -> dict:
     """Characterize a site from its real hourly weather series.
@@ -1384,6 +1412,14 @@ def _location_profile(weather: pd.DataFrame, lat: float | None = None,
 
     zone_df, zone_basis = _zone_reference(lat, lon, df)
     zone, t_hot, t_cold, rh_ann = _zone_from(zone_df)
+    if zone_basis == "selected-period":
+        # no multi-year parquet on disk (fresh sandbox, serverless cold
+        # start): do NOT classify a zone off one window — take the
+        # build-time archived zone for known sites instead
+        stable = _stable_zone_from_site_table(lat, lon)
+        if stable and stable != zone:
+            zone = stable
+            zone_basis = "site table (multi-year normals, build-time)"
 
     daily = df.resample("D").agg(tmax=("t2m", "max"), tmin=("t2m", "min")) \
         if "t2m" in df else pd.DataFrame({"tmax": [], "tmin": []})
@@ -1820,9 +1856,178 @@ def nlp_info():
         "note": m.get("note"),
         "honesty": ("Split accuracy is measured on utterances from the same "
                     "generator as the training data and therefore flatters "
-                    "the model. The number worth quoting is the hand-written "
-                    "held-out score in ml/nlp/eval_nlp.py."),
+                    "the model. The numbers worth quoting: metrics.gold_holdout "
+                    "(the 86 hand-annotated audit utterances, never trained "
+                    "on, through the full model+grammar path) and the "
+                    "hand-written hold-out in ml/nlp/eval_nlp.py."),
     }
+
+
+def _nlp_compare(slots: dict, lat, lon, site_name: str | None,
+                 tz: str, period: str, want_sim: bool) -> dict | None:
+    """Act on a comparative construction instead of deflecting to a menu.
+
+    Three modes, cheapest first, all answering with ENGINE or ARCHIVE numbers
+    — never model estimates:
+
+      preset   — both sides name library presets: compare their engine-verified
+                 cached metrics at the selected site (no simulation, instant)
+      material — sides name materials/thicknesses: build the site's
+                 prescribed design twice and run the real RC engine on both
+      climate  — sides name sites: compare archived multi-year climate normals
+    """
+    pair = slots["compare"]
+    a, b = pair.get("a") or {}, pair.get("b") or {}
+
+    def label(side: dict) -> str:
+        raw = (side.get("raw") or "").strip()
+        return raw[:48] if raw else " / ".join(
+            str(v) for k, v in side.items() if k in
+            ("wall_material", "insulation_material", "site") and v)
+
+    base = {
+        "actionable": True, "kind": "compare", "intent": "compare",
+        "site": site_name or "current pin",
+    }
+
+    # --- climate mode: two sites, no envelope entities ----------------------
+    if a.get("site") and b.get("site") and not (
+            a.get("wall_material") or b.get("wall_material")
+            or a.get("insulation_material") or b.get("insulation_material")
+            or a.get("thickness_m") or b.get("thickness_m")):
+        out = {}
+        for side, key in ((a, "a"), (b, "b")):
+            meta = climate_archive.load_index()["sites"].get(side["site"])
+            if not meta:
+                return None
+            s_lat, s_lon = float(meta["latitude"]), float(meta["longitude"])
+            s_tz = meta.get("timezone", "Asia/Kolkata")
+            prof = _location_profile(
+                get_weather_cached(s_lat, s_lon, _period_year(period),
+                                   s_tz, period=period)[0],
+                s_lat, s_lon)
+            out[key] = {"label": side["site"], "site": side["site"],
+                        "zone_name": prof.get("zone_name"),
+                        "hottest_month_mean_c": prof.get("t_hottest_month_c"),
+                        "coldest_month_mean_c": prof.get("t_coldest_month_c"),
+                        "mean_rh_pct": prof.get("rh_mean_pct"),
+                        "cdd18": prof.get("cdd18"), "hdd18": prof.get("hdd18")}
+        base.update(mode="climate", a=out["a"], b=out["b"], winner=None,
+                    metrics_basis=("multi-year archived normals (climate, not "
+                                   "simulated structures)"),
+                    message=(f"Climate comparison — {a['site']} vs "
+                             f"{b['site']}. Two sites are not a build-off; "
+                             "these are the archived climate normals. Use the "
+                             "design tools for each site to compare shelters."))
+        return base
+
+    # --- preset mode: both sides match library preset names -----------------
+    try:
+        lib = json.loads(PRESETS_FILE.read_text(encoding="utf-8"))
+    except Exception:                                        # noqa: BLE001
+        lib = {"presets": [], "sites": {}}
+
+    def _match_preset(raw: str):
+        r = (raw or "").lower()
+        toks = re.findall(r"[a-z]{3,}", r)
+        best, best_hits = None, 0
+        for pre in lib.get("presets", []):
+            name_toks = set(re.findall(r"[a-z]{3,}", pre["name"].lower()))
+            hits = sum(1 for tk in toks if tk in name_toks)
+            if hits > best_hits:
+                best, best_hits = pre, hits
+        return best if best_hits >= 2 else None
+
+    pa, pb = _match_preset(a.get("raw")), _match_preset(b.get("raw"))
+    site_key = site_name or (_canonical_site_name(lat, lon)
+                             if lat is not None else None) or "Prayagraj"
+    site_rows = (lib.get("sites") or {}).get(site_key) \
+        or (lib.get("sites") or {}).get("Prayagraj") or {}
+    site_used = site_key if site_key in (lib.get("sites") or {}) \
+        else "Prayagraj"
+    if pa and pb and pa["id"] != pb["id"]:
+        def _pm(pre):
+            mm = site_rows.get(pre["id"]) or {}
+            hot = mm.get("hot_week") or {}
+            cold = mm.get("cold_week") or {}
+            return {"label": pre["name"], "preset_id": pre["id"],
+                    "hot_mean_c": hot.get("mean_indoor_c"),
+                    "hot_peak_c": hot.get("max_indoor_c"),
+                    "hot_comfort_pct": hot.get("comfort_fraction"),
+                    "cold_mean_c": cold.get("mean_indoor_c"),
+                    "cold_min_c": cold.get("min_indoor_c")}
+        ra, rb = _pm(pa), _pm(pb)
+        win = None
+        if ra["hot_peak_c"] is not None and rb["hot_peak_c"] is not None:
+            win = "a" if ra["hot_peak_c"] <= rb["hot_peak_c"] else "b"
+        base.update(site=site_used, mode="preset", a=ra, b=rb, winner=win,
+                    metrics_basis=(f"engine-verified preset cache at "
+                                   f"{site_used} (hot/cold design weeks, "
+                                   f"scripts/build_presets.py)"),
+                    message=(f"Both sides matched presets — cooler hot peak at "
+                             f"{site_used}: "
+                             + (f"{(ra if win == 'a' else rb)['label']}"
+                                if win else "no cache for this site yet")))
+        return base
+
+    # --- material mode: run the engine on both variants ---------------------
+    if not (a.get("wall_material") or a.get("insulation_material")
+            or a.get("thickness_m")) \
+            or not (b.get("wall_material") or b.get("insulation_material")
+                    or b.get("thickness_m")):
+        return None
+    if lat is None or lon is None:
+        return None
+    try:
+        weather, source, _ = get_weather_cached(lat, lon,
+                                                 _period_year(period), tz,
+                                                 period=period)
+    except Exception:
+        return None
+    mats = load_materials()
+    profile = _location_profile(weather, lat, lon)
+    rec = _recommend_design(profile, mats, _flat_design(CFG))
+    weeks = design_weeks(weather, _period_year(period))
+
+    def _run(side: dict):
+        design = dict(_flat_design(CFG))
+        design.update({k: v for k, v in (rec.get("design") or {}).items()
+                       if v is not None})
+        if side.get("wall_material"):
+            design["wall_material"] = side["wall_material"]
+        if side.get("thickness_m"):
+            (design.__setitem__("insulation_thickness_m", side["thickness_m"])
+             if side.get("insulation_material")
+             else design.__setitem__("wall_thickness_m", side["thickness_m"]))
+        if side.get("insulation_material"):
+            design["insulation_material"] = side["insulation_material"]
+        cfg = _apply_ground_temp(_apply_site_location(
+            _apply_design(CFG, design), lat, lon, tz), weather)
+        res = simulate(cfg, weeks["hot_week"], mats)
+        st = comfort_stats(res, CFG["climate"]["comfort_range_c"])
+        return {"label": label(side), "overrides": {
+                    k: design[k] for k in ("wall_material", "wall_thickness_m",
+                                           "insulation_material",
+                                           "insulation_thickness_m")},
+                "hot_mean_c": round(st["mean_indoor_c"], 2),
+                "hot_peak_c": round(st["max_indoor_c"], 2),
+                "hot_comfort_pct": round(st.get("comfort_fraction", 0), 3),
+                "solar_gain_kwh": round(st.get("solar_gain_kwh", 0), 1)}
+
+    ra, rb = _run(a), _run(b)
+    win = ("a" if ra["hot_peak_c"] <= rb["hot_peak_c"] else "b")
+    base.update(mode="material", a=ra, b=rb, winner=win,
+                site=site_name or (lat, lon),
+                zone=profile.get("zone"), zone_name=profile.get("zone_name"),
+                weather_source=source,
+                metrics_basis=("src/thermal/rc_model.simulate, hot design "
+                               "week, real hourly weather — both sides, no "
+                               "estimates"),
+                message=(f"Engine run for both sides — lower hot peak: "
+                         f"{(ra if win == 'a' else rb)['label']} "
+                         f"({min(ra['hot_peak_c'], rb['hot_peak_c']):.2f} °C "
+                         f"vs {max(ra['hot_peak_c'], rb['hot_peak_c']):.2f} °C)"))
+    return base
 
 
 @app.post("/api/nlp/design")
@@ -1838,8 +2043,11 @@ def nlp_design_endpoint(req: NLPRequest):
     still cannot invent performance figures.
     """
     text = req.text.strip()
-    intent, confidence, scores = nlp_design.classify(text)
-    slots = nlp_design.extract_slots(text)
+    parsed = nlp_design.parse(text)
+    intent = parsed["intent"]
+    confidence = parsed["confidence"]
+    scores = parsed["scores"]
+    slots = parsed["slots"]
 
     # site: explicit in the sentence, else the caller's current pin
     site_name = slots.get("site")
@@ -1857,7 +2065,15 @@ def nlp_design_endpoint(req: NLPRequest):
     period = resolve_period(None, req.climate_period)
 
     understood = {"intent": intent, "confidence": round(confidence, 3),
-                  "slots": slots, "scores": scores}
+                  "slots": slots, "scores": scores,
+                  "read_by": parsed.get("grammar") or "model"}
+
+    if intent == "compare" and isinstance(slots.get("compare"), dict):
+        cmp_out = _nlp_compare(slots, lat, lon, site_name, tz,
+                               period, req.simulate)  # noqa: E501
+        if cmp_out is not None:
+            cmp_out["understood"] = understood
+            return cmp_out
 
     if intent in ("explain", "compare", "unknown") or \
             confidence < NLP_MIN_CONFIDENCE:
@@ -2101,8 +2317,11 @@ def _nlp_message(intent: str, confidence: float, site: str | None,
         return (f"That's a climate question about {site or 'the selected site'}"
                 " — load Climate Recon (SEC/02) or Climate Trends (SEC/10).")
     if intent == "compare":
-        return ("That's a comparison — use Multi-Zone Validation (MOD·02E) "
-                "or Climate Trends (SEC/10).")
+        return ("I caught the comparison but could not resolve both sides. "
+                "Name what to compare — two materials ('compare brick with "
+                "stone in Jaisalmer'), two presets, or two sites — and I run "
+                "it on the engine here. Multi-Zone Validation (MOD·02E) and "
+                "Climate Trends (SEC/10) also cover this.")
     named = ", ".join(k for k in slots if k != "goals") or "no specifics"
     return f"Read as a {intent} request ({named})."
 

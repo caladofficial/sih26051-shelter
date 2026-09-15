@@ -13,6 +13,16 @@ function resolveChrome() {
   for (const p of cands) if (fs.existsSync(p)) return p;
   const shell = '/home/user/.cache/ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell';
   if (fs.existsSync(shell)) return shell;
+  const fs0 = require('fs');
+  try {
+    for (const d of fs0.readdirSync('/home/user/.cache/ms-playwright')) {
+      for (const sub of ['chrome-linux/headless_shell',
+                         'chrome-headless-shell-linux64/chrome-headless-shell']) {
+        const p = `/home/user/.cache/ms-playwright/${d}/${sub}`;
+        if (fs0.existsSync(p)) return p;
+      }
+    }
+  } catch (e) {}
   return null;
 }
 const CHROME = resolveChrome();

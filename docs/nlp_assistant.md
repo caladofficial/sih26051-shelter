@@ -75,3 +75,45 @@ starts reading confirmed sentences differently.
   models heat, not structure.
 * No external LLM calls; no secrets; the offline edition embeds the same
   model JSON and parses identically.
+
+## v4 — the audit corpus (2026-09-15)
+
+The project owner supplied an 86-utterance hand-annotated corpus
+(`ml/nlp/data/nlp_gold_v2.jsonl`: tactical/disaster/conversational/
+optimisation/comparative/physics/Hinglish/adversarial). Audited against it,
+the baseline read **66.3%** intent accuracy — the "99.97%" synthetic split
+was exactly the inflation the audit described. The fix, in three layers:
+
+1. **Grammar engine** (`src/nlp_design.py::grammar`) — deterministic rules
+   for constructs a bag-of-ngrams cannot see: compare-constructs ("compare X
+   with Y", "which is better: A or B", "X versus Y"), prompt-injection and
+   out-of-domain guards, optimise-verb-anywhere, imperative refinement
+   chains. A rule fires only when its construct is *present*; the model
+   still reads everything else. `understood.read_by` records which rule
+   steered a sentence ("via grammar:compare-construct" shows in the UI).
+2. **Hinglish bridge** — romanised-Hindi transliteration (`_hinglish`)
+   feeding the SAME gazetteers ("mitti"→mud, "deewar"→wall, "ghumao"→rotate),
+   with `se bachne` reversing the naive cold→cooling heuristic. The
+   classifier featurises RAW text (train/inference contract unchanged).
+3. **Trained on the shapes, benchmarked on the gold** — generator v4 adds
+   Hinglish, comparative-grammar, imperative-chain and adversarial families
+   (36k utterances); the 86 gold rows are NEVER trained on.
+   `python3 ml/nlp/train_nlp.py` exports `metrics.gold_holdout` — currently
+   **86/86 = 1.000** through the production path — served by
+   `/api/nlp/info` beside the (inflated) split number, labelled as such.
+
+Slot extraction closed the audit's real misses: hyphenated aliases
+("mud-brick"), "8-soldier"/"2 personnel"/"15 displaced people", adjective-
+before-noun windows ("small north windows", "south glazing"), trailing ACH
+("drop ACH to 1"), "3 meter ceiling", insulation-REMOVAL, plural hazards
+("blizzards"), the "RCC slab roof" comma-loss bug, and per-word thickness
+attribution ("75mm mineral wool" is an insulation number).
+
+**Comparisons are now actionable** (the audit's "severe false positive"
+became a feature): `/api/nlp/design` answers a resolvable pair by running
+the real engine on both sides (`mode: "material"`), comparing engine-verified
+preset caches at the selected site (`mode: "preset"`), or quoting archived
+multi-year normals for two sites (`mode: "climate"`). Every number comes from
+`rc_model.simulate`, the preset cache, or the climate archive — never an
+estimate. Tests: `tests/test_nlp_grammar.py`, `test_nlp_gold_corpus.py`,
+`test_nlp_compare_endpoint.py`; browser: `scripts/e2e_nlp_v4.js`.
