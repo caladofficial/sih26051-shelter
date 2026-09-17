@@ -785,12 +785,27 @@ def extract_slots(text: str) -> dict:
     if goals:
         slots["goals"] = goals
 
-    if re.search(r"\b(big|large|spacious)\b", t):
-        slots.setdefault("length_m", 5.0)
-        slots.setdefault("width_m", 4.0)
-    elif re.search(r"\b(small|compact|tiny|minimal)\b", t):
-        slots.setdefault("length_m", 3.0)
-        slots.setdefault("width_m", 3.0)
+    # Size adjectives set the FOOTPRINT only when they are not describing an
+    # opening: "small north windows" (DS_DES_01) must leave the shelter size
+    # to occupancy sizing — v4/v5 read "small" globally and shrank the box,
+    # contradicting the gold annotation 4.6x4.6. Window-scoped adjectives are
+    # handled on their own further below.
+    _OPEN = r"(?:windows?|openings?|glaz\w*|vent\w*|khidki)\b"
+    def _adj_scoped(word: str) -> bool:
+        adj = re.escape(word)
+        return bool(re.search(_OPEN + r"[^.;]{0,14}\b" + adj + r"\b|" +
+                              r"\b" + adj + r"\b[^.;]{0,14}" + _OPEN, t))
+    for _w in ("big", "large", "spacious", "small", "compact", "tiny",
+               "minimal"):
+        if _adj_scoped(_w):
+            break
+    else:
+        if re.search(r"\b(big|large|spacious)\b", t):
+            slots.setdefault("length_m", 5.0)
+            slots.setdefault("width_m", 4.0)
+        elif re.search(r"\b(small|compact|tiny|minimal)\b", t):
+            slots.setdefault("length_m", 3.0)
+            slots.setdefault("width_m", 3.0)
 
     # allow one filler word: "15 displaced people", "8 hardened soldiers"
     people = re.search(r"(\d+)[\s\-]*(?:\w+\s+){0,1}?"
@@ -804,10 +819,15 @@ def extract_slots(text: str) -> dict:
         n = int(people.group(1))
         if 1 <= n <= 20:
             slots["occupants"] = n
-            # ~4.5 m2/person per the SIH dataset doc Step-3.3 sketch
-            # (NBC SP-7 style sizing); v4 used 3.5 and under-sized the
-            # crowd cases the gold corpus annotates
-            area = max(9.0, 4.5 * n)
+            # 3.5 m2/person — the convention the GOLD CORPUS itself uses
+            # (6 occupants -> 4.6x4.6 = 21 m2, 8 -> 28 m2, 15 -> 52 m2),
+            # not the ~4.5 m2 in the §3.3 sketch comment. Where the file
+            # contradicts itself the hand-annotated data wins: same
+            # hierarchy decision as the sloped-roof pitch (25 deg). The
+            # engine has no occupancy rule of its own (footprint comes from
+            # zone prescriptions), so this remains an explicit fallback the
+            # endpoint clamp table still guards (2-15 m).
+            area = max(9.0, 3.5 * n)
             side = round(min(max(area ** 0.5, 3.0), 12.0), 1)
             # v4 capped the side at 6.0 m, which quietly broke the very
             # area it cites (15 people need ~52 m², not 36). Now the square

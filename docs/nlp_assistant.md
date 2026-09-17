@@ -158,9 +158,13 @@ are each seen. Also fixed: the greedy "wool insulation" alias that ate
 "mineral wool" (longest-match tables need superstring audits), occupancy
 sizing capped at 6 m violating its own cited area (now 3–12 m, clamped by
 the endpoint table), and an eval criterion that counted "5" inside "15" as a
-spoken width. Per the doc's own Step-3.3 sketch, occupancy sizing uses
-~4.5 m²/person (NBC SP-7 style), and an unqualified "sloped roof" now reads
-25° because both gold rows annotate it at 25 (v4 said 20).
+spoken width. Occupancy sizing settled on **3.5 m²/person — the
+convention the gold corpus itself demonstrates** (6→4.6², 8→28 m²), not the
+~4.5 m² written in the §3.3 sketch comment; where the file contradicts
+itself, hand annotations outrank prose, the same hierarchy that moved
+"sloped roof" to 25° (both gold rows say 25; v4 said 20). The engine has no
+occupancy rule of its own, so this remains an explicit fallback guarded by
+the endpoint clamp table.
 
 **Active learning, honest trigger.** `scripts/retrain_nlp.py` exports
 production feedback, counts the backlog exactly like
@@ -194,6 +198,27 @@ driver now enforces the doc's forgetting contract on slots as well as
 intents: staged model → swap → full eval, and additionally **refuse the swap
 if slot_f1 drops below the pre-swap baseline**, restoring model and
 benchmark together on failure.
+
+**The "try again" pass (later that day) — proof, not promises.** Re-running
+the generator with the same seed reproduced `nlp_dataset.csv` and
+`nlp_augmented_50k.jsonl` byte-identically (md5 match); retraining left
+every metric identical (split acc 0.9994, gold 86/86) with weights moving
+only within ±0.016 as SAGA converges — the committed weights stay canonical.
+A robustness scan parsed **all 50,000 corpus rows plus 33 adversarial fuzz
+inputs** (empty, control chars, `3.5e308`, SQL/script/ SSTI payloads,
+Devanagari digits, bidi-override): zero exceptions, zero property
+violations (no NaN/negative/absurd slot values, confidence always in [0,1]),
+2.55 ms/row. The same fuzz set through the offline JS runtime via the parity
+runner: zero crashes. Integration battery: all 15 corpus sites design
+end-to-end; all 14 corpus wall/roof materials and 4 insulations resolve with
+correct attribution; all pipeline endpoints 200. The scan caught one real
+bug — a footprint rule read `small`/`big` globally, so "small **north
+windows**" shrank the whole shelter against its own gold annotation (4.6²→
+3.0²); size adjectives are now scoped (a window-adjacent adjective never
+touches the footprint), lifting slot_f1 0.826→**0.852**. The residual is
+unchanged in nature: annotators' rectangles (6×4.5, 10×5) contradict any
+square heuristic, and inventing aspect ratios to score higher is not on the
+table.
 
 **Benchmark (Step 3.7 targets, measured — `src/data/nlp_benchmark.json`,
 served at `/api/nlp/info`):**
