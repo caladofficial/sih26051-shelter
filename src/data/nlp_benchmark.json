@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-09-17T10:33:03+0000",
+ "generated_at": "2026-09-17T11:29:14+0000",
  "environment": {
   "python": "3.13.14",
   "platform": "Linux-6.1.158+-x86_64-with-glibc2.41",
@@ -7,9 +7,9 @@
  },
  "n_latency_samples": 147,
  "latency_detail_ms": {
-  "avg_ms": 3.25,
-  "median_ms": 3.08,
-  "p95_ms": 5.24
+  "avg_ms": 2.65,
+  "median_ms": 2.55,
+  "p95_ms": 4.06
  },
  "targets": {
   "intent_accuracy": 0.992,
@@ -23,7 +23,7 @@
   "compare_recall": 1.0,
   "slot_f1": 0.8263,
   "ood_auroc": 1.0,
-  "latency_avg_ms": 3.25
+  "latency_avg_ms": 2.65
  },
  "pass": {
   "intent_accuracy": true,

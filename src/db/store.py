@@ -147,7 +147,8 @@ CREATE TABLE IF NOT EXISTS nlp_feedback (
   slots TEXT,
   design TEXT,
   correct INTEGER NOT NULL,
-  correction TEXT
+  correction TEXT,
+  site TEXT
 );
 """
 
@@ -193,6 +194,13 @@ class Store:
             path.parent.mkdir(parents=True, exist_ok=True)
             self._conn = sqlite3.connect(str(path), check_same_thread=False)
             self._conn.executescript(SCHEMA_SQLITE)
+            # v5.1: §3.6 active_site column on existing local DBs (idempotent)
+            try:
+                self._conn.execute(
+                    "ALTER TABLE nlp_feedback ADD COLUMN site TEXT")
+            except sqlite3.OperationalError:
+                pass        # fresh tables have it via SCHEMA_SQLITE; old ones
+                            # now gain it; any other error stays silent by design
             self._conn.commit()
             self.backend = "sqlite"
             self._seed_materials()
@@ -639,7 +647,8 @@ class Store:
                "slots": record.get("slots") or {},
                "design": record.get("design") or {},
                "correct": bool(record.get("correct")),
-               "correction": record.get("correction")}
+               "correction": record.get("correction"),
+               "site": record.get("site")}
         if self._rest:
             self._pg("POST", "nlp_feedback", body=row)
         else:
@@ -647,10 +656,11 @@ class Store:
                 self._conn.execute(
                     """INSERT INTO nlp_feedback
                        (created_at, text, intent, confidence, slots, design,
-                        correct, correction) VALUES (?,?,?,?,?,?,?,?)""",
+                        correct, correction, site) VALUES (?,?,?,?,?,?,?,?,?)""",
                     (row["created_at"], row["text"], row["intent"],
                      row["confidence"], _j(row["slots"]), _j(row["design"]),
-                     1 if row["correct"] else 0, row["correction"]))
+                     1 if row["correct"] else 0, row["correction"],
+                     row["site"]))
                 self._conn.commit()
             except sqlite3.OperationalError:
                 pass

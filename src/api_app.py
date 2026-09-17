@@ -2420,6 +2420,8 @@ class NLPFeedbackRequest(BaseModel):
     confidence: float | None = None
     slots: dict | None = None
     design: dict | None = None
+    site: str | None = None          # §3.6 active_site: which location the
+                                     # verdict referred to (retrain cohorts)
     correct: bool
     correction: str | None = Field(default=None, max_length=600)
 
@@ -2472,7 +2474,7 @@ def nlp_feedback_stats():
         "threshold": NLP_RETRAIN_THRESHOLD,
         "retrain_recommended": len(pending) >= NLP_RETRAIN_THRESHOLD,
         "latest": [{k: r.get(k) for k in ("created_at", "text", "intent",
-                                          "correct", "correction")}
+                                          "correct", "correction", "site")}
                    for r in rows[:5]],
         "note": ("Rows land here from the SEC/11 verdict buttons. "
                  "ml/nlp/import_feedback.py exports them; scripts/retrain_nlp.py "

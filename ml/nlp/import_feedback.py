@@ -28,7 +28,8 @@ REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO))
 
 OUT = REPO / "ml" / "nlp" / "data" / "real_user_feedback.csv"
-COLS = ["created_at", "text", "intent", "confidence", "correct", "correction"]
+COLS = ["created_at", "text", "intent", "confidence", "correct", "correction",
+        "site"]   # §3.6 active_site — cohort analysis during retraining
 
 
 def pull(sqlite_path: str | None) -> list[dict]:

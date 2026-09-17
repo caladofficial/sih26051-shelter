@@ -704,6 +704,98 @@ def noisy(rng, text: str) -> str:
     return text.strip()
 
 
+
+# ---------------------------------------------------------------------------
+# SIH dataset doc §2.8 — the file's own augmentation script, implemented
+# faithfully: same site/material/insulation pools, same six templates, same
+# entry schema (id/text/intent/slots/context_required). It feeds TWO
+# deliverables: data/nlp_augmented_50k.jsonl (the doc's file) and, as one
+# design family, the training CSV — so the sent file genuinely trains the
+# model, while its slot ground truth additionally regression-tests the
+# parser at 50k scale (ml/nlp/eval_nlp.py --regression).
+# ---------------------------------------------------------------------------
+AUG_SITES = [
+    ("Leh", "cold"), ("Dras", "cold"), ("Kargil", "cold"), ("Srinagar", "cold"),
+    ("Jaipur", "hot_dry"), ("Jaisalmer", "hot_dry"), ("Ahmedabad", "hot_dry"),
+    ("Chennai", "warm_humid"), ("Mumbai", "warm_humid"), ("Kolkata", "warm_humid"),
+    ("Prayagraj", "composite"), ("Delhi", "composite"), ("Hyderabad", "composite"),
+    ("Pune", "temperate"), ("Bengaluru", "temperate"),
+]
+AUG_WALL = ["brick", "stone", "rammed_earth", "mud_brick", "aerated_concrete",
+            "concrete", "timber", "plywood", "puf_sandwich_panel"]
+AUG_ROOF = ["rcc_slab", "gi_sheet", "timber", "mud_brick", "puf_sandwich_panel"]
+AUG_INS = [("eps", 50), ("xps", 100), ("mineral_wool", 75),
+           ("sheep_wool", 50), ("none", 0)]
+AUG_TEMPLATES = [
+    "design a {wall_mat} shelter for {occupants} people in {site}",
+    "we need a {length} by {width} meter outpost in {site} using {wall_mat} "
+    "and {ins_mat} insulation",
+    "create an emergency unit in {site} with {roof_mat} roof and {wall_mat} walls",
+    "build a tactical border post in {site} that stays warm in winter with {ins_mat}",
+    "{site} me {occupants} logo ke liye {wall_mat} ka shelter banao jisme "
+    "{ins_mat} laga ho",
+    "cold climate shelter for {site} with south facing windows and {wall_mat} envelope",
+]
+
+
+def generate_aug_corpus(n: int, rng) -> list[dict]:
+    """The doc's §2.8 generator, slots tracked by construction."""
+    import json as _json
+    # per-template set of fields the rendered text actually speaks
+    # (site + climate_zone are spoken/derived in every template)
+    AUG_SPOKEN_KEYS_local = [
+        {"site", "climate_zone", "wall_material", "occupants"},
+        {"site", "climate_zone", "length_m", "width_m",
+         "wall_material", "insulation_material"},
+        {"site", "climate_zone", "roof_material", "wall_material"},
+        {"site", "climate_zone", "insulation_material"},
+        {"site", "climate_zone", "occupants", "wall_material",
+         "insulation_material"},
+        {"site", "climate_zone", "wall_material", "window_wall"},
+    ]
+    global AUG_SPOKEN_KEYS
+    AUG_SPOKEN_KEYS = AUG_SPOKEN_KEYS_local
+    corpus = []
+    for i in range(n):
+        site, zone = rng.choice(AUG_SITES)
+        wall = rng.choice(AUG_WALL)
+        roof = rng.choice(AUG_ROOF)
+        ins, ins_th = rng.choice(AUG_INS)
+        occ = rng.choice([2, 4, 6, 8, 12, 16])
+        l = round(rng.uniform(3.0, 8.0), 1)
+        w = round(rng.uniform(2.5, 6.0), 1)
+        tpl_idx = rng.randrange(len(AUG_TEMPLATES))
+        tpl = AUG_TEMPLATES[tpl_idx]
+        text = tpl.format(site=site, wall_mat=wall.replace("_", " "),
+                          roof_mat=roof.replace("_", " "),
+                          ins_mat=ins.replace("_", " "), occupants=occ,
+                          length=l, width=w)
+        slots = {"site": site, "occupants": occ, "length_m": l, "width_m": w,
+                 "wall_material": wall, "roof_material": roof,
+                 "insulation_material": ins, "insulation_thickness_mm": ins_th,
+                 "climate_zone": zone}
+        # §2.8 honesty fix: the doc's sketch puts EVERY sampled field into
+        # slots even when the template never renders it (a "design a {wall}
+        # shelter for {occ} people" row has no length, and no template
+        # dictates insulation millimetres). Slot ground truth that lists
+        # unspoken values would poison any slot learner and fake parser
+        # misses, so entries carry only values the utterance actually
+        # contains — verified by ml/nlp/eval_nlp.py --regression.
+        if tpl_idx == 5:
+            slots["window_wall"] = "south"   # template 6 SPEAKS this
+        if tpl_idx == 3 and ins == "none":
+            slots.pop("insulation_material", None)
+            # "stays warm in winter with none" is the doc sketch's rendering
+            # bug — a bare "none" is not a spoken material claim; pruning it
+            # keeps ground truth = utterance truth
+        mask = AUG_SPOKEN_KEYS[tpl_idx]
+        kept = {k: v for k, v in slots.items() if k in mask}
+        corpus.append({"id": f"AUG_DS_{i:05d}", "text": text,
+                       "intent": "design", "slots": kept,
+                       "context_required": False})
+    return corpus
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     # 50k target per the SIH dataset doc §2.8 ("expand to 50,000+"); the
@@ -715,6 +807,18 @@ def main() -> int:
     rng = random.Random(args.seed)
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     out = OUT_DIR / "nlp_dataset.csv"
+
+    # §2.8 deliverable: the doc's file, verbatim schema, 50k entries
+    repo_root = Path(__file__).resolve().parents[2]
+    aug = generate_aug_corpus(args.n, rng)
+    aug_path = repo_root / "data" / "nlp_augmented_50k.jsonl"
+    aug_path.parent.mkdir(exist_ok=True)
+    with aug_path.open("w", encoding="utf-8") as fh:
+        import json as _json
+        for item in aug:
+            fh.write(_json.dumps(item, separators=(",", ":")) + "\n")
+    print(f"[nlp] §2.8 augmented corpus: {len(aug):,} entries -> {aug_path}")
+    aug_texts = [e["text"] for e in aug]
 
     intents = list(WEIGHTS)
     probs = [WEIGHTS[i] for i in intents]
@@ -735,7 +839,14 @@ def main() -> int:
     while len(rows) < args.n and guard < args.n * 60:
         guard += 1
         intent = rng.choices(intents, weights=probs, k=1)[0]
-        text = noisy(rng, GENERATORS[intent](rng))
+        if intent == "design" and rng.random() < 0.5:
+            # half the design class comes from the §2.8 augmented corpus —
+            # the doc's own distribution trains the shipped model. No noisy()
+            # wrapper here: these rows keep surface forms byte-identical to
+            # the JSONL so slot regression numbers stay reproducible.
+            text = rng.choice(aug_texts)
+        else:
+            text = noisy(rng, GENERATORS[intent](rng))
         if len(text) < 2 or text in seen:
             continue
         if text in gold_texts:

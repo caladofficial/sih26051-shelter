@@ -568,6 +568,56 @@ def main() -> int:
     if extra is not None:
         eval_feedback_csv(extra)
 
+    # ---------------------------------------------------------------
+    # §2.8 slot regression: measure the parser against the augmented
+    # corpus's by-construction slot ground truth (report-only — it
+    # tests the parser on generated shapes, and generated shapes may
+    # legitimately under-specify; misses are printed for fixing).
+    # ---------------------------------------------------------------
+    if "--regression" in sys.argv:
+        rp = Path(__file__).resolve().parents[2] / "data" / "nlp_augmented_50k.jsonl"
+        j = sys.argv.index("--regression")
+        if j + 1 < len(sys.argv) and not sys.argv[j + 1].startswith("--"):
+            rp = Path(sys.argv[j + 1])
+        n_sample = 2000
+        if "--n" in sys.argv:
+            k = sys.argv.index("--n")
+            n_sample = int(sys.argv[k + 1])
+        import json as _json
+        import random as _r
+        rows = [_json.loads(l) for l in rp.read_text(encoding="utf-8").splitlines() if l.strip()]
+        _r.Random(7).shuffle(rows)
+        rows = rows[:n_sample]
+        hit = miss = tot = 0
+        fp = fp_tot = 0
+        miss_keys: dict[str, list] = {}
+        for r in rows:
+            t = r["text"]
+            got = parse(t)["slots"]
+            gold = {k: v for k, v in r["slots"].items()
+                    if k in DESIGN_KEYS and _spoken(t, k, v)}
+            for gk, gv in gold.items():
+                tot += 1
+                if got.get(gk) == gv or (
+                        gk == "insulation_thickness_mm" and
+                        got.get("insulation_thickness_m") is not None and
+                        abs(got["insulation_thickness_m"] * 1000 - gv) < 1e-6):
+                    hit += 1
+                else:
+                    miss += 1
+                    miss_keys.setdefault(gk, []).append((t[:58], gv, got.get(gk)))
+            for pk in got:
+                if (pk in DESIGN_KEYS and not isinstance(got[pk], (dict, list))
+                        and (pk, got[pk]) not in r["slots"].items()
+                        and pk not in gold):
+                    fp_tot += 1
+        print(f"=== SLOT REGRESSION §2.8 ({len(rows)} sampled rows, spoken-only) ===")
+        print(f"  recall {hit}/{tot} = {hit / max(tot, 1):.4f}   "
+              f"(non-contradicting precision penalty: {fp_tot} inferred)")
+        for k, lst in sorted(miss_keys.items(), key=lambda kv: -len(kv[1]))[:6]:
+            t, gv, gotv = lst[0]
+            print(f"   MISS {k:26s} x{len(lst):4d}  e.g. '{t}' want {gv} got {gotv}")
+
     # regression gate: the long-standing thresholds stay binding. The Step
     # 3.7 target table above is REPORTED pass/fail per metric — where a
     # target is missed it is because the gold annotations carry values no

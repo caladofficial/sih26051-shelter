@@ -188,6 +188,18 @@ def main() -> int:
         w.writerows(body)
         w.writerows(merged)
 
+    # §3.6 forgetting check for SLOTS too: remember the baseline slot F1
+    # (from the last measured benchmark) so a swap that quietly degrades
+    # extraction cannot pass on intent/compare strength alone.
+    bench_path = REPO / "src" / "data" / "nlp_benchmark.json"
+    bench_backup = None
+    baseline_f1 = None
+    if bench_path.exists():
+        bench_backup = bench_path.with_suffix(".json.pre-retrain")
+        shutil.copy2(bench_path, bench_backup)
+        baseline_f1 = (json.loads(bench_path.read_text(encoding="utf-8"))
+                       .get("measured") or {}).get("slot_f1")
+
     # train to a STAGED file first
     print("[retrain] training staged model ...")
     rc = subprocess.run([sys.executable, str(REPO / "ml/nlp/train_nlp.py"),
@@ -206,10 +218,20 @@ def main() -> int:
         shutil.copy2(STAGED, MODEL)
         rc = subprocess.run(
             [sys.executable, str(REPO / "ml/nlp/eval_nlp.py")]).returncode
+        if rc == 0 and baseline_f1 is not None:
+            new_f1 = (json.loads(bench_path.read_text(encoding="utf-8"))
+                      .get("measured") or {}).get("slot_f1")
+            if new_f1 is not None and new_f1 < baseline_f1 - 1e-12:
+                print(f"[retrain] slot F1 regressed {baseline_f1} -> {new_f1} "
+                      f"(§3.6 forgetting check) — refusing swap")
+                rc = 3
     finally:
-        if rc != 0 and backup is not None:
-            shutil.copy2(backup, MODEL)      # roll the live model back
-            print("[retrain] GATE FAILED — live model restored from backup")
+        if rc != 0:
+            if backup is not None:
+                shutil.copy2(backup, MODEL)  # roll the live model back
+            if bench_backup is not None:
+                shutil.copy2(bench_backup, bench_path)
+            print("[retrain] GATE FAILED — live model + benchmark restored")
         STAGED.unlink(missing_ok=True)
     if rc != 0:
         return 1

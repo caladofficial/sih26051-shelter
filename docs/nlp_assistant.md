@@ -173,6 +173,28 @@ into labels. Gold texts are never merged. Two real bugs this path caught:
 store re-loads `.env` at import (pop order fixed), and the trigger was
 counting only label-parseable corrections.
 
+**§2.8 deliverables, complete.** The dataset doc's own augmentation script is
+implemented verbatim (pools, six templates, entry schema) and writes
+`data/nlp_augmented_50k.jsonl` — 50,000 rows with slot ground truth — while
+its texts feed half of the training corpus's design class, so the sent file
+trains the shipped model, not just the docs. One deliberate deviation: the
+sketch's entries listed EVERY sampled field in `slots` even when the
+template rendered none of it (dimensions on a dimension-free sentence,
+insulation millimetres on every row); ground truth carrying unspoken values
+would poison any slot learner, so entries are pruned to what the utterance
+actually says. That ground truth then tests the parser at scale:
+`eval_nlp.py --regression` samples the JSONL and scores spoken-only slot
+recovery — **4,023/4,023 = 1.0000** recall (inferred sizing beyond the
+annotation is counted separately as the disclosed precision penalty, same
+mechanism as the gold F1 note above).
+
+**Feedback rows carry `active_site`** (§3.6 schema: the verdict's location,
+auto-migrated on old SQLite files, ALTERed on Supabase) and the retrain
+driver now enforces the doc's forgetting contract on slots as well as
+intents: staged model → swap → full eval, and additionally **refuse the swap
+if slot_f1 drops below the pre-swap baseline**, restoring model and
+benchmark together on failure.
+
 **Benchmark (Step 3.7 targets, measured — `src/data/nlp_benchmark.json`,
 served at `/api/nlp/info`):**
 

@@ -698,6 +698,7 @@ async function sendNlpFeedback(correct) {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         text: ctx.text, intent: ctx.intent, confidence: ctx.confidence,
+        site: (ctx.slots && ctx.slots.site) || null,
         slots: ctx.slots || undefined, design: ctx.design || undefined,
         correct, correction,
       }),
