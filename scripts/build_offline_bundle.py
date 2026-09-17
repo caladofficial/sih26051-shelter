@@ -161,11 +161,40 @@ def main() -> None:
         print(f"[bundle] {name}: profile + hot/cold weeks embedded "
               f"({source})", flush=True)
 
+    # --- offline NLP (roadmap 3.2/3.7 edge inference) ----------------------
+    # Exact mirror: the SAME exported coefficients, the SAME gazetteer
+    # dictionaries and the SAME guard/undo regex strings the server parser
+    # uses, plus a machine parity check (scripts/check_nlp_edge_parity.py).
+    nlp_block = None
+    try:
+        from src import nlp_design as nd
+        mpath = ROOT / "src" / "data" / "nlp_model.json"
+        if mpath.exists():
+            mn = json.loads(mpath.read_text(encoding="utf-8"))
+            nlp_block = {
+                "labels": mn["labels"], "coef": mn["coef"],
+                "intercept": mn["intercept"], "n_buckets": mn["n_buckets"],
+                "sites": nd.SITE_ALIASES, "wall": nd.WALL_ALIASES,
+                "roof": nd.ROOF_ALIASES, "ins": nd.INS_ALIASES,
+                "goals": nd.GOAL_WORDS, "orient": nd.ORIENT_WORDS,
+                "guards": {"inject": nd.GUARD_INJECT, "ood": nd.GUARD_OOD,
+                           "undo": nd.UNDO_RE},
+                "note": ("Intent mirror of src/nlp_design.py; slot gazetteer "
+                         "minus the Hinglish bridge and fuzzy spell-fixing. "
+                         "Engine numbers are unaffected: always the offline "
+                         "3R2C run."),
+            }
+            print(f"[bundle] nlp: {len(mn['coef'])}x{mn['n_buckets']} weights, "
+                  f"{len(nd.SITE_ALIASES)} site aliases", flush=True)
+    except Exception as exc:                                # noqa: BLE001
+        print(f"[bundle] nlp block skipped: {exc}", flush=True)
+
     bundle = {
-        "schema_version": 1,
+        "schema_version": 2,
         "generated_on": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%MZ"),
         "engine": "offline/engine.js — RC port of src/thermal/rc_model.py "
-                  "(parity-verified), AI surrogate from src/ai_model.py",
+                  "(parity-verified), AI surrogate from src/ai_model.py, "
+                  "OfflineNLP edge intent classifier",
         "materials": materials,
         "model": model,
         "sites": sites,
@@ -174,6 +203,8 @@ def main() -> None:
             "results": presets_file,
         },
     }
+    if nlp_block:
+        bundle["nlp"] = nlp_block
     OUT.write_text(json.dumps(bundle, separators=(",", ":")), encoding="utf-8")
     kb = OUT.stat().st_size / 1024
     print(f"[bundle] -> {OUT} ({kb:,.0f} KB, {len(materials)} materials, "

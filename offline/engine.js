@@ -371,10 +371,257 @@
     };
   }
 
+  /* ---------------- OfflineNLP — roadmap 3.2/3.7 edge inference ----------
+     Zero-network mirror of the server assistant's INTENT path and the
+     exact-gazetteer half of its slot extraction (roadmap Part 3.3). The
+     model block (hashed n-gram coefficients), gazetteers and guard/undo
+     patterns are injected from the bundle by scripts/build_offline_bundle.py
+     — the same strings that run on the server. What the offline mirror
+     deliberately does NOT do (disclosed in the UI, not silently): Hinglish
+     transliteration, fuzzy spell-fixing, relative edits, compare/optimise
+     execution. Parity is machine-checked: scripts/check_nlp_edge_parity.py. */
+  const NLP = (function () {
+    "use strict";
+    const N_BUCKETS = 4096;
+    let M = null;   // {labels, coef, intercept, sites, wall, roof, ins, goals, guards}
+
+    function esc(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+
+    function normalise(s) {
+      // constructor (not literal): the class contains '/', which inside a
+      // JS regex literal is only legal per Annex B — not worth relying on
+      s = String(s).normalize("NFKD").toLowerCase();
+      s = s.replace(new RegExp("[^a-z0-9\\s.\\-x/]", "g"), " ");
+      return s.replace(/\s+/g, " ").trim();
+    }
+
+    function fnv(tok) {                    // FNV-1a over UTF-8 bytes
+      let h = 0x811c9dc5 >>> 0;
+      const b = new TextEncoder().encode(tok);
+      for (let i = 0; i < b.length; i++) {
+        h = (h ^ b[i]) >>> 0;
+        h = Math.imul(h, 0x01000193) >>> 0;
+      }
+      return h % N_BUCKETS;
+    }
+
+    function featVec(raw) {                // mirrors featurise() exactly
+      const t = normalise(raw);
+      const counts = new Map();
+      const bump = (tok) => {
+        const b = fnv(tok);
+        counts.set(b, (counts.get(b) || 0) + 1.0);
+      };
+      const words = t.length ? t.split(" ") : [];
+      for (const w of words) bump("w:" + w);
+      for (let i = 0; i + 1 < words.length; i++) bump("b:" + words[i] + "_" + words[i + 1]);
+      const padded = " " + t + " ";
+      for (const n of [3, 4, 5])
+        for (let i = 0; i + n <= padded.length; i++) bump("c" + n + ":" + padded.slice(i, i + n));
+      const x = new Float64Array(N_BUCKETS);
+      counts.forEach((v, k) => { x[k] = v; });
+      let s2 = 0;
+      for (let i = 0; i < N_BUCKETS; i++) s2 += x[i] * x[i];
+      const nr = Math.sqrt(s2);
+      if (nr > 0) for (let i = 0; i < N_BUCKETS; i++) x[i] /= nr;
+      return x;
+    }
+
+    function classify(raw) {
+      if (!M) return { intent: "design", confidence: 0, scores: {} };
+      const x = featVec(raw);
+      const L = M.labels.length;
+      const logits = new Float64Array(L);
+      for (let i = 0; i < L; i++) {
+        let acc = M.intercept[i];
+        const row = M.coef[i];
+        for (let j = 0; j < N_BUCKETS; j++)
+          if (x[j] !== 0) acc += row[j] * x[j];
+        logits[i] = acc;
+      }
+      let mx = -Infinity;
+      for (let i = 0; i < L; i++) if (logits[i] > mx) mx = logits[i];
+      const ex = new Float64Array(L);
+      let sum = 0;
+      for (let i = 0; i < L; i++) { ex[i] = Math.exp(logits[i] - mx); sum += ex[i]; }
+      const scores = {};
+      let best = 0, bp = -1;
+      for (let i = 0; i < L; i++) {
+        const p = ex[i] / sum;
+        scores[M.labels[i]] = Math.round(p * 10000) / 10000;
+        if (p > bp) { bp = p; best = i; }
+      }
+      return { intent: M.labels[best], confidence: bp, scores: scores };
+    }
+
+    /* ---- unit mirror of src/nlp_normalizer.py Tier 2 --------------------- */
+    function normalizeUnits(s) {
+      const notes = {};
+      s = s.replace(/(\d+(?:\.\d+)?)\s*(?:by|x|×)\s*(\d+(?:\.\d+)?)\s*(feet|foot|ft)\b/gi,
+        (_, a, b) => {
+          const am = Math.round(parseFloat(a) * 0.3048 * 100) / 100;
+          const bm = Math.round(parseFloat(b) * 0.3048 * 100) / 100;
+          notes.length_m = a + " ft -> " + am + " m";
+          notes.width_m = b + " ft -> " + bm + " m";
+          return Math.max(am, bm) + " by " + Math.min(am, bm) + " meters";
+        });
+      s = s.replace(/(?:height|ceiling)\s*(?:of\s*)?(\d+(?:\.\d+)?)\s*(feet|foot|ft)\b/gi,
+        (_, v) => {
+          const mv = Math.round(parseFloat(v) * 0.3048 * 100) / 100;
+          notes.height_m = v + " ft -> " + mv + " m";
+          return "height " + mv + " meters";
+        });
+      s = s.replace(/(\d+(?:\.\d+)?)\s*(?:"|inches|inch)\b/gi, (_, v) => {
+        const mm = Math.round(parseFloat(v) * 25.4);
+        notes.inch = v + " in -> " + mm + " mm";
+        return mm + "mm ";
+      });
+      return [s, notes];
+    }
+
+    function scanAlias(t, table) {         // mirrors _find_alias: longest key
+      let bk = null, bl = -1;
+      for (const key in table) {
+        if (new RegExp("\\b" + esc(key) + "\\b").test(t) && key.length > bl) {
+          bk = key; bl = key.length;
+        }
+      }
+      return bk !== null ? [table[bk], bk] : [null, null];
+    }
+
+    function scopeOf(t, nounRe) {          // mirrors _scope()
+      const m = t.match(nounRe);
+      if (!m) return [null, 0, 0];
+      let prefix = m[1] || "";
+      prefix = prefix.split(/\b(?:and|with|or|plus)\b/).pop();
+      prefix = prefix.split(/\bwalls?\b/).pop();
+      return [prefix, m.index + m[0].length - prefix.length, m.index + m[0].length];
+    }
+
+    function extract(text) {
+      if (!M) return {};
+      const pair = normalizeUnits(text);
+      let t = normalise(pair[0]).replace(/[-/]+/g, " ").replace(/\s+/g, " ").trim();
+      const slots = {};
+      if (Object.keys(pair[1]).length) slots.unit_conversions = pair[1];
+      const g = M.guards || {};
+      if (g.undo && new RegExp(g.undo).test(t)) slots.undo = true;
+      const site = scanAlias(t, M.sites);
+      if (site[0]) slots.site = site[0];
+      const ws = scopeOf(t, /((?:[a-z]+ ){0,4})walls?\b/);
+      const rs = scopeOf(t, /((?:[a-z]+ ){0,4})roof(?:ing)?\b/);
+      if (ws[0]) { const w = scanAlias(ws[0], M.wall); if (w[0]) slots.wall_material = w[0]; }
+      let rFound = null;
+      if (rs[0]) { const r = scanAlias(rs[0], M.roof); rFound = r[0]; }
+      if (!rFound) {   // post-noun window: "chhat pe GI sheet dal do"
+        const post = t.match(/\broof(?:ing)?\b[^.,;]{0,30}/);
+        if (post) rFound = scanAlias(post[0].split(/\b(?:and|plus)\b/)[0], M.roof)[0];
+      }
+      if (rFound) slots.roof_material = rFound;
+      if (slots.wall_material === "puf_sandwich_panel" && !slots.roof_material &&
+          /\bpuf\b[^.]{0,18}\bpanels?\b/.test(t)) slots.roof_material = "puf_sandwich_panel";
+      if (!slots.wall_material) {
+        let tnr = t;
+        if (rs[2] > rs[1]) tnr = t.slice(0, rs[1]) + " " + t.slice(rs[2]);
+        let w = scanAlias(tnr, M.wall)[0];
+        if (!w) {   // post-noun for walls too, matching the server parser
+          const post = t.match(/\bwalls?\b[^.,;]{0,30}/);
+          if (post) w = scanAlias(post[0].split(/\b(?:and|plus)\b/)[0], M.wall)[0];
+        }
+        if (w) slots.wall_material = w;
+      }
+      if (/\b(?:remove|drop|delete|strip|eliminate)\b[^.]{0,14}insulat\w*/.test(t)) {
+        slots.insulation_material = "none"; slots.insulation_thickness_m = 0.0;
+      } else {
+        const ins = scanAlias(t, M.ins);
+        if (ins[0]) slots.insulation_material = ins[0];
+      }
+      const insulRe = /\b(insulat|eps|xps|wool|thermocol|mineral|glass\s+wool)\w*\b/;
+      const wallRe = /\b(wall|brick|stone|earth|rammed|mud|timber|plywood|concrete|block|panel|aac|sheet)\w*\b/;
+      const re = new RegExp("(\\d+(?:\\.\\d+)?)\\s*(mm|cm|meters?|metres?|m)\\b(?=([^.,;]{0,26}))", "g");
+      let mm;
+      while ((mm = re.exec(t)) !== null) {
+        const val = parseFloat(mm[1]), unit = mm[2], tail = mm[3];
+        const head = t.slice(Math.max(0, mm.index - 26), mm.index);
+        let metres = unit === "mm" ? val / 1000 : unit === "cm" ? val / 100 : val;
+        const ctx = head + " " + tail;
+        if (!(0.005 <= metres && metres <= 1.0)) continue;
+        const ta = tail.match(/^\s*(?:of\s+)?(?:the\s+)?(\w+(?:\s+\w+)?)/);
+        const tw = ta ? ta[1] : "";
+        if (insulRe.test(tw)) slots.insulation_thickness_m = Math.round(metres * 1e4) / 1e4;
+        else if (wallRe.test(tw)) slots.wall_thickness_m = Math.round(metres * 1e4) / 1e4;
+        else if (/^(roof|slab)\w*\b/.test(tw)) slots.roof_thickness_m = Math.round(metres * 1e4) / 1e4;
+        else if (insulRe.test(ctx) && !wallRe.test(tail)) slots.insulation_thickness_m = Math.round(metres * 1e4) / 1e4;
+        else if (/\bwall\b/.test(ctx) || (ctx.includes("thickness") && slots.wall_material))
+          slots.wall_thickness_m = Math.round(metres * 1e4) / 1e4;
+      }
+      const dim = t.match(new RegExp("(\\d+(?:\\.\\d+)?)\\s*(?:x|by|\\*)\\s*"
+                                   + "(\\d+(?:\\.\\d+)?)\\s*"
+                                   + "(meters?|metres?|feet|foot|ft|m)?\\b"));
+      if (dim) {
+        const a = parseFloat(dim[1]), b = parseFloat(dim[2]);
+        const inBand = 1.5 <= a && a <= 20 && 1.5 <= b && b <= 20;
+        if (inBand || (dim[3] && Math.min(a, b) >= 0.5 && Math.max(a, b) <= 60)) {
+          slots.length_m = a; slots.width_m = b;
+        }
+      }
+      const ht = t.match(/(?:height|tall|ceiling)\D{0,12}(\d+(?:\.\d+)?)\s*m\w*\b/) ||
+                 t.match(/(\d+(?:\.\d+)?)\s*(?:m|meter|meters)\s+(?:ceiling|height)\b/);
+      if (ht) { const v = parseFloat(ht[1]); if (1.8 <= v && v <= 6) slots.height_m = v; }
+      const win = t.match(/(?:facing|faces|orient\w*|window[s]?\s+(?:on|to)?\s*(?:the)?)\s*(north|south|east|west)/);
+      const alt = win ? null : t.match(/(north|south|east|west)[\s\-]*facing/);
+      const pre = win || alt ? null :
+        t.match(/(?:the\s+)?\b(north|south|east|west)\s+(?:facing\s+)?(?:windows?|glazing|openings?|glass)\b/);
+      const dir = win ? win[1] : alt ? alt[1] : pre ? pre[1] : null;
+      if (dir) slots.window_wall = M.orient[dir];
+      const rot = t.match(/(?:rotat\w*|orient\w*)\D{0,12}(\d{1,3})\s*(?:deg|degree)/);
+      if (rot) { const v = parseInt(rot[1], 10); if (v >= 0 && v <= 359) slots.orientation_deg = v; }
+      const ach = t.match(/(\d+(?:\.\d+)?)\s*(?:air[\s\-]*changes?\b|ach\b)/) ||
+                  t.match(/\bach\b\s*(?:to|of|=|at)?\s*(\d+(?:\.\d+)?)/) ||
+                  t.match(/(?:ventilation|airflow|air flow)[^.,;]{0,12}?(?:to|of|=|at)\s*(\d+(?:\.\d+)?)/);
+      if (ach) { const v = parseFloat(ach[1]); if (0.2 <= v && v <= 20) slots.ach = v; }
+      const goals = [];
+      for (const k in M.goals)
+        if (new RegExp("\\b" + esc(k) + "\\b").test(t) && goals.indexOf(M.goals[k]) < 0)
+          goals.push(M.goals[k]);
+      if (goals.length) slots.goals = goals;
+      if (/\b(?:bigger|smaller|larger|wider|taller|thicker|thinner)\b/.test(t))
+        slots.relative_note = "relative sizing runs with the online assistant";
+      return slots;
+    }
+
+    function parse(text) {
+      const raw = normalise(text);
+      let out = classify(raw);
+      let readBy = "edge-model";
+      const g = (M && M.guards) || {};
+      if (g.inject && new RegExp(g.inject).test(raw)) {
+        out = { intent: "unknown", confidence: 0.99, scores: out.scores };
+        readBy = "guard:prompt-injection";
+      } else if (g.ood && new RegExp(g.ood).test(raw)) {
+        out = { intent: "unknown", confidence: 0.99, scores: out.scores };
+        readBy = "guard:out-of-domain";
+      } else if (g.undo && new RegExp(g.undo).test(raw)) {
+        out = { intent: "modify", confidence: Math.max(out.confidence, 0.99), scores: out.scores };
+        readBy = "grammar:undo";
+      }
+      return { intent: out.intent, confidence: out.confidence,
+               scores: out.scores, slots: extract(text), read_by: readBy };
+    }
+
+    return {
+      init: function (model) { M = model; return !!model; },
+      ready: function () { return !!M; },
+      parse: parse, classify: classify, extract_slots: extract,
+      normalise: normalise,
+    };
+  })();
+
   return {
     DEFAULTS, SPACE,
     surface_conductance, surface_mass, buildSurfaces, poaForSurface,
     simulate, comfort_stats, buildFeatures, predictOne, predictDesign,
     sampleDesign, mulberry32, suggest,
+    nlp: NLP,
   };
 });

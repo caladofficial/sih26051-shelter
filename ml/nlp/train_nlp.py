@@ -59,8 +59,25 @@ DATA = Path(__file__).resolve().parent / "data" / "nlp_dataset.csv"
 OUT = REPO / "src" / "data" / "nlp_model.json"
 
 
-def main() -> int:
-    df = pd.read_csv(DATA)
+def main(argv: list[str] | None = None) -> int:
+    argv = sys.argv[1:] if argv is None else list(argv)
+    data, out = DATA, OUT
+    for flag, setter in (("--data", lambda p: (0, p)),
+                         ("--out", lambda p: (1, p))):
+        if flag in argv:
+            i = argv.index(flag)
+            which, path = setter(argv[i + 1])
+            if which:
+                out = Path(path)
+            else:
+                data = Path(path)
+    if "--check-corpus" in argv:
+        # active-learning dry run: report the corpus, train nothing
+        df = pd.read_csv(data)
+        print(f"[nlp] corpus check: {len(df):,} rows, "
+              f"{df.intent.value_counts().to_dict()}")
+        return 0
+    df = pd.read_csv(data)
     print(f"[nlp] corpus: {len(df):,} utterances, "
           f"{df.intent.nunique()} intents")
 
@@ -91,23 +108,6 @@ def main() -> int:
         per_class[l] = {k: round(float(rep[l][k]), 4)
                         for k in ("precision", "recall", "f1-score")}
 
-    # --- honest generalisation numbers --------------------------------------
-    # The synthetic split flatters any model trained on template noise. Score
-    # the model on the 86 hand-annotated gold utterances (NEVER trained on)
-    # through the FULL parse path — classifier + grammar backstop — because
-    # that is what the product actually runs.
-    gold = {"n": 0, "intent_accuracy": None}
-    gold_file = DATA.parent / "nlp_gold_v2.jsonl"
-    if gold_file.exists():
-        import json as _json
-        from src.nlp_design import parse as _parse
-        rows = [_json.loads(l) for l in
-                gold_file.read_text(encoding="utf-8").splitlines() if l.strip()]
-        hits = sum(1 for r in rows if _parse(r["text"])["intent"] == r["intent"])
-        gold = {"n": len(rows), "intent_accuracy": round(hits / len(rows), 4)}
-        print(f"[nlp] gold-holdout intent accuracy: {hits}/{len(rows)}"
-              f" = {gold['intent_accuracy']:.4f}  (never trained on)")
-
     payload = {
         "schema_version": 1,
         "family": "hashed word+char n-grams -> multinomial logistic regression",
@@ -121,7 +121,6 @@ def main() -> int:
             "per_class": per_class,
             "confusion_matrix": cm,
             "labels_order": labels,
-            "gold_holdout": gold,
         },
         "note": ("Intent classifier only. Slot values (site, materials, "
                  "dimensions, orientation) are extracted by an explicit "
@@ -129,10 +128,38 @@ def main() -> int:
                  "auditable, which matters more than raw flexibility when "
                  "the output drives a physics engine."),
     }
-    OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(json.dumps(payload, separators=(",", ":")), encoding="utf-8")
-    kb = OUT.stat().st_size / 1024
-    print(f"[nlp] wrote {OUT.relative_to(REPO)}  ({kb:,.0f} KB)")
+
+    # --- honest generalisation numbers --------------------------------------
+    # The synthetic split flatters any model trained on template noise. Score
+    # the JUST-FITTED weights on the 86 hand-annotated gold utterances (never
+    # trained on) through the FULL parse path — classifier + grammar backstop
+    # — by swapping the in-memory model cache, so the number below describes
+    # the weights being exported, not the previous file on disk.
+    gold = {"n": 0, "intent_accuracy": None}
+    gold_file = DATA.parent / "nlp_gold_v2.jsonl"
+    if not gold_file.exists():
+        gold_file = Path(__file__).resolve().parent / "data" / "nlp_gold_v2.jsonl"
+    if gold_file.exists():
+        from src import nlp_design as _nd
+        rows = [json.loads(l) for l in
+                gold_file.read_text(encoding="utf-8").splitlines() if l.strip()]
+        saved = _nd._model_cache
+        try:
+            _nd._model_cache = payload          # score the new weights
+            hits = sum(1 for r in rows
+                       if _nd.parse(r["text"])["intent"] == r["intent"])
+        finally:
+            _nd._model_cache = saved
+        gold = {"n": len(rows), "intent_accuracy": round(hits / len(rows), 4)}
+        print(f"[nlp] gold-holdout intent accuracy: {hits}/{len(rows)}"
+              f" = {gold['intent_accuracy']:.4f}  (never trained on)")
+    payload["metrics"]["gold_holdout"] = gold
+
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(payload, separators=(",", ":")), encoding="utf-8")
+    kb = out.stat().st_size / 1024
+    print(f"[nlp] wrote {out.relative_to(REPO) if out.is_relative_to(REPO) else out}"
+          f"  ({kb:,.0f} KB)")
     return 0
 
 

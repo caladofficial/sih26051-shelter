@@ -1,0 +1,43 @@
+{
+ "generated_at": "2026-09-17T10:33:03+0000",
+ "environment": {
+  "python": "3.13.14",
+  "platform": "Linux-6.1.158+-x86_64-with-glibc2.41",
+  "cpu_count": 2
+ },
+ "n_latency_samples": 147,
+ "latency_detail_ms": {
+  "avg_ms": 3.25,
+  "median_ms": 3.08,
+  "p95_ms": 5.24
+ },
+ "targets": {
+  "intent_accuracy": 0.992,
+  "compare_recall": 0.97,
+  "slot_f1": 0.965,
+  "ood_auroc": 0.985,
+  "latency_ms": 25.0
+ },
+ "measured": {
+  "intent_accuracy": 1.0,
+  "compare_recall": 1.0,
+  "slot_f1": 0.8263,
+  "ood_auroc": 1.0,
+  "latency_avg_ms": 3.25
+ },
+ "pass": {
+  "intent_accuracy": true,
+  "compare_recall": true,
+  "slot_f1": false,
+  "ood_auroc": true,
+  "latency_avg_ms": true
+ },
+ "all_pass": false,
+ "method": {
+  "intent_accuracy": "hand-written hold-out (never trained on), classifier+grammar path",
+  "compare_recall": "share of gold-corpus 'compare' rows the full production parse classifies as compare",
+  "slot_f1": "F1 = 2TP/(2TP+FP+FN) over gold design/modify/compare rows. Expected = annotated values the user actually spoke (recall side); a prediction is only FP when it contradicts or exceeds the full annotation, so corroborated inference (occupancy sizing producing the annotated 4.6x4.6) is not punished.",
+  "ood_auroc": "Mann-Whitney AUROC of classifier 1-p(unknown) on hold-out sentences vs the 12 gold OOD negatives (grammar guard excluded \u2014 this measures the model)",
+  "latency": "wall-clock full parse() on this CPU; the roadmap's <=25 ms target was written for an ONNX INT8 model \u2014 our numpy path is measured, not estimated"
+ }
+}

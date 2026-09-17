@@ -44,7 +44,7 @@
          font-weight:700;letter-spacing:1.2px}
   button.primary:hover{filter:brightness(1.08)}
   button:disabled{opacity:.45;cursor:not-allowed}
-  select,input{font:inherit;color:var(--ink);background:var(--panel);
+  select,input,textarea{font:inherit;color:var(--ink);background:var(--panel);
                border:1px solid var(--line);border-radius:8px;padding:6px 8px;min-width:0}
   .wrap{max-width:1180px;margin:0 auto;padding:14px 16px 60px;display:grid;gap:14px}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;
@@ -171,6 +171,20 @@
       <span class="mut small" id="presetMeta"></span>
     </div>
     <div id="presetNums" class="kpis" style="margin-top:10px"></div>
+  </div>
+
+  <!-- describe it — offline edge NLP -->
+  <div class="card" id="nlpCard">
+    <h2><span class="dot"></span>Describe it — offline assistant (edge NLP)</h2>
+    <div class="row">
+      <textarea id="nlpText" rows="2" style="flex:1" placeholder="e.g. design a mud brick shelter for Jaipur with 300 mm walls and small north windows"></textarea>
+      <button id="nlpBtn" class="primary">UNDERSTAND →</button>
+    </div>
+    <div class="mut small" id="nlpVerdict" style="margin-top:6px"></div>
+    <p class="mut small">Runs fully offline: the SAME intent model and gazetteer the server
+      uses (machine-parity-checked), minus the Hinglish bridge and typo correction, which
+      need the full parser. Every number stays engine-computed. Compare / optimise /
+      climate-numeric answers are online-assistant features.</p>
   </div>
 
   <!-- results -->
@@ -675,6 +689,72 @@ $("simulateBtn").onclick = function () {
     msg("Simulation failed: " + e.message, "err");
   }
   persist();
+};
+
+/* ============ offline edge NLP (roadmap 3.2/3.7) ============ */
+var NLP_READY = false;
+if (BUNDLE.nlp) { try { NLP_READY = ENG.nlp.init(BUNDLE.nlp); } catch (e) { NLP_READY = false; } }
+$("nlpCard").style.opacity = NLP_READY ? "1" : "0.55";
+$("nlpBtn").onclick = function () {
+  var txt = $("nlpText").value.trim();
+  if (!txt) return;
+  if (!NLP_READY) {
+    $("nlpVerdict").textContent =
+      "No NLP model block in this bundle — rebuild with scripts/build_offline_bundle.py.";
+    return;
+  }
+  var r;
+  try { r = ENG.nlp.parse(txt); } catch (e) {
+    $("nlpVerdict").textContent = "parse error: " + e.message; return;
+  }
+  var s = r.slots || {};
+  var actionable = (r.intent === "design" || r.intent === "modify") && r.confidence >= 0.45;
+  var KEYS = { wall_material: "d_wall_material", roof_material: "d_roof_material",
+    insulation_material: "d_insulation_material", wall_thickness_m: "d_wall_thickness_m",
+    roof_thickness_m: "d_roof_thickness_m", insulation_thickness_m: "d_insulation_thickness_m",
+    length_m: "d_length_m", width_m: "d_width_m", height_m: "d_height_m",
+    orientation_deg: "d_orientation_deg", window_wall: "d_window_wall",
+    window_width_m: "d_window_width_m", window_height_m: "d_window_height_m",
+    window_shgc: "d_window_shgc", window_u_w_m2k: "d_window_u_w_m2k", ach: "d_ach" };
+  var d = state.design || readDesign();
+  var applied = [];
+  if (actionable) {
+    for (var k in KEYS) {
+      if (s[k] === undefined) continue;
+      var el = document.getElementById(KEYS[k]);
+      if (el.tagName === "SELECT") {
+        var okOpt = false;
+        for (var i = 0; i < el.options.length; i++)
+          if (el.options[i].value === String(s[k])) okOpt = true;
+        if (!okOpt) continue;
+      }
+      d[k] = s[k]; applied.push(k + " = " + s[k]);
+    }
+    if (s.site) {
+      var sel = $("siteSel");
+      for (var q = 0; q < sel.options.length; q++) {
+        if (sel.options[q].value === s.site) {
+          sel.value = s.site; state.site = s.site; renderSite();
+          applied.push("site = " + s.site); break;
+        }
+      }
+    }
+    if (applied.length) { setDesign(d); $("simulateBtn").click(); }
+  }
+  var notes = [];
+  for (var u in (s.unit_conversions || {})) notes.push(s.unit_conversions[u]);
+  if (s.relative_note) notes.push(s.relative_note);
+  if (s.undo) notes.push("undo/revert lives with the online assistant (conversation state)");
+  if (!actionable && r.intent !== "unknown")
+    notes.push("compare/optimise/explain answers run with the online assistant; "
+             + "offline you have presets + both design weeks");
+  $("nlpVerdict").textContent =
+    "read: " + r.intent + " (" + Math.round(r.confidence * 100) + "% via " + r.read_by + ")"
+    + (applied.length ? " · applied: " + applied.join(", ") : " · nothing applied")
+    + (notes.length ? " · " + notes.join("; ") : "");
+  msg(applied.length ? "Brief understood offline — form updated, both design weeks re-run."
+      : "Understood offline: " + r.intent + " — nothing applied.",
+      applied.length ? "ok" : "err");
 };
 ["d_length_m","d_width_m","d_height_m","d_orientation_deg","d_wall_material","d_wall_thickness_m",
  "d_roof_material","d_roof_thickness_m","d_insulation_material","d_insulation_thickness_m",

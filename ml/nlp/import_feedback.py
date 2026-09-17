@@ -33,10 +33,13 @@ COLS = ["created_at", "text", "intent", "confidence", "correct", "correction"]
 
 def pull(sqlite_path: str | None) -> list[dict]:
     if sqlite_path:
+        from src.db.store import Store
+        # pop AFTER the import: the store's module chain loads the repo .env
+        # at import time, which re-injected the Supabase vars and silently
+        # made --sqlite read the production table instead of the given file
         for var in ("SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY",
                     "SUPABASE_ANON_KEY", "DATABASE_URL"):
             os.environ.pop(var, None)          # force the sqlite branch
-        from src.db.store import Store
         store = Store(db_path=sqlite_path)
     else:
         from src.db.store import Store          # uses .env Supabase creds

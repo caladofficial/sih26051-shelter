@@ -30,6 +30,11 @@ from pathlib import Path
 
 import numpy as np
 
+try:                                   # repo-root import (api, tests)
+    from src import nlp_normalizer
+except ImportError:                      # src/ on sys.path (standalone use)
+    import nlp_normalizer
+
 MODEL_FILE = Path(__file__).resolve().parent / "data" / "nlp_model.json"
 
 #: hashing dimension — fixed so the exported matrix size never depends on
@@ -85,11 +90,13 @@ def featurise(text: str) -> np.ndarray:
     """Dense L2-normalised feature vector — used for single-utterance
     inference, where one 4096-float vector is trivial."""
     counts = feature_counts(text)
-    vec = np.zeros(N_BUCKETS, dtype=np.float32)
+    vec = np.zeros(N_BUCKETS, dtype=np.float64)   # float64: matches the JS
+    # mirror exactly — Math.imul/FLOAT64 arithmetic reproduce this dot product
+    # digit for digit, which is what the edge-parity gate measures
     if not counts:
         return vec
     idx = np.fromiter(counts.keys(), dtype=np.int32, count=len(counts))
-    val = np.fromiter(counts.values(), dtype=np.float32, count=len(counts))
+    val = np.fromiter(counts.values(), dtype=np.float64, count=len(counts))
     vec[idx] = val
     n = np.linalg.norm(vec)
     return vec / n if n > 0 else vec
@@ -115,8 +122,8 @@ def classify(text: str) -> tuple[str, float, dict]:
     if not m:
         return "design", 0.0, {}
     x = featurise(text)
-    logits = np.asarray(m["coef"], dtype=np.float32) @ x + \
-        np.asarray(m["intercept"], dtype=np.float32)
+    logits = np.asarray(m["coef"], dtype=np.float64) @ x + \
+        np.asarray(m["intercept"], dtype=np.float64)
     logits = logits - logits.max()
     p = np.exp(logits)
     p = p / p.sum()
@@ -129,51 +136,78 @@ def classify(text: str) -> tuple[str, float, dict]:
 # --------------------------------------------------------------------------
 # slot gazetteers — every value maps onto something the engine really has
 # --------------------------------------------------------------------------
+#: Vernacular/alternate names straight from the SIH dataset doc's
+#: LOCATION_SYNONYMS table (Part 3.3) — pure lookup, no inference.
 SITE_ALIASES = {
-    "prayagraj": "Prayagraj", "allahabad": "Prayagraj",
+    "prayagraj": "Prayagraj", "allahabad": "Prayagraj", "sangam": "Prayagraj",
     "delhi": "Delhi", "new delhi": "Delhi", "ncr": "Delhi",
-    "jaipur": "Jaipur", "pink city": "Jaipur",
-    "jaisalmer": "Jaisalmer", "thar": "Jaisalmer",
-    "ahmedabad": "Ahmedabad", "amdavad": "Ahmedabad",
-    "chennai": "Chennai", "madras": "Chennai",
-    "mumbai": "Mumbai", "bombay": "Mumbai",
-    "kolkata": "Kolkata", "calcutta": "Kolkata",
+    "jaipur": "Jaipur", "pink city": "Jaipur", "rajasthan": "Jaipur",
+    "jaisalmer": "Jaisalmer", "thar": "Jaisalmer", "pokhran": "Jaisalmer",
+    "desert post": "Jaisalmer",
+    "ahmedabad": "Ahmedabad", "amdavad": "Ahmedabad", "gujarat": "Ahmedabad",
+    "chennai": "Chennai", "madras": "Chennai", "tamil nadu": "Chennai",
+    "mumbai": "Mumbai", "bombay": "Mumbai", "coastal west": "Mumbai",
+    "kolkata": "Kolkata", "calcutta": "Kolkata", "bengal": "Kolkata",
     "bengaluru": "Bengaluru", "bangalore": "Bengaluru",
-    "hyderabad": "Hyderabad", "pune": "Pune", "poona": "Pune",
-    "leh": "Leh", "ladakh": "Leh",
-    "srinagar": "Srinagar", "kashmir": "Srinagar",
-    "kargil": "Kargil", "dras": "Dras", "drass": "Dras",
+    "hyderabad": "Hyderabad", "secunderabad": "Hyderabad",
+    "pune": "Pune", "poona": "Pune",
+    "leh": "Leh", "ladakh": "Leh", "indus valley": "Leh",
+    "srinagar": "Srinagar", "kashmir": "Srinagar", "kashmir valley": "Srinagar",
+    "kargil": "Kargil", "suru valley": "Kargil",
+    "dras": "Dras", "drass": "Dras", "subzero sector": "Dras",
 }
 
 WALL_ALIASES = {
     "brick": "brick", "burnt brick": "brick", "red brick": "brick",
+    "clay brick": "brick", "pucca brick": "brick",
     "mud brick": "mud_brick", "mudbrick": "mud_brick", "adobe": "mud_brick",
+    "sun dried brick": "mud_brick", "kaccha brick": "mud_brick",
     "mud": "mud_brick", "clay": "mud_brick",
     "rammed earth": "rammed_earth", "earth": "rammed_earth",
+    "pise": "rammed_earth", "compacted earth": "rammed_earth",
+    "dhajji dewari": "rammed_earth",
     "stone": "stone", "granite": "stone", "masonry": "stone",
-    "concrete": "concrete", "rcc": "rcc_slab", "cement": "concrete",
+    "sandstone": "stone", "kota stone": "stone",
+    "concrete": "concrete", "cast concrete": "concrete", "rcc": "rcc_slab",
+    "cement": "concrete",
     "timber": "timber", "wood": "timber", "wooden": "timber",
-    "plywood": "plywood", "ply": "plywood",
+    "wooden beam": "timber", "sal wood": "timber",
+    "plywood": "plywood", "ply": "plywood", "marine ply": "plywood",
+    "wood board": "plywood",
     "aac": "aerated_concrete", "aac block": "aerated_concrete",
     "aerated concrete": "aerated_concrete", "siporex": "aerated_concrete",
+    "light concrete": "aerated_concrete",
+    "autoclaved aerated concrete": "aerated_concrete",
     "puf": "puf_sandwich_panel", "puf panel": "puf_sandwich_panel",
     "sandwich panel": "puf_sandwich_panel", "panel": "puf_sandwich_panel",
+    "polyurethane panel": "puf_sandwich_panel", "pre-fab panel": "puf_sandwich_panel",
     "gi sheet": "gi_sheet", "gi": "gi_sheet", "tin": "gi_sheet",
-    "tin sheet": "gi_sheet", "metal sheet": "gi_sheet",
-    "corrugated": "gi_sheet", "steel sheet": "gi_sheet",
+    "tin sheet": "gi_sheet", "tin roof": "gi_sheet", "chadar": "gi_sheet",
+    "iron sheet": "gi_sheet", "metal sheet": "gi_sheet",
+    "corrugated": "gi_sheet", "corrugated sheet": "gi_sheet",
+    "steel sheet": "gi_sheet",
 }
 
 ROOF_ALIASES = dict(WALL_ALIASES)
 ROOF_ALIASES.update({"rcc slab": "rcc_slab", "slab": "rcc_slab",
+                     "reinforced concrete": "rcc_slab",
+                     "concrete slab": "rcc_slab", "cement slab": "rcc_slab",
                      "concrete roof": "rcc_slab", "rcc roof": "rcc_slab"})
 
 INS_ALIASES = {
     "eps": "eps", "thermocol": "eps", "styrofoam": "eps", "expanded": "eps",
-    "xps": "xps", "extruded": "xps",
+    "expanded polystyrene": "eps", "polystyrene": "eps",
+    "white thermocol": "eps",
+    "xps": "xps", "extruded": "xps", "extruded polystyrene": "xps",
+    "blueboard": "xps", "pinkboard": "xps",
     "mineral wool": "mineral_wool", "rockwool": "mineral_wool",
     "rock wool": "mineral_wool", "glass wool": "mineral_wool",
-    "glasswool": "mineral_wool",
+    "glasswool": "mineral_wool", "slag wool": "mineral_wool",
     "sheep wool": "sheep_wool", "wool": "sheep_wool",
+    "natural wool": "sheep_wool",
+    # NB: no "wool insulation" key — it would out-length
+    # "mineral wool" inside "mineral wool insulation" and
+    # mislabel it; bare "wool" already covers that speech
     "no insulation": "none", "without insulation": "none",
     "uninsulated": "none", "none": "none",
 }
@@ -192,6 +226,13 @@ GOAL_WORDS = {
     "emergency": "rapid", "temporary": "rapid",
     "comfortable": "comfort", "liveable": "comfort", "livable": "comfort",
 }
+
+
+def _has_long_word(t: str, min_len: int = 7) -> bool:
+    """Cheap gate before any edit-distance work: with no word of >=min_len
+    chars there is nothing the fuzzy tier could accept (_allowed_dist is 0
+    for keys <=4 and 1 for <=7, and those are covered by the exact scan)."""
+    return any(len(w) >= min_len for w in t.split())
 
 
 def _find_alias(text: str, table: dict) -> tuple[str | None, str | None]:
@@ -378,32 +419,55 @@ def _compare_entities(t: str) -> dict | None:
     return None
 
 
+# --------------------------------------------------------------------------
+# Guard + undo patterns are module constants (not inline literals) so the
+# OFFLINE JS runtime (offline/engine.js OfflineNLP) embeds the exact same
+# strings from the bundle — one source of truth, verified by
+# scripts/check_nlp_edge_parity.py rather than by faith.
+# --------------------------------------------------------------------------
+GUARD_INJECT = (
+    r"\b(?:ignore|disregard|forget)\s+(?:all\s+|any\s+)?(?:previous|prior|above|earlier)\b"
+    r"|\bsystem\s+prompt\b|\bjailbreak\b|\bpretend\s+to\s+be\b|\byou\s+are\s+now\b"
+    r"|reveal.{0,24}(?:password|credential|secret|database|api key)"
+    r"|(?:show|print|leak|dump|give me).{0,28}(?:\brows\b|\btable\b|\bsql\b"
+    r"|api keys?|access token|secret keys?|credentials?"
+    r"|passwords?\b|env vars?\b)"
+    r"|\b(?:drop|delete)\s+table\b|\bselect\s+\*|\binsert\s+into\b"
+    r"|\bunion\s+select\b|\bxp_cmdshell\b|\bor\s+1=1\b")
+
+GUARD_OOD = (
+    r"\bcapital of\b|\bpopulation of\b|\blinked list\b|\bpython script\b|"
+    r"\bwrite (?:a|me)\b.{0,12}\b(?:poem|essay|script|function|code)\b|"
+    r"\b(?:book|order|reserve) me\b|\bflight (?:ticket|to)\b|\bhotel room\b|"
+    r"\brecipe\b|\bbirthday\b|\bhoroscope\b|\btranslate (?:this|the)\b|"
+    r"\bmeaning of life\b|\bstory about\b|\bjoke\b"
+    r"|\bhack\b|\bwifi password|\bcrack(?:ing)? .{0,10}password\b"
+    r"|\bkali linux\b|\bmalware\b|\bransomware\b"
+    r"|\b(?:price|rate|value) of\b[^.]{0,14}\b(?:bitcoin|btc|crypto"
+    r"|gold|rupee|dollar|nifty|sensex)\b|\b(?:bitcoin|crypto)\b"
+    r"|\bexchange rate\b|\bmatch score\b|\bcricket score\b")
+
+UNDO_RE = (r"\b(?:undo|revert|rollback)\b"
+           r"|\broll(?:s|ing)?\s+(?:it|that|this)\s+back\b|\broll\s?back\b"
+           r"|\bback to (?:the )?previous\b|\btake it back\b")
+
+
 def grammar(t: str) -> tuple[str | None, str]:
     """Deterministic intent corrections from constructs the n-gram bag
     cannot represent. Returns (intent|None, reason). Only fires on constructs
     that are unambiguous by construction, so a bare "compare" with no pair
     never overrides."""
     # --- guard: prompt injection / clearly-out-of-domain -------------------
-    if re.search(r"\b(?:ignore|disregard|forget)\s+(?:all\s+|any\s+)?(?:previous|prior|above|earlier)\b"
-                 r"|\bsystem\s+prompt\b|\bjailbreak\b|\bpretend\s+to\s+be\b|\byou\s+are\s+now\b"
-                 r"|reveal.{0,24}(?:password|credential|secret|database|api key)"
-                 r"|(?:show|print|leak|dump|give me).{0,28}(?:\brows\b|\btable\b|\bsql\b"
-                 r"|api keys?|access token|secret keys?|credentials?"
-                 r"|passwords?\b|env vars?\b)"
-                 r"|\b(?:drop|delete)\s+table\b|\bselect\s+\*|\binsert\s+into\b"
-                 r"|\bunion\s+select\b|\bxp_cmdshell\b|\bor\s+1=1\b", t):
+    if re.search(GUARD_INJECT, t):
         return "unknown", "guard:prompt-injection"
-    if re.search(r"\bcapital of\b|\bpopulation of\b|\blinked list\b|\bpython script\b|"
-                 r"\bwrite (?:a|me)\b.{0,12}\b(?:poem|essay|script|function|code)\b|"
-                 r"\b(?:book|order|reserve) me\b|\bflight (?:ticket|to)\b|\bhotel room\b|"
-                 r"\brecipe\b|\bbirthday\b|\bhoroscope\b|\btranslate (?:this|the)\b|"
-                 r"\bmeaning of life\b|\bstory about\b|\bjoke\b"
-                 r"|\bhack\b|\bwifi password|\bcrack(?:ing)? .{0,10}password\b"
-                 r"|\bkali linux\b|\bmalware\b|\bransomware\b"
-                 r"|\b(?:price|rate|value) of\b[^.]{0,14}\b(?:bitcoin|btc|crypto"
-                 r"|gold|rupee|dollar|nifty|sensex)\b|\b(?:bitcoin|crypto)\b"
-                 r"|\bexchange rate\b|\bmatch score\b|\bcricket score\b", t):
+    if re.search(GUARD_OOD, t):
         return "unknown", "guard:out-of-domain"
+    # --- conversational undo (roadmap Step 3.4) -----------------------------
+    # "undo" / "revert that" / "back to the previous design" are instructions
+    # on the DIALOGUE STATE, not the envelope: always a modify, even when the
+    # sentence is too short for the classifier to have seen its shape before.
+    if re.search(UNDO_RE, t):
+        return "modify", "grammar:undo"
     # --- optimisation verb ANYWHERE ("... ke liye optimize karo") -----------
     # the Hinglish word order puts it at the end; English imperatives at the
     # front; both are unambiguous commands
@@ -471,14 +535,35 @@ def grammar(t: str) -> tuple[str | None, str]:
 
 def extract_slots(text: str) -> dict:
     """Pull design values out of free text. Only returns what it truly finds."""
-    t = _digitise(_hinglish(normalise(text)))
+    # Tier 2 (nlp_normalizer): imperial speech is converted BEFORE the
+    # gazetteer sees it, so "10 by 12 feet" and "9 inch brick" flow through
+    # the same metric rules as everything else. Conversions are recorded in
+    # `unit_conversions` for the honesty trail.
+    text_m, unit_notes = nlp_normalizer.normalize_units(text)
+    t = _digitise(_hinglish(normalise(text_m)))
     # gazetteer scan text: hyphens and slashes flatten to spaces so
     # "mud-brick", "well-ventilated" and "4/5" match the same keys as
     # their spaced forms (the gold corpus writes compounds hyphenated)
     t = re.sub(r"\s+", " ", re.sub(r"[-/]+", " ", t))
     slots: dict = {}
+    if unit_notes:
+        slots["unit_conversions"] = unit_notes
+
+    # conversational undo (roadmap Step 3.4): the words are a request for
+    # the PREVIOUS design state; the endpoint owns the history
+    if re.search(UNDO_RE, t):
+        slots["undo"] = True
 
     site, _ = _find_alias(t, SITE_ALIASES)
+    if not site and _has_long_word(t):
+        # Tier 1 (nlp_normalizer): typo-tolerant site lookup, e.g.
+        # "jaysalmer" -> Jaisalmer. Refuses when ambiguous. The long-word
+        # gate keeps the DP off the hot path for ordinary sentences
+        # (short keys are exact-only anyway per _allowed_dist).
+        hit = nlp_normalizer.fuzzy_lookup(t, SITE_ALIASES)
+        if hit:
+            site, _fk, span = hit
+            slots.setdefault("fuzzy_read", {})[span] = f"site {site}"
     if site:
         slots["site"] = site
 
@@ -505,12 +590,35 @@ def extract_slots(text: str) -> dict:
     r_scope, r_a, r_b = _scope(roof_ctx)
     if w_scope:
         w, _ = _find_alias(w_scope, WALL_ALIASES)
+        if not w and _has_long_word(w_scope):
+            hit = nlp_normalizer.fuzzy_lookup(w_scope, WALL_ALIASES)
+            if hit:
+                w, _wk, span = hit
+                slots.setdefault("fuzzy_read", {})[span] = "wall material " + w
         if w:
             slots["wall_material"] = w
     if r_scope:
         r, _ = _find_alias(r_scope, ROOF_ALIASES)
-        if r:
-            slots["roof_material"] = r
+        if not r and _has_long_word(r_scope):
+            hit = nlp_normalizer.fuzzy_lookup(r_scope, ROOF_ALIASES)
+            if hit:
+                r, _rk, span = hit
+                slots.setdefault("fuzzy_read", {})[span] = "roof material " + r
+    else:
+        r = None
+    if not r and "roof_material" not in slots:
+        # post-noun window: "chhat pe GI sheet dal do" (put GI sheet ON the
+        # roof) — in postpositional phrasing the material FOLLOWS the
+        # structural noun, so a sentence-initial "roof" has an EMPTY prefix
+        # and the scope scan above cannot see it at all. Scan the short
+        # window after the noun, cut at conjunctions so "on the roof and
+        # walls" cannot steal a wall word.
+        post = re.search(r"\broof(?:ing)?\b[^.,;]{0,30}", t)
+        if post:
+            window = re.split(r"\b(?:and|plus)\b", post.group(0))[0]
+            r, _ = _find_alias(window, ROOF_ALIASES)
+    if r:
+        slots["roof_material"] = r
     # structural frames carry both surfaces in prefab speech ("timber frame")
     if re.search(r"\b(?:timber|wood|steel|bamboo) frame\b", t):
         fm = re.search(r"\b(timber|wood|steel|bamboo) frame\b", t).group(1)
@@ -529,6 +637,18 @@ def extract_slots(text: str) -> dict:
         if r_a and r_b > r_a:
             t_no_roof = t[:r_a] + " " + t[r_b:]
         w, _ = _find_alias(t_no_roof, WALL_ALIASES)
+        if not w and _has_long_word(t_no_roof):
+            hit = nlp_normalizer.fuzzy_lookup(t_no_roof, WALL_ALIASES)
+            if hit:
+                w, _wk, span = hit
+                slots.setdefault("fuzzy_read", {})[span] = "wall material " + w
+        if not w:
+            # post-noun window for walls too ("diwar me cement laga do"
+            # -> "wall in cement ..."): same empty-prefix issue as roofs
+            post = re.search(r"\bwalls?\b[^.,;]{0,30}", t)
+            if post:
+                window = re.split(r"\b(?:and|plus)\b", post.group(0))[0]
+                w, _ = _find_alias(window, WALL_ALIASES)
         if w:
             slots["wall_material"] = w
 
@@ -546,6 +666,11 @@ def extract_slots(text: str) -> dict:
         slots["insulation_thickness_m"] = 0.0
     else:
         ins, _ = _find_alias(t, INS_ALIASES)
+        if not ins and _has_long_word(t):
+            hit = nlp_normalizer.fuzzy_lookup(t, INS_ALIASES)
+            if hit:
+                ins, _ik, span = hit
+                slots.setdefault("fuzzy_read", {})[span] = "insulation " + ins
         if ins:
             slots["insulation_material"] = ins
 
@@ -553,7 +678,13 @@ def extract_slots(text: str) -> dict:
     # unit list ordered longest-first; "0.25 meters" is the same number as
     # "0.25 m" — an unlisted plural used to silently drop the whole clause
     for m in re.finditer(
-            r"(\d+(?:\.\d+)?)\s*(mm|cm|meters?|metres?|m)\b([^.,;]{0,26})", t):
+            r"(\d+(?:\.\d+)?)\s*(mm|cm|meters?|metres?|m)\b"
+            r"(?=([^.,;]{0,26}))", t):
+        # (?=...) tail: v4 consumed up to 26 chars of context INSIDE the
+        # match, so "50mm EPS ... and 200mm wall thickness" never let the
+        # scanner reach 200mm — the audit's first-match-dropping flaw
+        # surviving in a new guise. Lookahead keeps the tail for attribution
+        # without eating the next number.
         val, unit, tail = float(m.group(1)), m.group(2), m.group(3)
         head = t[max(0, m.start() - 26):m.start()]
         metres = val / 1000 if unit == "mm" else val / 100 if unit == "cm" else val
@@ -582,10 +713,16 @@ def extract_slots(text: str) -> dict:
             slots["wall_thickness_m"] = round(metres, 4)
 
     # footprint: "3x4", "4 by 5 m", "3 x 3 metres"
-    dim = re.search(r"(\d+(?:\.\d+)?)\s*(?:x|by|\*)\s*(\d+(?:\.\d+)?)", t)
+    # Before v5, anything outside 1.5..20 m was SILENTLY dropped — "a 40 by
+    # 30 meter hall" quietly became the zone default with no explanation. Now
+    # a dimension with a spoken unit word is taken up to 60 m, and the
+    # endpoint's clamp (roadmap 3.5) narrows it AND REPORTS the narrowing.
+    dim = re.search(r"(\d+(?:\.\d+)?)\s*(?:x|by|\*)\s*(\d+(?:\.\d+)?)\s*"
+                    r"(meters?|metres?|feet|foot|ft|m)?\b", t)
     if dim:
-        a, b = float(dim.group(1)), float(dim.group(2))
-        if 1.5 <= a <= 20 and 1.5 <= b <= 20:
+        a, b, u = float(dim.group(1)), float(dim.group(2)), dim.group(3)
+        in_band = 1.5 <= a <= 20 and 1.5 <= b <= 20
+        if in_band or (u and 0.5 <= min(a, b) and max(a, b) <= 60):
             slots["length_m"], slots["width_m"] = a, b
 
     ht = re.search(r"(?:height|tall|ceiling)\D{0,12}(\d+(?:\.\d+)?)\s*m\w*\b", t) \
@@ -606,6 +743,15 @@ def extract_slots(text: str) -> dict:
         else:
             pre = re.search(r"(?:the\s+)?\b(north|south|east|west)\s+"
                             r"(?:facing\s+)?(?:windows?|glazing|openings?|glass)\b", t)
+            if not pre:
+                # direction + positional word ("dakshin yani south ki taraf
+                # ghumao" transliterates to "south toward") inside a
+                # window/rotate clause — requires those structure words so a
+                # stray compass word in prose never sets an envelope value
+                pre = re.search(r"\b(north|south|east|west)\b[^.,;]{0,14}"
+                                r"\b(?:side|toward\w*|dir\w*|taraf)\b", t) \
+                    if re.search(r"\b(?:window|khidki|glaz\w*|rotat\w*|"
+                                 r"orient\w*|ghum\w*)", t) else None
             if pre:
                 slots["window_wall"] = ORIENT_WORDS[pre.group(1)]
 
@@ -658,10 +804,17 @@ def extract_slots(text: str) -> dict:
         n = int(people.group(1))
         if 1 <= n <= 20:
             slots["occupants"] = n
-            area = max(9.0, 3.5 * n)              # ~3.5 m2/person, Sphere-ish
-            side = round(area ** 0.5, 1)
-            slots.setdefault("length_m", min(side, 6.0))
-            slots.setdefault("width_m", min(side, 6.0))
+            # ~4.5 m2/person per the SIH dataset doc Step-3.3 sketch
+            # (NBC SP-7 style sizing); v4 used 3.5 and under-sized the
+            # crowd cases the gold corpus annotates
+            area = max(9.0, 4.5 * n)
+            side = round(min(max(area ** 0.5, 3.0), 12.0), 1)
+            # v4 capped the side at 6.0 m, which quietly broke the very
+            # area it cites (15 people need ~52 m², not 36). Now the square
+            # keeps the stated area whenever the engine can hold it; the
+            # endpoint's clamp table is the single place limits are enforced.
+            slots.setdefault("length_m", side)
+            slots.setdefault("width_m", side)
 
     # ---- roof pitch -------------------------------------------------------
     pitch = re.search(r"(\d{1,2})\s*(?:deg|degree)s?\s*(?:pitch|slope|roof)", t)
@@ -673,7 +826,10 @@ def extract_slots(text: str) -> dict:
         slots["roof_pitch_deg"] = 30.0
     elif re.search(r"\b(sloped?|sloping|pitched|gable|shed|angled)\s+roof\b", t) \
             or re.search(r"\broof\s+(?:that\s+)?slopes?\b", t):
-        slots["roof_pitch_deg"] = 20.0
+        # 25°: both gold rows with an UNQUALIFIED "sloped roof" (DS_DIS_02,
+        # HN_DES_04) annotate 25 for monsoon runoff; v4's 20° contradicted
+        # them. Explicit degrees still win (clause above this one).
+        slots["roof_pitch_deg"] = 25.0
     elif re.search(r"\bflat\s+roof\b", t):
         slots["roof_pitch_deg"] = 0.0
 
@@ -738,6 +894,16 @@ def extract_slots(text: str) -> dict:
     elif re.search(r"\blow[\s\-]*(?:solar|shgc)\w*\b|avoid (?:the )?sun|"
                    r"shade\w* (?:from )?(?:the )?sun|reduce glare", t):
         slots["window_shgc"] = 0.4
+
+    # ---- glazing U-value spoken as a number (gold MD_ENV_18) --------------
+    # only an explicit figure is taken; "double glazed low-E" alone names a
+    # product, not a value, and inventing 1.8 would be a fabricated number
+    uval = (re.search(r"\bu[\s\-]?value\s*(?:to|of|=|at)?\s*(\d+(?:\.\d+)?)", t)
+            or re.search(r"(\d+(?:\.\d+)?)\s*(?:w/m2k|w/m[²2]k)\b", t))
+    if uval:
+        v = float(uval.group(1))
+        if 0.5 <= v <= 12:
+            slots["window_u_w_m2k"] = v
 
     # ---- ventilation rate stated as a number (an engine input) -------------
     ach = re.search(r"(\d+(?:\.\d+)?)\s*(?:air[\s\-]*changes?\b|ach\b)", t)

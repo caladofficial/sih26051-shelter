@@ -457,9 +457,14 @@ async function runNlp(textOverride) {
         // continuity), then the studio's current design (so a first request
         // modifies what the user already built rather than a blank default).
         context_design: state.nlpDesign || currentFlatDesign() || undefined,
+        // server-side conversation id (undo stack + turn counter); opaque and
+        // per-page-load — losing it costs undo, never correctness, because
+        // context_design above still carries the design itself
+        session_id: state.nlpSession || undefined,
       }),
     });
     stopProgress();
+    if (j.dialogue && j.dialogue.session) state.nlpSession = j.dialogue.session;
     renderNlp(j);   // renderNlp already stores j.design on state.nlpDesign
     // remember the exchange so the feedback buttons can report on it
     state.lastNlp = { text,
@@ -475,7 +480,9 @@ async function runNlp(textOverride) {
       toast("Applied to your design — 3D updated");
     }
     st.textContent = j.actionable
-      ? `understood as ${j.understood.intent} · ${Math.round(j.understood.confidence * 100)}% confident`
+      ? `understood as ${j.understood.intent} · `
+        + `${Math.round(j.understood.confidence * 100)}% confident`
+        + (j.dialogue && j.dialogue.turn ? ` · edit #${j.dialogue.turn}` : "")
       : "not actionable";
   } catch (err) {
     stopProgress();
@@ -550,7 +557,18 @@ function renderNlp(j) {
     verdict.className = "verdict warn";
     verdict.innerHTML = `<b>Not a design request</b><span>${j.message || ""}</span>`;
     $("nlpMetrics").innerHTML = "";
-    $("nlpApplied").innerHTML = "";
+    const rowsX = $("nlpApplied");
+    rowsX.innerHTML = "";
+    (u.hints || []).forEach((h) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>normalised: ${h}</td>`;
+      rowsX.appendChild(tr);
+    });
+    (j.ignored || []).forEach((h) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>ignored: ${h}</td>`;
+      rowsX.appendChild(tr);
+    });
     $("nlpDesign").innerHTML = "";
     $("nlpApply").hidden = true;
     if (u.read_by === "guard:prompt-injection") {
@@ -571,9 +589,12 @@ function renderNlp(j) {
     const pct = Math.round((m.comfort_fraction || 0) * 100);
     const cls = pct >= 70 ? "good" : pct >= 30 ? "warn" : "bad";
     verdict.className = `verdict ${cls}`;
-    verdict.innerHTML =
-      `<b>Designed for ${j.site} — peak ${fmt(m.max_indoor_c, 1)} °C, ${pct}% of the hot week comfortable.</b>` +
-      `<span>${j.message} · verified by the RC engine, not estimated</span>`;
+    verdict.innerHTML = j.kind === "undo"
+      ? `<b>Undone — previous design restored and re-verified on the engine.</b>` +
+        `<span>${j.message}</span>`
+      : `<b>Designed for ${j.site} — peak ${fmt(m.max_indoor_c, 1)} °C, ` +
+        `${pct}% of the hot week comfortable.</b>` +
+        `<span>${j.message} · verified by the RC engine, not estimated</span>`;
     const box = $("nlpMetrics");
     box.innerHTML = "";
     box.append(metric(`${fmt(m.mean_indoor_c, 1)} °C`, "mean indoor · hot week"),
@@ -588,7 +609,8 @@ function renderNlp(j) {
 
   const ap = $("nlpApplied");
   ap.innerHTML = "";
-  const items = (j.applied || []).slice();
+  const items = (u.hints || []).map((h) => `normalised: ${h}`);
+  items.push(...(j.applied || []).slice());
   (j.ignored || []).forEach((x) => items.push(`ignored: ${x}`));
   if (!items.length) items.push("nothing specific — used the zone prescription");
   items.forEach((line) => {
